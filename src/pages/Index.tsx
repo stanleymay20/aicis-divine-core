@@ -1,12 +1,32 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import { SystemStatus } from "@/components/SystemStatus";
+import { DivisionGrid } from "@/components/DivisionGrid";
+import { CommandInterface } from "@/components/CommandInterface";
+import { MetricsPanel } from "@/components/MetricsPanel";
 
 const Index = () => {
+  const [activeView, setActiveView] = useState("overview");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background">
+      {/* Animated background grid */}
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,hsl(189_40%_20%_/_0.1)_1px,transparent_1px),linear-gradient(to_bottom,hsl(189_40%_20%_/_0.1)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      
+      <div className="relative z-10">
+        <DashboardHeader activeView={activeView} setActiveView={setActiveView} />
+        
+        <main className="container mx-auto px-4 py-6 space-y-6">
+          <SystemStatus />
+          <MetricsPanel />
+          <DivisionGrid />
+          <CommandInterface />
+        </main>
       </div>
+
+      {/* Ambient glow effects */}
+      <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px] pointer-events-none" />
+      <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[128px] pointer-events-none" />
     </div>
   );
 };

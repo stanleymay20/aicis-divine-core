@@ -1,0 +1,69 @@
+import { Button } from "@/components/ui/button";
+import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare } from "lucide-react";
+
+interface DashboardHeaderProps {
+  activeView: string;
+  setActiveView: (view: string) => void;
+}
+
+export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderProps) => {
+  const navItems = [
+    { id: "overview", label: "Overview", icon: Activity },
+    { id: "finance", label: "Finance", icon: DollarSign },
+    { id: "security", label: "Security", icon: Shield },
+    { id: "health", label: "Healthcare", icon: Heart },
+    { id: "food", label: "Agriculture", icon: Leaf },
+    { id: "energy", label: "Energy", icon: Zap },
+    { id: "governance", label: "Governance", icon: Globe },
+    { id: "assistant", label: "J.A.R.V.I.S.", icon: MessageSquare },
+  ];
+
+  return (
+    <header className="border-b border-primary/20 bg-card/50 backdrop-blur-xl sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary rounded-full blur-xl opacity-50 animate-pulse-glow" />
+              <div className="relative w-12 h-12 rounded-full bg-gradient-cyber flex items-center justify-center">
+                <span className="text-2xl font-orbitron font-bold text-primary-foreground">A</span>
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-orbitron font-bold text-glow-cyber">AICIS</h1>
+              <p className="text-sm text-muted-foreground">Autonomous Intelligence Command System</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-sm text-success">All Systems Operational</span>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.id;
+            return (
+              <Button
+                key={item.id}
+                variant={isActive ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveView(item.id)}
+                className={`flex items-center gap-2 whitespace-nowrap ${
+                  isActive ? "glow-cyber" : ""
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {item.label}
+              </Button>
+            );
+          })}
+        </nav>
+      </div>
+    </header>
+  );
+};

@@ -1,0 +1,160 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Send, Mic, Terminal } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+export const CommandInterface = () => {
+  const [command, setCommand] = useState("");
+  const [messages, setMessages] = useState([
+    {
+      type: "system",
+      content: "J.A.R.V.I.S. online. All systems operational. How may I assist you today?",
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
+  const { toast } = useToast();
+
+  const handleSendCommand = () => {
+    if (!command.trim()) return;
+
+    // Add user message
+    const userMessage = {
+      type: "user",
+      content: command,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Simulate AI response
+    setTimeout(() => {
+      const responses = [
+        "Command acknowledged. Executing directive across all divisions.",
+        "Systems synchronized. Operations proceeding as requested.",
+        "Affirmative. Allocating resources to specified parameters.",
+        "Request processed. Global network updated successfully.",
+        "Command executed. All divisions reporting optimal performance.",
+      ];
+      
+      const aiResponse = {
+        type: "assistant",
+        content: responses[Math.floor(Math.random() * responses.length)],
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      
+      setMessages((prev) => [...prev, aiResponse]);
+    }, 1000);
+
+    setCommand("");
+  };
+
+  const handleVoiceCommand = () => {
+    toast({
+      title: "Voice Command",
+      description: "Voice recognition system would be integrated here",
+    });
+  };
+
+  return (
+    <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Terminal className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xl font-orbitron font-bold text-primary">J.A.R.V.I.S. Command Interface</h2>
+          <p className="text-sm text-muted-foreground">Natural language system control and oversight</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {/* Message History */}
+        <div className="h-64 overflow-y-auto space-y-3 p-4 rounded-lg bg-muted/20 border border-primary/10">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] p-3 rounded-lg ${
+                  message.type === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : message.type === "system"
+                    ? "bg-secondary/20 text-secondary border border-secondary/30"
+                    : "bg-muted text-foreground"
+                }`}
+              >
+                <p className="text-sm">{message.content}</p>
+                <p className="text-xs opacity-70 mt-1">{message.timestamp}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Show system status")}
+            className="text-xs"
+          >
+            System Status
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Optimize global operations")}
+            className="text-xs"
+          >
+            Optimize Operations
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Run security scan")}
+            className="text-xs"
+          >
+            Security Scan
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Generate financial report")}
+            className="text-xs"
+          >
+            Financial Report
+          </Button>
+        </div>
+
+        {/* Command Input */}
+        <div className="flex gap-2">
+          <Input
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSendCommand()}
+            placeholder="Enter command or query..."
+            className="flex-1 bg-muted/50 border-primary/20 focus:border-primary"
+          />
+          <Button
+            onClick={handleVoiceCommand}
+            variant="outline"
+            size="icon"
+            className="border-primary/20"
+          >
+            <Mic className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={handleSendCommand}
+            size="icon"
+            className="glow-cyber"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+};
