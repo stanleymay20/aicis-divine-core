@@ -14,16 +14,381 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_divisions: {
+        Row: {
+          created_at: string
+          division_key: string
+          id: string
+          last_check: string
+          name: string
+          performance_score: number
+          status: Database["public"]["Enums"]["division_status"]
+          updated_at: string
+          uptime_percentage: number
+        }
+        Insert: {
+          created_at?: string
+          division_key: string
+          id?: string
+          last_check?: string
+          name: string
+          performance_score?: number
+          status?: Database["public"]["Enums"]["division_status"]
+          updated_at?: string
+          uptime_percentage?: number
+        }
+        Update: {
+          created_at?: string
+          division_key?: string
+          id?: string
+          last_check?: string
+          name?: string
+          performance_score?: number
+          status?: Database["public"]["Enums"]["division_status"]
+          updated_at?: string
+          uptime_percentage?: number
+        }
+        Relationships: []
+      }
+      command_history: {
+        Row: {
+          command: string
+          created_at: string
+          execution_time_ms: number | null
+          id: string
+          response: string | null
+          success: boolean
+          user_id: string
+        }
+        Insert: {
+          command: string
+          created_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          response?: string | null
+          success?: boolean
+          user_id: string
+        }
+        Update: {
+          command?: string
+          created_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          response?: string | null
+          success?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      energy_grid: {
+        Row: {
+          capacity: number
+          created_at: string
+          grid_load: number
+          id: string
+          outage_risk: Database["public"]["Enums"]["stability_status"]
+          region: string
+          renewable_percentage: number | null
+          stability_index: number
+          updated_at: string
+        }
+        Insert: {
+          capacity: number
+          created_at?: string
+          grid_load: number
+          id?: string
+          outage_risk?: Database["public"]["Enums"]["stability_status"]
+          region: string
+          renewable_percentage?: number | null
+          stability_index: number
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          grid_load?: number
+          id?: string
+          outage_risk?: Database["public"]["Enums"]["stability_status"]
+          region?: string
+          renewable_percentage?: number | null
+          stability_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      food_security: {
+        Row: {
+          alert_level: Database["public"]["Enums"]["alert_level"]
+          created_at: string
+          crop: string
+          id: string
+          notes: string | null
+          region: string
+          supply_days: number | null
+          updated_at: string
+          yield_index: number
+        }
+        Insert: {
+          alert_level?: Database["public"]["Enums"]["alert_level"]
+          created_at?: string
+          crop: string
+          id?: string
+          notes?: string | null
+          region: string
+          supply_days?: number | null
+          updated_at?: string
+          yield_index: number
+        }
+        Update: {
+          alert_level?: Database["public"]["Enums"]["alert_level"]
+          created_at?: string
+          crop?: string
+          id?: string
+          notes?: string | null
+          region?: string
+          supply_days?: number | null
+          updated_at?: string
+          yield_index?: number
+        }
+        Relationships: []
+      }
+      health_data: {
+        Row: {
+          affected_count: number
+          containment_status: string | null
+          created_at: string
+          disease: string
+          id: string
+          mortality_rate: number | null
+          region: string
+          risk_level: Database["public"]["Enums"]["health_risk_level"]
+          updated_at: string
+        }
+        Insert: {
+          affected_count?: number
+          containment_status?: string | null
+          created_at?: string
+          disease: string
+          id?: string
+          mortality_rate?: number | null
+          region: string
+          risk_level: Database["public"]["Enums"]["health_risk_level"]
+          updated_at?: string
+        }
+        Update: {
+          affected_count?: number
+          containment_status?: string | null
+          created_at?: string
+          disease?: string
+          id?: string
+          mortality_rate?: number | null
+          region?: string
+          risk_level?: Database["public"]["Enums"]["health_risk_level"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          action: string
+          created_at: string
+          division: string | null
+          id: string
+          log_level: Database["public"]["Enums"]["log_level"]
+          metadata: Json | null
+          result: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          division?: string | null
+          id?: string
+          log_level?: Database["public"]["Enums"]["log_level"]
+          metadata?: Json | null
+          result?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          division?: string | null
+          id?: string
+          log_level?: Database["public"]["Enums"]["log_level"]
+          metadata?: Json | null
+          result?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      threat_logs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          location: string | null
+          neutralized: boolean
+          resolved_at: string | null
+          response_time_ms: number | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          threat_type: Database["public"]["Enums"]["threat_type"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          neutralized?: boolean
+          resolved_at?: string | null
+          response_time_ms?: number | null
+          severity: Database["public"]["Enums"]["threat_severity"]
+          threat_type: Database["public"]["Enums"]["threat_type"]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          neutralized?: boolean
+          resolved_at?: string | null
+          response_time_ms?: number | null
+          severity?: Database["public"]["Enums"]["threat_severity"]
+          threat_type?: Database["public"]["Enums"]["threat_type"]
+        }
+        Relationships: []
+      }
+      trades: {
+        Row: {
+          amount: number
+          created_at: string
+          exchange: string
+          executed_at: string | null
+          id: string
+          pair: string
+          price: number
+          profit: number | null
+          side: Database["public"]["Enums"]["trade_side"]
+          status: Database["public"]["Enums"]["trade_status"]
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          exchange: string
+          executed_at?: string | null
+          id?: string
+          pair: string
+          price: number
+          profit?: number | null
+          side: Database["public"]["Enums"]["trade_side"]
+          status?: Database["public"]["Enums"]["trade_status"]
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          exchange?: string
+          executed_at?: string | null
+          id?: string
+          pair?: string
+          price?: number
+          profit?: number | null
+          side?: Database["public"]["Enums"]["trade_side"]
+          status?: Database["public"]["Enums"]["trade_status"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      alert_level:
+        | "stable"
+        | "monitoring"
+        | "warning"
+        | "critical"
+        | "emergency"
+      app_role: "admin" | "operator" | "observer"
+      division_status:
+        | "optimal"
+        | "operational"
+        | "active"
+        | "degraded"
+        | "offline"
+      health_risk_level: "minimal" | "low" | "moderate" | "high" | "critical"
+      log_level: "info" | "warning" | "error" | "critical" | "success"
+      stability_status:
+        | "stable"
+        | "fluctuating"
+        | "stressed"
+        | "critical"
+        | "failure"
+      threat_severity: "low" | "medium" | "high" | "critical"
+      threat_type:
+        | "cyber"
+        | "physical"
+        | "network"
+        | "data_breach"
+        | "intrusion"
+        | "malware"
+      trade_side: "buy" | "sell"
+      trade_status: "pending" | "executed" | "failed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +515,36 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_level: ["stable", "monitoring", "warning", "critical", "emergency"],
+      app_role: ["admin", "operator", "observer"],
+      division_status: [
+        "optimal",
+        "operational",
+        "active",
+        "degraded",
+        "offline",
+      ],
+      health_risk_level: ["minimal", "low", "moderate", "high", "critical"],
+      log_level: ["info", "warning", "error", "critical", "success"],
+      stability_status: [
+        "stable",
+        "fluctuating",
+        "stressed",
+        "critical",
+        "failure",
+      ],
+      threat_severity: ["low", "medium", "high", "critical"],
+      threat_type: [
+        "cyber",
+        "physical",
+        "network",
+        "data_breach",
+        "intrusion",
+        "malware",
+      ],
+      trade_side: ["buy", "sell"],
+      trade_status: ["pending", "executed", "failed", "cancelled"],
+    },
   },
 } as const
