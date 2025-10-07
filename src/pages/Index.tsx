@@ -1,12 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { SystemStatus } from "@/components/SystemStatus";
 import { DivisionGrid } from "@/components/DivisionGrid";
 import { CommandInterface } from "@/components/CommandInterface";
 import { MetricsPanel } from "@/components/MetricsPanel";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [activeView, setActiveView] = useState("overview");
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-primary text-2xl font-orbitron">Initializing AICIS...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

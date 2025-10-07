@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare } from "lucide-react";
+import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardHeaderProps {
   activeView: string;
@@ -7,6 +8,8 @@ interface DashboardHeaderProps {
 }
 
 export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderProps) => {
+  const { user, signOut } = useAuth();
+  
   const navItems = [
     { id: "overview", label: "Overview", icon: Activity },
     { id: "finance", label: "Finance", icon: DollarSign },
@@ -40,6 +43,17 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
               <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
               <span className="text-sm text-success">All Systems Operational</span>
             </div>
+            <div className="text-sm text-muted-foreground">
+              {user?.email}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={signOut}
+              className="hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
 

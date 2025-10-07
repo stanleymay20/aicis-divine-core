@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Mic, Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const CommandInterface = () => {
   const [command, setCommand] = useState("");
@@ -16,7 +17,7 @@ export const CommandInterface = () => {
   ]);
   const { toast } = useToast();
 
-  const handleSendCommand = () => {
+  const handleSendCommand = async () => {
     if (!command.trim()) return;
 
     // Add user message
@@ -27,27 +28,38 @@ export const CommandInterface = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const userCommand = command;
+    setCommand("");
 
-    // Simulate AI response
-    setTimeout(() => {
-      const responses = [
-        "Command acknowledged. Executing directive across all divisions.",
-        "Systems synchronized. Operations proceeding as requested.",
-        "Affirmative. Allocating resources to specified parameters.",
-        "Request processed. Global network updated successfully.",
-        "Command executed. All divisions reporting optimal performance.",
-      ];
-      
+    try {
+      // Call J.A.R.V.I.S. AI backend
+      const { data, error } = await supabase.functions.invoke('jarvis-command', {
+        body: { command: userCommand }
+      });
+
+      if (error) throw error;
+
       const aiResponse = {
         type: "assistant",
-        content: responses[Math.floor(Math.random() * responses.length)],
+        content: data.response,
         timestamp: new Date().toLocaleTimeString(),
       };
       
       setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
-
-    setCommand("");
+    } catch (error: any) {
+      toast({
+        title: "Command Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      
+      const errorResponse = {
+        type: "assistant",
+        content: "Error processing command. Please try again.",
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+    }
   };
 
   const handleVoiceCommand = () => {

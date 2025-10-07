@@ -1,1 +1,13 @@
 project_id = "psonnnuhjjskrdazrakk"
+
+[functions.jarvis-command]
+verify_jwt = true
+
+[functions.fetch-market-data]
+verify_jwt = true
+
+[functions.security-scan]
+verify_jwt = true
+
+[functions.energy-optimize]
+verify_jwt = true
