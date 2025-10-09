@@ -28,20 +28,38 @@ export const CommandInterface = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const userCommand = command;
+    const userCommand = command.toLowerCase();
+    const originalCommand = command;
     setCommand("");
 
     try {
-      // Call J.A.R.V.I.S. AI backend
-      const { data, error } = await supabase.functions.invoke('jarvis-command', {
-        body: { command: userCommand }
-      });
+      let response;
 
-      if (error) throw error;
+      // Route commands to appropriate functions
+      if (userCommand.includes("financial report") || userCommand.includes("generate report")) {
+        const { data, error } = await supabase.functions.invoke('generate-financial-report');
+        if (error) throw error;
+        response = `📊 ${data.report.title}\n\n${data.report.content}`;
+      } else if (userCommand.includes("update exchange") || userCommand.includes("update balance")) {
+        const { data, error } = await supabase.functions.invoke('update-exchange-balances');
+        if (error) throw error;
+        response = `✅ Updated ${data.updated} exchange accounts. All balances are current.`;
+      } else if (userCommand.includes("summarize profit") || userCommand.includes("analyze revenue")) {
+        const { data, error } = await supabase.functions.invoke('analyze-revenue');
+        if (error) throw error;
+        response = `💰 Revenue Analysis\n\n${data.analysis}\n\n📈 Metrics:\nTotal Revenue: $${data.metrics.total_revenue.toLocaleString()}\nTrading: $${data.metrics.trading_revenue.toLocaleString()}\nEnergy Savings: $${data.metrics.energy_savings.toLocaleString()}`;
+      } else {
+        // Default to general JARVIS command
+        const { data, error } = await supabase.functions.invoke('jarvis-command', {
+          body: { command: originalCommand }
+        });
+        if (error) throw error;
+        response = data.response;
+      }
 
       const aiResponse = {
         type: "assistant",
-        content: data.response,
+        content: response,
         timestamp: new Date().toLocaleTimeString(),
       };
       

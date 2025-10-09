@@ -11,3 +11,12 @@ verify_jwt = true
 
 [functions.energy-optimize]
 verify_jwt = true
+
+[functions.analyze-revenue]
+verify_jwt = true
+
+[functions.generate-financial-report]
+verify_jwt = true
+
+[functions.update-exchange-balances]
+verify_jwt = true

@@ -5,6 +5,7 @@ import { SystemStatus } from "@/components/SystemStatus";
 import { DivisionGrid } from "@/components/DivisionGrid";
 import { CommandInterface } from "@/components/CommandInterface";
 import { MetricsPanel } from "@/components/MetricsPanel";
+import { FinancialPanel } from "@/components/FinancialPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -41,6 +42,7 @@ const Index = () => {
         <main className="container mx-auto px-4 py-6 space-y-6">
           <SystemStatus />
           <MetricsPanel />
+          <FinancialPanel />
           <DivisionGrid />
           <CommandInterface />
         </main>
