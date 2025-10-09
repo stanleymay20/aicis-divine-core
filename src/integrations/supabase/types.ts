@@ -50,6 +50,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_reports: {
+        Row: {
+          content: string
+          created_at: string
+          division: string
+          id: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          division: string
+          id?: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          division?: string
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       command_history: {
         Row: {
           command: string
@@ -112,6 +136,33 @@ export type Database = {
           region?: string
           renewable_percentage?: number | null
           stability_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      exchange_accounts: {
+        Row: {
+          balance_usd: number
+          connected_at: string
+          exchange: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          balance_usd?: number
+          connected_at?: string
+          exchange: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          balance_usd?: number
+          connected_at?: string
+          exchange?: string
+          id?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -212,6 +263,33 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      revenue_streams: {
+        Row: {
+          amount_usd: number
+          created_at: string
+          division: string
+          id: string
+          source: string
+          timestamp: string
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string
+          division: string
+          id?: string
+          source: string
+          timestamp?: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string
+          division?: string
+          id?: string
+          source?: string
+          timestamp?: string
         }
         Relationships: []
       }
