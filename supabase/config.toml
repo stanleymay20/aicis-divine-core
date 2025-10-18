@@ -3,6 +3,18 @@ project_id = "psonnnuhjjskrdazrakk"
 [functions.jarvis-command]
 verify_jwt = true
 
+[functions.pull-coingecko]
+verify_jwt = true
+
+[functions.pull-owid-energy]
+verify_jwt = true
+
+[functions.pull-faostat-food]
+verify_jwt = true
+
+[functions.pull-owid-health]
+verify_jwt = true
+
 [functions.fetch-market-data]
 verify_jwt = true
 

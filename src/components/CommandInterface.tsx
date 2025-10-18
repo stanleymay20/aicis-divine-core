@@ -112,6 +112,22 @@ export const CommandInterface = () => {
         });
         if (error) throw error;
         response = `🔍 ${data.message}\n\n${data.anomalies.length > 0 ? `⚠️ ${data.anomalies.map((a: any) => `${a.division}: ${a.description.substring(0, 50)}...`).join('\n')}` : 'All systems nominal'}`;
+      } else if (userCommand.includes("pull coingecko") || userCommand.includes("pull crypto")) {
+        const { data, error } = await supabase.functions.invoke('pull-coingecko', { body: {} });
+        if (error) throw error;
+        response = data.message || `✅ CoinGecko refreshed: ${data.rows?.length ?? 0} assets`;
+      } else if (userCommand.includes("pull energy") || userCommand.includes("pull owid energy")) {
+        const { data, error } = await supabase.functions.invoke('pull-owid-energy', { body: {} });
+        if (error) throw error;
+        response = data.message || `⚡ Energy updated: ${data.inserted ?? 0} records`;
+      } else if (userCommand.includes("pull food") || userCommand.includes("pull faostat")) {
+        const { data, error } = await supabase.functions.invoke('pull-faostat-food', { body: {} });
+        if (error) throw error;
+        response = data.message || `🌾 Food data updated: ${data.inserted ?? 0} records`;
+      } else if (userCommand.includes("pull health") || userCommand.includes("pull owid health")) {
+        const { data, error } = await supabase.functions.invoke('pull-owid-health', { body: {} });
+        if (error) throw error;
+        response = data.message || `🏥 Health data updated: ${data.inserted ?? 0} records`;
       } else {
         // Default to general JARVIS command
         const { data, error } = await supabase.functions.invoke('jarvis-command', {
@@ -276,6 +292,38 @@ export const CommandInterface = () => {
             className="text-xs"
           >
             Financial Report
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Pull coingecko")}
+            className="text-xs"
+          >
+            Pull Crypto
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Pull energy")}
+            className="text-xs"
+          >
+            Pull Energy
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Pull food")}
+            className="text-xs"
+          >
+            Pull Food
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Pull health")}
+            className="text-xs"
+          >
+            Pull Health
           </Button>
         </div>
 

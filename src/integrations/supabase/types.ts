@@ -395,6 +395,7 @@ export type Database = {
           created_at: string
           crop: string
           id: string
+          metadata: Json | null
           notes: string | null
           region: string
           supply_days: number | null
@@ -406,6 +407,7 @@ export type Database = {
           created_at?: string
           crop: string
           id?: string
+          metadata?: Json | null
           notes?: string | null
           region: string
           supply_days?: number | null
@@ -417,6 +419,7 @@ export type Database = {
           created_at?: string
           crop?: string
           id?: string
+          metadata?: Json | null
           notes?: string | null
           region?: string
           supply_days?: number | null
@@ -468,9 +471,11 @@ export type Database = {
           created_at: string
           disease: string
           id: string
+          metadata: Json | null
           mortality_rate: number | null
           region: string
           risk_level: Database["public"]["Enums"]["health_risk_level"]
+          severity_index: number | null
           updated_at: string
         }
         Insert: {
@@ -479,9 +484,11 @@ export type Database = {
           created_at?: string
           disease: string
           id?: string
+          metadata?: Json | null
           mortality_rate?: number | null
           region: string
           risk_level: Database["public"]["Enums"]["health_risk_level"]
+          severity_index?: number | null
           updated_at?: string
         }
         Update: {
@@ -490,9 +497,11 @@ export type Database = {
           created_at?: string
           disease?: string
           id?: string
+          metadata?: Json | null
           mortality_rate?: number | null
           region?: string
           risk_level?: Database["public"]["Enums"]["health_risk_level"]
+          severity_index?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -623,6 +632,7 @@ export type Database = {
           created_at: string
           division: string
           id: string
+          meta: Json | null
           source: string
           timestamp: string
         }
@@ -631,6 +641,7 @@ export type Database = {
           created_at?: string
           division: string
           id?: string
+          meta?: Json | null
           source: string
           timestamp?: string
         }
@@ -639,6 +650,7 @@ export type Database = {
           created_at?: string
           division?: string
           id?: string
+          meta?: Json | null
           source?: string
           timestamp?: string
         }

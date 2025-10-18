@@ -14,6 +14,7 @@ import { DiplomacyPanel } from "@/components/DiplomacyPanel";
 import { CrisisPanel } from "@/components/CrisisPanel";
 import { IntelligenceHub } from "@/components/IntelligenceHub";
 import { EventBusMonitor } from "@/components/EventBusMonitor";
+import { ExecutivePanel } from "@/components/ExecutivePanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -50,6 +51,8 @@ const Index = () => {
         <main className="container mx-auto px-4 py-6 space-y-6">
           <SystemStatus />
           <MetricsPanel />
+          
+          <ExecutivePanel />
           
           <IntelligenceHub />
           
