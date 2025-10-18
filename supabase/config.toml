@@ -3,6 +3,39 @@ project_id = "psonnnuhjjskrdazrakk"
 [functions.jarvis-command]
 verify_jwt = true
 
+[functions.gov-get-assets]
+verify_jwt = true
+
+[functions.gov-initiate-trade]
+verify_jwt = true
+
+[functions.gov-execute-trade]
+verify_jwt = true
+
+[functions.gov-sync-partners]
+verify_jwt = true
+
+[functions.gov-oracle-update]
+verify_jwt = true
+
+[functions.dao-snapshot]
+verify_jwt = true
+
+[functions.dao-propose]
+verify_jwt = true
+
+[functions.dao-vote]
+verify_jwt = true
+
+[functions.dao-tally]
+verify_jwt = true
+
+[functions.dao-execute]
+verify_jwt = true
+
+[functions.dao-get-dashboard]
+verify_jwt = true
+
 [functions.sc-get-or-create-wallet]
 verify_jwt = true
 
