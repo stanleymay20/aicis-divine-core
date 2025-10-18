@@ -8,6 +8,10 @@ import { MetricsPanel } from "@/components/MetricsPanel";
 import { FinancialPanel } from "@/components/FinancialPanel";
 import { HealthcarePanel } from "@/components/HealthcarePanel";
 import { FoodSecurityPanel } from "@/components/FoodSecurityPanel";
+import { GovernancePanel } from "@/components/GovernancePanel";
+import { DefensePanel } from "@/components/DefensePanel";
+import { DiplomacyPanel } from "@/components/DiplomacyPanel";
+import { CrisisPanel } from "@/components/CrisisPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -49,6 +53,16 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <HealthcarePanel />
             <FoodSecurityPanel />
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <GovernancePanel />
+            <DefensePanel />
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DiplomacyPanel />
+            <CrisisPanel />
           </div>
           
           <DivisionGrid />

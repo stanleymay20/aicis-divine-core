@@ -29,3 +29,18 @@ verify_jwt = true
 
 [functions.generate-health-report]
 verify_jwt = true
+
+[functions.governance-scan]
+verify_jwt = true
+
+[functions.defense-posture-refresh]
+verify_jwt = true
+
+[functions.diplomacy-scan]
+verify_jwt = true
+
+[functions.crisis-scan]
+verify_jwt = true
+
+[functions.manage-approval]
+verify_jwt = true

@@ -74,6 +74,42 @@ export type Database = {
         }
         Relationships: []
       }
+      approvals: {
+        Row: {
+          action: string
+          created_at: string | null
+          decided_at: string | null
+          decided_by: string | null
+          division: string
+          id: string
+          payload: Json | null
+          requester: string | null
+          status: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          division: string
+          id?: string
+          payload?: Json | null
+          requester?: string | null
+          status?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          division?: string
+          id?: string
+          payload?: Json | null
+          requester?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       command_history: {
         Row: {
           command: string
@@ -101,6 +137,102 @@ export type Database = {
           response?: string | null
           success?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      crisis_events: {
+        Row: {
+          created_at: string | null
+          details_md: string | null
+          id: string
+          kind: string
+          opened_at: string | null
+          region: string
+          resolved_at: string | null
+          severity: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details_md?: string | null
+          id?: string
+          kind: string
+          opened_at?: string | null
+          region: string
+          resolved_at?: string | null
+          severity?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details_md?: string | null
+          id?: string
+          kind?: string
+          opened_at?: string | null
+          region?: string
+          resolved_at?: string | null
+          severity?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      defense_posture: {
+        Row: {
+          advisories_md: string | null
+          created_at: string | null
+          id: string
+          region: string
+          threat_level: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          advisories_md?: string | null
+          created_at?: string | null
+          id?: string
+          region: string
+          threat_level?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          advisories_md?: string | null
+          created_at?: string | null
+          id?: string
+          region?: string
+          threat_level?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      diplo_signals: {
+        Row: {
+          country: string
+          created_at: string | null
+          id: string
+          risk_index: number | null
+          sentiment: number | null
+          summary_md: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          id?: string
+          risk_index?: number | null
+          sentiment?: number | null
+          summary_md?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          id?: string
+          risk_index?: number | null
+          sentiment?: number | null
+          summary_md?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -200,6 +332,42 @@ export type Database = {
           supply_days?: number | null
           updated_at?: string
           yield_index?: number
+        }
+        Relationships: []
+      }
+      gov_policies: {
+        Row: {
+          compliance_level: string | null
+          created_at: string | null
+          id: string
+          jurisdiction: string
+          last_reviewed: string | null
+          source_url: string | null
+          summary_md: string | null
+          topic: string
+          updated_at: string | null
+        }
+        Insert: {
+          compliance_level?: string | null
+          created_at?: string | null
+          id?: string
+          jurisdiction: string
+          last_reviewed?: string | null
+          source_url?: string | null
+          summary_md?: string | null
+          topic: string
+          updated_at?: string | null
+        }
+        Update: {
+          compliance_level?: string | null
+          created_at?: string | null
+          id?: string
+          jurisdiction?: string
+          last_reviewed?: string | null
+          source_url?: string | null
+          summary_md?: string | null
+          topic?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

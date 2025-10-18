@@ -60,6 +60,40 @@ export const CommandInterface = () => {
         const { data, error } = await supabase.functions.invoke('generate-health-report');
         if (error) throw error;
         response = `📋 Comprehensive Health & Food Report\n\n${data.report}`;
+      } else if (userCommand.includes("governance scan") || userCommand.includes("scan governance")) {
+        const { data, error } = await supabase.functions.invoke('governance-scan', {
+          body: { jurisdiction: 'EU', topics: ['AI', 'Data Protection'] }
+        });
+        if (error) throw error;
+        response = `🏛️ ${data.message}\n\nUpdated ${data.policies.length} policies`;
+      } else if (userCommand.includes("defense posture") || userCommand.includes("refresh defense")) {
+        const { data, error } = await supabase.functions.invoke('defense-posture-refresh', {
+          body: {}
+        });
+        if (error) throw error;
+        response = `🛡️ ${data.message}\n\nRefreshed ${data.postures.length} regional postures`;
+      } else if (userCommand.includes("diplomacy scan") || userCommand.includes("scan diplomacy")) {
+        const { data, error } = await supabase.functions.invoke('diplomacy-scan', {
+          body: { countries: ['Ghana', 'Nigeria', 'Kenya'] }
+        });
+        if (error) throw error;
+        response = `🌍 ${data.message}\n\nAnalyzed ${data.signals.length} countries`;
+      } else if (userCommand.includes("crisis scan") || userCommand.includes("check crisis")) {
+        const { data, error } = await supabase.functions.invoke('crisis-scan', {
+          body: {}
+        });
+        if (error) throw error;
+        response = `🚨 ${data.message}\n\n${data.escalations.length > 0 ? `⚠️ ${data.escalations.length} crisis events escalated and require approval` : 'All events under control'}`;
+      } else if (userCommand.includes("list approvals") || userCommand.includes("pending approvals")) {
+        const { data, error } = await supabase
+          .from('approvals')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        response = data.length > 0 
+          ? `📋 ${data.length} Pending Approvals:\n\n${data.map((a, i) => `${i+1}. ${a.action} (${a.division})`).join('\n')}`
+          : '✅ No pending approvals';
       } else {
         // Default to general JARVIS command
         const { data, error } = await supabase.functions.invoke('jarvis-command', {
@@ -144,6 +178,38 @@ export const CommandInterface = () => {
             className="text-xs"
           >
             System Status
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Run governance scan")}
+            className="text-xs"
+          >
+            Governance Scan
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Refresh defense posture")}
+            className="text-xs"
+          >
+            Defense Check
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Scan diplomacy signals")}
+            className="text-xs"
+          >
+            Diplomacy Scan
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Check crisis events")}
+            className="text-xs"
+          >
+            Crisis Check
           </Button>
           <Button
             variant="outline"
