@@ -570,6 +570,149 @@ export type Database = {
         }
         Relationships: []
       }
+      federation_inbound_signals: {
+        Row: {
+          id: string
+          peer_id: string | null
+          peer_trust: number | null
+          received_at: string | null
+          signals: Json
+          signature_valid: boolean | null
+          summary_strength: number | null
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          id?: string
+          peer_id?: string | null
+          peer_trust?: number | null
+          received_at?: string | null
+          signals: Json
+          signature_valid?: boolean | null
+          summary_strength?: number | null
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          id?: string
+          peer_id?: string | null
+          peer_trust?: number | null
+          received_at?: string | null
+          signals?: Json
+          signature_valid?: boolean | null
+          summary_strength?: number | null
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "federation_inbound_signals_peer_id_fkey"
+            columns: ["peer_id"]
+            isOneToOne: false
+            referencedRelation: "federation_peers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      federation_outbound_queue: {
+        Row: {
+          attempts: number | null
+          hash: string
+          id: string
+          last_attempt: string | null
+          payload: Json
+          status: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          attempts?: number | null
+          hash: string
+          id?: string
+          last_attempt?: string | null
+          payload: Json
+          status?: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          attempts?: number | null
+          hash?: string
+          id?: string
+          last_attempt?: string | null
+          payload?: Json
+          status?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      federation_peers: {
+        Row: {
+          base_url: string
+          created_at: string | null
+          id: string
+          last_seen: string | null
+          peer_name: string
+          pubkey_pem: string
+          recv_enabled: boolean | null
+          send_enabled: boolean | null
+          trust_score: number | null
+        }
+        Insert: {
+          base_url: string
+          created_at?: string | null
+          id?: string
+          last_seen?: string | null
+          peer_name: string
+          pubkey_pem: string
+          recv_enabled?: boolean | null
+          send_enabled?: boolean | null
+          trust_score?: number | null
+        }
+        Update: {
+          base_url?: string
+          created_at?: string | null
+          id?: string
+          last_seen?: string | null
+          peer_name?: string
+          pubkey_pem?: string
+          recv_enabled?: boolean | null
+          send_enabled?: boolean | null
+          trust_score?: number | null
+        }
+        Relationships: []
+      }
+      federation_policies: {
+        Row: {
+          dp_epsilon: number | null
+          enabled: boolean | null
+          id: string
+          max_daily_weight_drift: number | null
+          min_sample: number | null
+          share_divisions: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          dp_epsilon?: number | null
+          enabled?: boolean | null
+          id?: string
+          max_daily_weight_drift?: number | null
+          min_sample?: number | null
+          share_divisions?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          dp_epsilon?: number | null
+          enabled?: boolean | null
+          id?: string
+          max_daily_weight_drift?: number | null
+          min_sample?: number | null
+          share_divisions?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       food_security: {
         Row: {
           alert_level: Database["public"]["Enums"]["alert_level"]

@@ -21,6 +21,7 @@ import { UnifiedGovernancePanel } from "@/components/UnifiedGovernancePanel";
 import { NotificationsCenter } from "@/components/NotificationsCenter";
 import { AutomationMonitorPanel } from "@/components/AutomationMonitorPanel";
 import LearningAllocatorPanel from "@/components/LearningAllocatorPanel";
+import FederationPanel from "@/components/FederationPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -112,6 +113,7 @@ const Index = () => {
           {activeView === "dao" && <UnifiedGovernancePanel />}
           {activeView === "automation" && <AutomationMonitorPanel />}
           {activeView === "learning" && <LearningAllocatorPanel />}
+          {activeView === "federation" && <FederationPanel />}
           
           <CommandInterface />
         </main>

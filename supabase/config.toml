@@ -167,3 +167,24 @@ verify_jwt = true
 
 [functions.mark-notification-read]
 verify_jwt = true
+
+[functions.fed-make-bundle]
+verify_jwt = false
+
+[functions.fed-send-bundles]
+verify_jwt = false
+
+[functions.fed-ingest]
+verify_jwt = false
+
+[functions.fed-merge-global-prior]
+verify_jwt = false
+
+[functions.fed-admin-test-peer]
+verify_jwt = true
+
+[functions.cron-6h-federation-export]
+schedule = "0 0,6,12,18 * * *"
+
+[functions.cron-6h-federation-merge]
+schedule = "30 0,6,12,18 * * *"

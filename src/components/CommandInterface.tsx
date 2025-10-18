@@ -198,8 +198,15 @@ export const CommandInterface = () => {
           .single();
         if (error) throw error;
         response = `🕐 Last learning cycle: ${new Date(data.executed_at).toLocaleString()} (Status: ${data.status})`;
+      } else if (userCommand.includes("export federation") || userCommand.includes("federation export")) {
+        await supabase.functions.invoke("fed-make-bundle");
+        await supabase.functions.invoke("fed-send-bundles");
+        response = "📤 Federation bundle exported and sent to peers";
+      } else if (userCommand.includes("blend global prior") || userCommand.includes("federation merge")) {
+        await supabase.functions.invoke("fed-merge-global-prior");
+        response = "🔄 Global prior blended into local weights";
       } else if (userCommand.includes("run all cron") || userCommand.includes("run automation")) {
-        const jobs = ["cron-hourly-rewards", "cron-daily-mint", "cron-6h-partner-sync", "cron-hourly-dao-tally", "cron-daily-learn"];
+        const jobs = ["cron-hourly-rewards", "cron-daily-mint", "cron-6h-partner-sync", "cron-hourly-dao-tally", "cron-daily-learn", "cron-6h-federation-export", "cron-6h-federation-merge"];
         for (const job of jobs) {
           await supabase.functions.invoke(job, { body: {} });
         }
