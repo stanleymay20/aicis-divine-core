@@ -94,6 +94,24 @@ export const CommandInterface = () => {
         response = data.length > 0 
           ? `📋 ${data.length} Pending Approvals:\n\n${data.map((a, i) => `${i+1}. ${a.action} (${a.division})`).join('\n')}`
           : '✅ No pending approvals';
+      } else if (userCommand.includes("global status") || userCommand.includes("analyze global status")) {
+        const { data, error } = await supabase.functions.invoke('analyze-global-status', {
+          body: {}
+        });
+        if (error) throw error;
+        response = `🧠 ${data.message}\n\n${data.analysis}\n\n📊 Metrics:\n${Object.entries(data.metrics).map(([k, v]) => `${k}: ${v}`).join('\n').substring(0, 300)}...`;
+      } else if (userCommand.includes("predict risk") || userCommand.includes("predict next risk")) {
+        const { data, error } = await supabase.functions.invoke('predict-risks', {
+          body: {}
+        });
+        if (error) throw error;
+        response = `🎯 ${data.message}\n\nGenerated ${data.predictions.length} risk predictions across divisions`;
+      } else if (userCommand.includes("detect anomal") || userCommand.includes("scan anomal")) {
+        const { data, error } = await supabase.functions.invoke('detect-anomalies', {
+          body: {}
+        });
+        if (error) throw error;
+        response = `🔍 ${data.message}\n\n${data.anomalies.length > 0 ? `⚠️ ${data.anomalies.map((a: any) => `${a.division}: ${a.description.substring(0, 50)}...`).join('\n')}` : 'All systems nominal'}`;
       } else {
         // Default to general JARVIS command
         const { data, error } = await supabase.functions.invoke('jarvis-command', {
@@ -210,6 +228,30 @@ export const CommandInterface = () => {
             className="text-xs"
           >
             Crisis Check
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Analyze global status")}
+            className="text-xs"
+          >
+            Global Status
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Predict next risk")}
+            className="text-xs"
+          >
+            Risk Prediction
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Detect anomalies")}
+            className="text-xs"
+          >
+            Detect Anomalies
           </Button>
           <Button
             variant="outline"

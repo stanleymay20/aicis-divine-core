@@ -74,6 +74,57 @@ export type Database = {
         }
         Relationships: []
       }
+      anomaly_detections: {
+        Row: {
+          anomaly_type: string
+          baseline_metrics: Json | null
+          created_at: string | null
+          description: string
+          detected_at: string | null
+          deviation_percentage: number | null
+          division: string
+          id: string
+          metrics: Json
+          notes: string | null
+          resolved_at: string | null
+          severity: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          anomaly_type: string
+          baseline_metrics?: Json | null
+          created_at?: string | null
+          description: string
+          detected_at?: string | null
+          deviation_percentage?: number | null
+          division: string
+          id?: string
+          metrics: Json
+          notes?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          anomaly_type?: string
+          baseline_metrics?: Json | null
+          created_at?: string | null
+          description?: string
+          detected_at?: string | null
+          deviation_percentage?: number | null
+          division?: string
+          id?: string
+          metrics?: Json
+          notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       approvals: {
         Row: {
           action: string
@@ -137,6 +188,45 @@ export type Database = {
           response?: string | null
           success?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      compliance_audit: {
+        Row: {
+          action_description: string
+          action_type: string
+          compliance_status: string
+          created_at: string | null
+          data_accessed: Json | null
+          division: string | null
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_description: string
+          action_type: string
+          compliance_status: string
+          created_at?: string | null
+          data_accessed?: Json | null
+          division?: string | null
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_description?: string
+          action_type?: string
+          compliance_status?: string
+          created_at?: string | null
+          data_accessed?: Json | null
+          division?: string | null
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -407,6 +497,99 @@ export type Database = {
         }
         Relationships: []
       }
+      intel_events: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          division: string
+          event_type: string
+          expires_at: string | null
+          id: string
+          payload: Json | null
+          published_at: string | null
+          published_by: string | null
+          severity: string
+          source_system: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          division: string
+          event_type: string
+          expires_at?: string | null
+          id?: string
+          payload?: Json | null
+          published_at?: string | null
+          published_by?: string | null
+          severity: string
+          source_system?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          division?: string
+          event_type?: string
+          expires_at?: string | null
+          id?: string
+          payload?: Json | null
+          published_at?: string | null
+          published_by?: string | null
+          severity?: string
+          source_system?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      intelligence_index: {
+        Row: {
+          affected_divisions: string[]
+          confidence_score: number | null
+          created_at: string | null
+          expires_at: string | null
+          generated_at: string | null
+          id: string
+          index_type: string
+          metrics: Json | null
+          priority: number | null
+          recommendations_md: string | null
+          summary_md: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          affected_divisions: string[]
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          index_type: string
+          metrics?: Json | null
+          priority?: number | null
+          recommendations_md?: string | null
+          summary_md: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          affected_divisions?: string[]
+          confidence_score?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          index_type?: string
+          metrics?: Json | null
+          priority?: number | null
+          recommendations_md?: string | null
+          summary_md?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -458,6 +641,60 @@ export type Database = {
           id?: string
           source?: string
           timestamp?: string
+        }
+        Relationships: []
+      }
+      risk_predictions: {
+        Row: {
+          affected_divisions: string[]
+          confidence_level: number | null
+          created_at: string | null
+          description_md: string
+          id: string
+          impact_score: number | null
+          indicators: Json | null
+          mitigation_strategies_md: string | null
+          model_version: string | null
+          predicted_timeframe: string | null
+          prediction_type: string
+          probability: number | null
+          risk_level: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          affected_divisions: string[]
+          confidence_level?: number | null
+          created_at?: string | null
+          description_md: string
+          id?: string
+          impact_score?: number | null
+          indicators?: Json | null
+          mitigation_strategies_md?: string | null
+          model_version?: string | null
+          predicted_timeframe?: string | null
+          prediction_type: string
+          probability?: number | null
+          risk_level: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          affected_divisions?: string[]
+          confidence_level?: number | null
+          created_at?: string | null
+          description_md?: string
+          id?: string
+          impact_score?: number | null
+          indicators?: Json | null
+          mitigation_strategies_md?: string | null
+          model_version?: string | null
+          predicted_timeframe?: string | null
+          prediction_type?: string
+          probability?: number | null
+          risk_level?: string
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

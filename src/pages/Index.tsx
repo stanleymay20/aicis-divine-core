@@ -12,6 +12,8 @@ import { GovernancePanel } from "@/components/GovernancePanel";
 import { DefensePanel } from "@/components/DefensePanel";
 import { DiplomacyPanel } from "@/components/DiplomacyPanel";
 import { CrisisPanel } from "@/components/CrisisPanel";
+import { IntelligenceHub } from "@/components/IntelligenceHub";
+import { EventBusMonitor } from "@/components/EventBusMonitor";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -48,7 +50,13 @@ const Index = () => {
         <main className="container mx-auto px-4 py-6 space-y-6">
           <SystemStatus />
           <MetricsPanel />
-          <FinancialPanel />
+          
+          <IntelligenceHub />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EventBusMonitor />
+            <FinancialPanel />
+          </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <HealthcarePanel />
