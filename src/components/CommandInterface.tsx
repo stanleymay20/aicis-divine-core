@@ -164,8 +164,42 @@ export const CommandInterface = () => {
         response = "🗳️ To vote on proposals, please use the DAO panel in Governance section.";
       } else if (userCommand.includes("tally proposal")) {
         response = "📊 Proposal tallying is available in the DAO admin section.";
+      } else if (userCommand.includes("evaluate division impact") || userCommand.includes("evaluate impact")) {
+        const { data, error } = await supabase.functions.invoke('evaluate-impact', { body: {} });
+        if (error) throw error;
+        response = `📊 Impact evaluation complete: ${data.divisions} divisions analyzed`;
+      } else if (userCommand.includes("re-learn") || userCommand.includes("relearn allocator")) {
+        const { data, error } = await supabase.functions.invoke('learn-policy-weights', { body: {} });
+        if (error) throw error;
+        response = `🧠 Learning complete: Updated ${data.updated} division weights`;
+      } else if (userCommand.includes("show current impact weight") || userCommand.includes("current weights")) {
+        const { data, error } = await supabase
+          .from("division_learning_weights")
+          .select("*")
+          .order("impact_weight", { ascending: false });
+        if (error) throw error;
+        response = `🧮 Current Impact Weights:\n\n${data.map(w => `${w.division}: ${(w.impact_weight * 100).toFixed(1)}% (trend: ${w.trend > 0 ? '↑' : w.trend < 0 ? '↓' : '→'})`).join('\n')}`;
+      } else if (userCommand.includes("highest roi") || userCommand.includes("best division")) {
+        const { data, error } = await supabase
+          .from("division_impact_metrics")
+          .select("*")
+          .order("impact_per_sc", { ascending: false })
+          .limit(1)
+          .single();
+        if (error) throw error;
+        response = `🏆 Highest ROI per SC: ${data.division} (${data.impact_per_sc.toFixed(4)} impact/SC)`;
+      } else if (userCommand.includes("last learning cycle") || userCommand.includes("when was last learn")) {
+        const { data, error } = await supabase
+          .from("automation_logs")
+          .select("*")
+          .eq("job_name", "cron-daily-learn")
+          .order("executed_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (error) throw error;
+        response = `🕐 Last learning cycle: ${new Date(data.executed_at).toLocaleString()} (Status: ${data.status})`;
       } else if (userCommand.includes("run all cron") || userCommand.includes("run automation")) {
-        const jobs = ["cron-hourly-rewards", "cron-daily-mint", "cron-6h-partner-sync", "cron-hourly-dao-tally"];
+        const jobs = ["cron-hourly-rewards", "cron-daily-mint", "cron-6h-partner-sync", "cron-hourly-dao-tally", "cron-daily-learn"];
         for (const job of jobs) {
           await supabase.functions.invoke(job, { body: {} });
         }
@@ -343,6 +377,30 @@ export const CommandInterface = () => {
             className="text-xs"
           >
             Detect Anomalies
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Evaluate division impact")}
+            className="text-xs"
+          >
+            Evaluate Impact
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Re-learn allocator weights")}
+            className="text-xs"
+          >
+            Re-Learn Weights
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Show current impact weights")}
+            className="text-xs"
+          >
+            Current Weights
           </Button>
           <Button
             variant="outline"

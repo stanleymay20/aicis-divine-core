@@ -415,6 +415,47 @@ export type Database = {
         }
         Relationships: []
       }
+      division_impact_metrics: {
+        Row: {
+          captured_at: string | null
+          division: string
+          id: string
+          impact_per_sc: number | null
+          impact_score: number | null
+          metric: Json
+          rebalance_run_id: string | null
+          sc_spent: number
+        }
+        Insert: {
+          captured_at?: string | null
+          division: string
+          id?: string
+          impact_per_sc?: number | null
+          impact_score?: number | null
+          metric: Json
+          rebalance_run_id?: string | null
+          sc_spent?: number
+        }
+        Update: {
+          captured_at?: string | null
+          division?: string
+          id?: string
+          impact_per_sc?: number | null
+          impact_score?: number | null
+          metric?: Json
+          rebalance_run_id?: string | null
+          sc_spent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "division_impact_metrics_rebalance_run_id_fkey"
+            columns: ["rebalance_run_id"]
+            isOneToOne: false
+            referencedRelation: "sc_rebalance_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       division_kpis: {
         Row: {
           captured_at: string | null
@@ -439,6 +480,30 @@ export type Database = {
           id?: string
           metric?: Json
           risk_score?: number | null
+        }
+        Relationships: []
+      }
+      division_learning_weights: {
+        Row: {
+          division: string
+          id: string
+          impact_weight: number | null
+          last_updated: string | null
+          trend: number | null
+        }
+        Insert: {
+          division: string
+          id?: string
+          impact_weight?: number | null
+          last_updated?: string | null
+          trend?: number | null
+        }
+        Update: {
+          division?: string
+          id?: string
+          impact_weight?: number | null
+          last_updated?: string | null
+          trend?: number | null
         }
         Relationships: []
       }

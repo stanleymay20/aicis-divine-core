@@ -9,6 +9,9 @@ schedule = "0 0 * * *"
 [functions.cron-6h-partner-sync]
 schedule = "0 */6 * * *"
 
+[functions.cron-daily-learn]
+schedule = "0 0 * * *"
+
 [functions.cron-hourly-dao-tally]
 schedule = "0 * * * *"
 
@@ -34,6 +37,21 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.crisis-scan]
+verify_jwt = true
+
+[functions.evaluate-impact]
+verify_jwt = true
+
+[functions.learn-policy-weights]
+verify_jwt = true
+
+[functions.auto-learn-cycle]
+verify_jwt = true
+
+[functions.collect-division-kpis]
+verify_jwt = true
+
+[functions.simulate-rebalance]
 verify_jwt = true
 
 [functions.dao-snapshot]

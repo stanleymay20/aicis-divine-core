@@ -19,6 +19,7 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
     { id: "governance", label: "Governance", icon: Building },
     { id: "dao", label: "DAO", icon: Users },
     { id: "automation", label: "Automation", icon: Settings },
+    { id: "learning", label: "Learning", icon: Activity },
   ];
 
   return (
