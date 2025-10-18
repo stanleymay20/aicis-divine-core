@@ -125,3 +125,9 @@ verify_jwt = true
 
 [functions.detect-anomalies]
 verify_jwt = true
+
+[functions.get-notifications]
+verify_jwt = true
+
+[functions.mark-notification-read]
+verify_jwt = true

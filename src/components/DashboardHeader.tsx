@@ -11,13 +11,13 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
   const { user, signOut } = useAuth();
   
   const navItems = [
-    { id: "overview", label: "Overview", icon: Activity },
-    { id: "finance", label: "Finance", icon: DollarSign },
-    { id: "security", label: "Security", icon: Shield },
-    { id: "health", label: "Healthcare", icon: Heart },
-    { id: "food", label: "Agriculture", icon: Leaf },
+    { id: "overview", label: "Dashboard", icon: Activity },
+    { id: "economy", label: "Economy", icon: DollarSign },
+    { id: "health", label: "Health", icon: Heart },
+    { id: "food", label: "Food", icon: Leaf },
     { id: "energy", label: "Energy", icon: Zap },
     { id: "governance", label: "Governance", icon: Globe },
+    { id: "security", label: "Defense", icon: Shield },
     { id: "assistant", label: "J.A.R.V.I.S.", icon: MessageSquare },
   ];
 

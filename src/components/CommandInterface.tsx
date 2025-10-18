@@ -149,6 +149,21 @@ export const CommandInterface = () => {
         const { data, error } = await supabase.functions.invoke('sc-oracle-update', { body: {} });
         if (error) throw error;
         response = `📊 SC Reference updated: ${data.scValue?.toFixed(6)} (Intelligence Score: ${data.intelligenceScore?.toFixed(1)}) (logged & compliant)`;
+      } else if (userCommand.includes("governance dashboard") || userCommand.includes("open governance")) {
+        response = "🏛️ Opening Governance Command Center... Check the main dashboard.";
+      } else if (userCommand.includes("trade") && userCommand.match(/trade (\w+)/i)) {
+        const assetMatch = userCommand.match(/trade (\w+)/i);
+        response = `📈 To trade ${assetMatch?.[1]}, please use the Governance Market panel.`;
+      } else if (userCommand.includes("sync oracles") || userCommand.includes("sync partners")) {
+        const { data, error } = await supabase.functions.invoke('gov-sync-partners', { body: {} });
+        if (error) throw error;
+        response = `🤝 Partner oracles synced: ${data.synced} updated (logged & compliant)`;
+      } else if (userCommand.includes("create proposal") || userCommand.includes("new proposal")) {
+        response = "🗳️ To create a proposal, please use the DAO panel in Governance section.";
+      } else if (userCommand.match(/vote (yes|no|abstain)/i)) {
+        response = "🗳️ To vote on proposals, please use the DAO panel in Governance section.";
+      } else if (userCommand.includes("tally proposal")) {
+        response = "📊 Proposal tallying is available in the DAO admin section.";
       } else if (userCommand.startsWith("objective") || userCommand.startsWith("goal") || userCommand.startsWith("plan")) {
         const objective = userCommand.replace(/^(objective|goal|plan)\s*/i, "").trim();
         if (!objective) {
@@ -390,6 +405,22 @@ export const CommandInterface = () => {
             className="text-xs"
           >
             Award Rewards
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Sync partners")}
+            className="text-xs"
+          >
+            Sync Oracles
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Governance dashboard")}
+            className="text-xs"
+          >
+            Governance
           </Button>
         </div>
 

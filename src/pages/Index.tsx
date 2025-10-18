@@ -17,6 +17,8 @@ import { EventBusMonitor } from "@/components/EventBusMonitor";
 import { ExecutivePanel } from "@/components/ExecutivePanel";
 import { ObjectivePanel } from "@/components/ObjectivePanel";
 import EconomyPanel from "@/components/EconomyPanel";
+import { UnifiedGovernancePanel } from "@/components/UnifiedGovernancePanel";
+import { NotificationsCenter } from "@/components/NotificationsCenter";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -47,6 +49,11 @@ const Index = () => {
       {/* Animated background grid */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,hsl(189_40%_20%_/_0.1)_1px,transparent_1px),linear-gradient(to_bottom,hsl(189_40%_20%_/_0.1)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
       
+      {/* Notifications Button - Fixed Position */}
+      <div className="fixed top-4 right-4 z-50">
+        <NotificationsCenter />
+      </div>
+      
       <div className="relative z-10">
         <DashboardHeader activeView={activeView} setActiveView={setActiveView} />
         
@@ -72,9 +79,11 @@ const Index = () => {
             <FoodSecurityPanel />
           </div>
           
+          <UnifiedGovernancePanel />
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <GovernancePanel />
             <DefensePanel />
+            <GovernancePanel />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
