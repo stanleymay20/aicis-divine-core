@@ -128,6 +128,27 @@ export const CommandInterface = () => {
         const { data, error } = await supabase.functions.invoke('pull-owid-health', { body: {} });
         if (error) throw error;
         response = data.message || `🏥 Health data updated: ${data.inserted ?? 0} records`;
+      } else if (userCommand.includes("my balance") || userCommand.includes("show sc balance")) {
+        const { data, error } = await supabase.functions.invoke('sc-get-balance', { body: {} });
+        if (error) throw error;
+        const total = data.wallets?.reduce((sum: number, w: any) => sum + Number(w.balance || 0), 0) || 0;
+        response = `💰 Your SC Balance: ${total.toFixed(2)} SC across ${data.wallets?.length || 0} wallet(s). SC Reference: ${data.scPrice?.toFixed(4) || 0} (logged & compliant)`;
+      } else if (userCommand.includes("create wallet") || userCommand.includes("sync wallet")) {
+        const { data, error } = await supabase.functions.invoke('sc-get-or-create-wallet', { body: {} });
+        if (error) throw error;
+        response = `🏦 Wallet ${data.created ? 'created' : 'synced'} successfully. Balance: ${Number(data.wallet?.balance || 0).toFixed(2)} SC (logged & compliant)`;
+      } else if (userCommand.includes("award rewards") || userCommand.includes("run rewards")) {
+        const { data, error } = await supabase.functions.invoke('sc-award-rewards', { body: {} });
+        if (error) throw error;
+        response = `🎁 Rewards awarded: ${data.totalEmitted?.toFixed(2)} SC across ${data.rewards?.length || 0} divisions (logged & compliant)`;
+      } else if (userCommand.includes("mint epoch")) {
+        const { data, error } = await supabase.functions.invoke('sc-mint-epoch', { body: {} });
+        if (error) throw error;
+        response = `🪙 Epoch minted: ${data.todayEmission?.toFixed(2)} SC (day ${data.daysSinceLaunch}) (logged & compliant)`;
+      } else if (userCommand.includes("sc price") || userCommand.includes("sc reference")) {
+        const { data, error } = await supabase.functions.invoke('sc-oracle-update', { body: {} });
+        if (error) throw error;
+        response = `📊 SC Reference updated: ${data.scValue?.toFixed(6)} (Intelligence Score: ${data.intelligenceScore?.toFixed(1)}) (logged & compliant)`;
       } else if (userCommand.startsWith("objective") || userCommand.startsWith("goal") || userCommand.startsWith("plan")) {
         const objective = userCommand.replace(/^(objective|goal|plan)\s*/i, "").trim();
         if (!objective) {
@@ -353,6 +374,22 @@ export const CommandInterface = () => {
             className="text-xs"
           >
             Execute Objectives
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("My balance")}
+            className="text-xs"
+          >
+            SC Balance
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Award rewards")}
+            className="text-xs"
+          >
+            Award Rewards
           </Button>
         </div>
 

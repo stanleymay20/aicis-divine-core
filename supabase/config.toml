@@ -3,6 +3,24 @@ project_id = "psonnnuhjjskrdazrakk"
 [functions.jarvis-command]
 verify_jwt = true
 
+[functions.sc-get-or-create-wallet]
+verify_jwt = true
+
+[functions.sc-transfer]
+verify_jwt = true
+
+[functions.sc-award-rewards]
+verify_jwt = true
+
+[functions.sc-mint-epoch]
+verify_jwt = true
+
+[functions.sc-oracle-update]
+verify_jwt = true
+
+[functions.sc-get-balance]
+verify_jwt = true
+
 [functions.pull-coingecko]
 verify_jwt = true
 
