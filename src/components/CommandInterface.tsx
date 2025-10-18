@@ -48,6 +48,18 @@ export const CommandInterface = () => {
         const { data, error } = await supabase.functions.invoke('analyze-revenue');
         if (error) throw error;
         response = `💰 Revenue Analysis\n\n${data.analysis}\n\n📈 Metrics:\nTotal Revenue: $${data.metrics.total_revenue.toLocaleString()}\nTrading: $${data.metrics.trading_revenue.toLocaleString()}\nEnergy Savings: $${data.metrics.energy_savings.toLocaleString()}`;
+      } else if (userCommand.includes("health scan") || userCommand.includes("analyze health")) {
+        const { data, error } = await supabase.functions.invoke('analyze-health');
+        if (error) throw error;
+        response = `🏥 Health Analysis Complete\n\n${data.analysis}\n\n📊 Metrics:\nTotal Cases: ${data.metrics.total_cases.toLocaleString()}\nCritical Regions: ${data.metrics.critical_regions}\nHigh Risk Regions: ${data.metrics.high_risk_regions}`;
+      } else if (userCommand.includes("food") || userCommand.includes("optimize food")) {
+        const { data, error } = await supabase.functions.invoke('optimize-food');
+        if (error) throw error;
+        response = `🌾 Food Security Optimization\n\n${data.recommendations}\n\n📊 Metrics:\nAvg Yield: ${data.metrics.average_yield_index}%\nCritical Regions: ${data.metrics.critical_regions}\nAvg Supply: ${data.metrics.average_supply_days} days`;
+      } else if (userCommand.includes("health report")) {
+        const { data, error } = await supabase.functions.invoke('generate-health-report');
+        if (error) throw error;
+        response = `📋 Comprehensive Health & Food Report\n\n${data.report}`;
       } else {
         // Default to general JARVIS command
         const { data, error } = await supabase.functions.invoke('jarvis-command', {
@@ -136,18 +148,18 @@ export const CommandInterface = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCommand("Optimize global operations")}
+            onClick={() => setCommand("Run health scan")}
             className="text-xs"
           >
-            Optimize Operations
+            Health Scan
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCommand("Run security scan")}
+            onClick={() => setCommand("Optimize food production")}
             className="text-xs"
           >
-            Security Scan
+            Food Security
           </Button>
           <Button
             variant="outline"

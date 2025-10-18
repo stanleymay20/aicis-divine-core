@@ -6,6 +6,8 @@ import { DivisionGrid } from "@/components/DivisionGrid";
 import { CommandInterface } from "@/components/CommandInterface";
 import { MetricsPanel } from "@/components/MetricsPanel";
 import { FinancialPanel } from "@/components/FinancialPanel";
+import { HealthcarePanel } from "@/components/HealthcarePanel";
+import { FoodSecurityPanel } from "@/components/FoodSecurityPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -43,6 +45,12 @@ const Index = () => {
           <SystemStatus />
           <MetricsPanel />
           <FinancialPanel />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <HealthcarePanel />
+            <FoodSecurityPanel />
+          </div>
+          
           <DivisionGrid />
           <CommandInterface />
         </main>
