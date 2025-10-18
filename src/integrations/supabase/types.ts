@@ -77,6 +77,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_mitigation_actions: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          crisis_id: string | null
+          executed_at: string | null
+          id: string
+          parameters: Json | null
+          status: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          crisis_id?: string | null
+          executed_at?: string | null
+          id?: string
+          parameters?: Json | null
+          status?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          crisis_id?: string | null
+          executed_at?: string | null
+          id?: string
+          parameters?: Json | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_mitigation_actions_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crisis_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_reports: {
         Row: {
           content: string
@@ -374,6 +412,33 @@ export type Database = {
           sentiment?: number | null
           summary_md?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      division_kpis: {
+        Row: {
+          captured_at: string | null
+          composite_score: number | null
+          division: string
+          id: string
+          metric: Json
+          risk_score: number | null
+        }
+        Insert: {
+          captured_at?: string | null
+          composite_score?: number | null
+          division: string
+          id?: string
+          metric: Json
+          risk_score?: number | null
+        }
+        Update: {
+          captured_at?: string | null
+          composite_score?: number | null
+          division?: string
+          id?: string
+          metric?: Json
+          risk_score?: number | null
         }
         Relationships: []
       }
@@ -880,6 +945,128 @@ export type Database = {
           risk_level?: string
           title?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sc_allocation_policies: {
+        Row: {
+          constraints: Json
+          created_at: string | null
+          description_md: string | null
+          enabled: boolean | null
+          id: string
+          policy_key: string
+          updated_at: string | null
+          weights: Json
+        }
+        Insert: {
+          constraints?: Json
+          created_at?: string | null
+          description_md?: string | null
+          enabled?: boolean | null
+          id?: string
+          policy_key: string
+          updated_at?: string | null
+          weights?: Json
+        }
+        Update: {
+          constraints?: Json
+          created_at?: string | null
+          description_md?: string | null
+          enabled?: boolean | null
+          id?: string
+          policy_key?: string
+          updated_at?: string | null
+          weights?: Json
+        }
+        Relationships: []
+      }
+      sc_rebalance_moves: {
+        Row: {
+          amount_sc: number | null
+          created_at: string | null
+          executed: boolean | null
+          executed_at: string | null
+          from_division: string | null
+          id: string
+          ledger_tx: Json | null
+          reason: string | null
+          requires_approval: boolean | null
+          run_id: string | null
+          to_division: string | null
+        }
+        Insert: {
+          amount_sc?: number | null
+          created_at?: string | null
+          executed?: boolean | null
+          executed_at?: string | null
+          from_division?: string | null
+          id?: string
+          ledger_tx?: Json | null
+          reason?: string | null
+          requires_approval?: boolean | null
+          run_id?: string | null
+          to_division?: string | null
+        }
+        Update: {
+          amount_sc?: number | null
+          created_at?: string | null
+          executed?: boolean | null
+          executed_at?: string | null
+          from_division?: string | null
+          id?: string
+          ledger_tx?: Json | null
+          reason?: string | null
+          requires_approval?: boolean | null
+          run_id?: string | null
+          to_division?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sc_rebalance_moves_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "sc_rebalance_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sc_rebalance_runs: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          finished_at: string | null
+          id: string
+          mode: string
+          notes: string | null
+          policy_key: string
+          status: string
+          total_available_sc: number | null
+          total_moved_sc: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          finished_at?: string | null
+          id?: string
+          mode: string
+          notes?: string | null
+          policy_key: string
+          status?: string
+          total_available_sc?: number | null
+          total_moved_sc?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          notes?: string | null
+          policy_key?: string
+          status?: string
+          total_available_sc?: number | null
+          total_moved_sc?: number | null
         }
         Relationships: []
       }

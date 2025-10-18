@@ -12,6 +12,9 @@ schedule = "0 */6 * * *"
 [functions.cron-hourly-dao-tally]
 schedule = "0 * * * *"
 
+[functions.cron-hourly-crisis-scan]
+schedule = "0 * * * *"
+
 [functions.jarvis-command]
 verify_jwt = true
 
@@ -28,6 +31,9 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.gov-oracle-update]
+verify_jwt = true
+
+[functions.crisis-scan]
 verify_jwt = true
 
 [functions.dao-snapshot]
