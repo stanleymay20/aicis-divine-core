@@ -50,6 +50,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_learning_log: {
+        Row: {
+          created_at: string | null
+          id: string
+          insight: string | null
+          record_id: string | null
+          source_table: string | null
+          success: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          insight?: string | null
+          record_id?: string | null
+          source_table?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          insight?: string | null
+          record_id?: string | null
+          source_table?: string | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       ai_reports: {
         Row: {
           content: string
@@ -596,6 +623,92 @@ export type Database = {
           summary_md?: string
           title?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      objective_tasks: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          division: string | null
+          function_name: string | null
+          id: string
+          objective_id: string | null
+          output_summary: string | null
+          parameters: Json | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          division?: string | null
+          function_name?: string | null
+          id?: string
+          objective_id?: string | null
+          output_summary?: string | null
+          parameters?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          division?: string | null
+          function_name?: string | null
+          id?: string
+          objective_id?: string | null
+          output_summary?: string | null
+          parameters?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_tasks_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objectives: {
+        Row: {
+          ai_plan: Json | null
+          ai_summary: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          issued_by: string | null
+          objective_text: string
+          priority: number | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          ai_plan?: Json | null
+          ai_summary?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          issued_by?: string | null
+          objective_text: string
+          priority?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          ai_plan?: Json | null
+          ai_summary?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          issued_by?: string | null
+          objective_text?: string
+          priority?: number | null
+          started_at?: string | null
+          status?: string | null
         }
         Relationships: []
       }

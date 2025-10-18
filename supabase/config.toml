@@ -15,6 +15,12 @@ verify_jwt = true
 [functions.pull-owid-health]
 verify_jwt = true
 
+[functions.process-objective]
+verify_jwt = true
+
+[functions.execute-objectives]
+verify_jwt = true
+
 [functions.fetch-market-data]
 verify_jwt = true
 

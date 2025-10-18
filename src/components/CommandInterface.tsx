@@ -128,6 +128,19 @@ export const CommandInterface = () => {
         const { data, error } = await supabase.functions.invoke('pull-owid-health', { body: {} });
         if (error) throw error;
         response = data.message || `🏥 Health data updated: ${data.inserted ?? 0} records`;
+      } else if (userCommand.startsWith("objective") || userCommand.startsWith("goal") || userCommand.startsWith("plan")) {
+        const objective = userCommand.replace(/^(objective|goal|plan)\s*/i, "").trim();
+        if (!objective) {
+          response = "Please specify an objective. Example: 'Goal reduce global risk score'";
+        } else {
+          const { data, error } = await supabase.functions.invoke("process-objective", { body: { objective } });
+          if (error) throw error;
+          response = `🧭 Objective recorded: ${objective}\n\nTasks planned: ${data.tasks?.length ?? 0}\n\nUse 'Execute objectives' to run the plan.`;
+        }
+      } else if (userCommand.includes("execute objective")) {
+        const { data, error } = await supabase.functions.invoke("execute-objectives", { body: {} });
+        if (error) throw error;
+        response = data.message || `✅ Executed ${data.count ?? 0} tasks`;
       } else {
         // Default to general JARVIS command
         const { data, error } = await supabase.functions.invoke('jarvis-command', {
@@ -324,6 +337,22 @@ export const CommandInterface = () => {
             className="text-xs"
           >
             Pull Health
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Goal optimize all divisions for maximum efficiency")}
+            className="text-xs"
+          >
+            Issue Goal
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCommand("Execute objectives")}
+            className="text-xs"
+          >
+            Execute Objectives
           </Button>
         </div>
 

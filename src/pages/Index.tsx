@@ -15,6 +15,7 @@ import { CrisisPanel } from "@/components/CrisisPanel";
 import { IntelligenceHub } from "@/components/IntelligenceHub";
 import { EventBusMonitor } from "@/components/EventBusMonitor";
 import { ExecutivePanel } from "@/components/ExecutivePanel";
+import { ObjectivePanel } from "@/components/ObjectivePanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -52,7 +53,10 @@ const Index = () => {
           <SystemStatus />
           <MetricsPanel />
           
-          <ExecutivePanel />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ExecutivePanel />
+            <ObjectivePanel />
+          </div>
           
           <IntelligenceHub />
           
