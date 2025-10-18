@@ -1,5 +1,17 @@
 project_id = "psonnnuhjjskrdazrakk"
 
+[functions.cron-hourly-rewards]
+schedule = "0 * * * *"
+
+[functions.cron-daily-mint]
+schedule = "0 0 * * *"
+
+[functions.cron-6h-partner-sync]
+schedule = "0 */6 * * *"
+
+[functions.cron-hourly-dao-tally]
+schedule = "0 * * * *"
+
 [functions.jarvis-command]
 verify_jwt = true
 

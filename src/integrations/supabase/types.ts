@@ -188,6 +188,30 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_logs: {
+        Row: {
+          executed_at: string | null
+          id: string
+          job_name: string
+          message: string | null
+          status: string
+        }
+        Insert: {
+          executed_at?: string | null
+          id?: string
+          job_name: string
+          message?: string | null
+          status: string
+        }
+        Update: {
+          executed_at?: string | null
+          id?: string
+          job_name?: string
+          message?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       command_history: {
         Row: {
           command: string

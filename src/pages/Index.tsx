@@ -19,6 +19,7 @@ import { ObjectivePanel } from "@/components/ObjectivePanel";
 import EconomyPanel from "@/components/EconomyPanel";
 import { UnifiedGovernancePanel } from "@/components/UnifiedGovernancePanel";
 import { NotificationsCenter } from "@/components/NotificationsCenter";
+import { AutomationMonitorPanel } from "@/components/AutomationMonitorPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -58,40 +59,58 @@ const Index = () => {
         <DashboardHeader activeView={activeView} setActiveView={setActiveView} />
         
         <main className="container mx-auto px-4 py-6 space-y-6">
-          <SystemStatus />
-          <MetricsPanel />
+          {activeView === "overview" && (
+            <>
+              <SystemStatus />
+              <MetricsPanel />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <ExecutivePanel />
+                <ObjectivePanel />
+                <EconomyPanel />
+              </div>
+              
+              <IntelligenceHub />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <EventBusMonitor />
+                <FinancialPanel />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <HealthcarePanel />
+                <FoodSecurityPanel />
+              </div>
+              
+              <UnifiedGovernancePanel />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DefensePanel />
+                <GovernancePanel />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DiplomacyPanel />
+                <CrisisPanel />
+              </div>
+              
+              <DivisionGrid />
+            </>
+          )}
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ExecutivePanel />
-            <ObjectivePanel />
-            <EconomyPanel />
-          </div>
+          {activeView === "economy" && <EconomyPanel />}
+          {activeView === "health" && <HealthcarePanel />}
+          {activeView === "food" && <FoodSecurityPanel />}
+          {activeView === "energy" && (
+            <div className="space-y-6">
+              <SystemStatus />
+              <MetricsPanel />
+            </div>
+          )}
+          {activeView === "governance" && <UnifiedGovernancePanel />}
+          {activeView === "dao" && <UnifiedGovernancePanel />}
+          {activeView === "automation" && <AutomationMonitorPanel />}
           
-          <IntelligenceHub />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EventBusMonitor />
-            <FinancialPanel />
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <HealthcarePanel />
-            <FoodSecurityPanel />
-          </div>
-          
-          <UnifiedGovernancePanel />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DefensePanel />
-            <GovernancePanel />
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DiplomacyPanel />
-            <CrisisPanel />
-          </div>
-          
-          <DivisionGrid />
           <CommandInterface />
         </main>
       </div>

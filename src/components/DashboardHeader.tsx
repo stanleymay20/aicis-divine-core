@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare, LogOut } from "lucide-react";
+import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare, LogOut, Settings, Home, Apple, Building, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardHeaderProps {
@@ -11,14 +11,14 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
   const { user, signOut } = useAuth();
   
   const navItems = [
-    { id: "overview", label: "Dashboard", icon: Activity },
+    { id: "overview", label: "Dashboard", icon: Home },
     { id: "economy", label: "Economy", icon: DollarSign },
     { id: "health", label: "Health", icon: Heart },
-    { id: "food", label: "Food", icon: Leaf },
+    { id: "food", label: "Food", icon: Apple },
     { id: "energy", label: "Energy", icon: Zap },
-    { id: "governance", label: "Governance", icon: Globe },
-    { id: "security", label: "Defense", icon: Shield },
-    { id: "assistant", label: "J.A.R.V.I.S.", icon: MessageSquare },
+    { id: "governance", label: "Governance", icon: Building },
+    { id: "dao", label: "DAO", icon: Users },
+    { id: "automation", label: "Automation", icon: Settings },
   ];
 
   return (

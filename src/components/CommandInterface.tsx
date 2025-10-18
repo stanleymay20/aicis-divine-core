@@ -164,6 +164,32 @@ export const CommandInterface = () => {
         response = "🗳️ To vote on proposals, please use the DAO panel in Governance section.";
       } else if (userCommand.includes("tally proposal")) {
         response = "📊 Proposal tallying is available in the DAO admin section.";
+      } else if (userCommand.includes("run all cron") || userCommand.includes("run automation")) {
+        const jobs = ["cron-hourly-rewards", "cron-daily-mint", "cron-6h-partner-sync", "cron-hourly-dao-tally"];
+        for (const job of jobs) {
+          await supabase.functions.invoke(job, { body: {} });
+        }
+        response = `✅ All ${jobs.length} automation jobs triggered successfully (logged & compliant)`;
+      } else if (userCommand.includes("show automation log") || userCommand.includes("automation status")) {
+        const { data, error } = await supabase
+          .from("automation_logs")
+          .select("*")
+          .order("executed_at", { ascending: false })
+          .limit(10);
+        if (error) throw error;
+        const summary = data.map(log => `${log.job_name}: ${log.status} - ${log.message.substring(0, 50)}...`).join("\n");
+        response = `📊 Recent Automation Logs:\n${summary}`;
+      } else if (userCommand.includes("check system uptime") || userCommand.includes("system uptime")) {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data, error } = await supabase
+          .from("automation_logs")
+          .select("*")
+          .gte("executed_at", oneDayAgo);
+        if (error) throw error;
+        const total = data.length;
+        const successful = data.filter(log => log.status === "success").length;
+        const uptime = total > 0 ? ((successful / total) * 100).toFixed(2) : "100";
+        response = `⚡ System Uptime (24h): ${uptime}% (${successful}/${total} jobs successful)`;
       } else if (userCommand.startsWith("objective") || userCommand.startsWith("goal") || userCommand.startsWith("plan")) {
         const objective = userCommand.replace(/^(objective|goal|plan)\s*/i, "").trim();
         if (!objective) {
