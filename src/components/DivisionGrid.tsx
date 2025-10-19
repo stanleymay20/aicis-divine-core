@@ -1,125 +1,11 @@
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   DollarSign, Shield, Heart, Leaf, Zap, Globe, 
-  Database, Brain, ArrowRight, TrendingUp, AlertTriangle,
-  Activity, CheckCircle
+  Database, Brain, ArrowRight, Activity, CheckCircle, AlertTriangle
 } from "lucide-react";
-
-const divisions = [
-  {
-    id: "finance",
-    name: "Financial Intelligence",
-    icon: DollarSign,
-    status: "operational",
-    color: "text-secondary",
-    bgColor: "bg-secondary/10",
-    metrics: [
-      { label: "Active Trades", value: "2,456", trend: "+18%" },
-      { label: "Revenue (24h)", value: "$367K", trend: "+42%" },
-      { label: "Exchanges", value: "7 Connected", trend: "100%" },
-    ],
-    description: "High-frequency trading across global markets",
-  },
-  {
-    id: "security",
-    name: "Military & Security",
-    icon: Shield,
-    status: "active",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-    metrics: [
-      { label: "Threats Detected", value: "0", trend: "0%" },
-      { label: "Systems Protected", value: "247", trend: "100%" },
-      { label: "Response Time", value: "<0.001s", trend: "Optimal" },
-    ],
-    description: "Real-time threat detection and autonomous defense",
-  },
-  {
-    id: "healthcare",
-    name: "Healthcare Division",
-    icon: Heart,
-    status: "operational",
-    color: "text-red-400",
-    bgColor: "bg-red-400/10",
-    metrics: [
-      { label: "Patients Monitored", value: "12.4M", trend: "+7%" },
-      { label: "AI Diagnostics", value: "3,456", trend: "+15%" },
-      { label: "Outbreak Alerts", value: "0", trend: "Clear" },
-    ],
-    description: "Predictive healthcare and pandemic response",
-  },
-  {
-    id: "agriculture",
-    name: "Food & Agriculture",
-    icon: Leaf,
-    status: "operational",
-    color: "text-green-400",
-    bgColor: "bg-green-400/10",
-    metrics: [
-      { label: "Farms Managed", value: "8,932", trend: "+12%" },
-      { label: "Yield Optimization", value: "94%", trend: "+8%" },
-      { label: "Supply Chains", value: "156", trend: "Active" },
-    ],
-    description: "Smart agriculture and global food security",
-  },
-  {
-    id: "energy",
-    name: "Energy & Infrastructure",
-    icon: Zap,
-    status: "optimal",
-    color: "text-yellow-400",
-    bgColor: "bg-yellow-400/10",
-    metrics: [
-      { label: "Grid Efficiency", value: "96.8%", trend: "+2.3%" },
-      { label: "Power Stations", value: "423", trend: "Online" },
-      { label: "Renewable %", value: "68%", trend: "+5%" },
-    ],
-    description: "Global energy grid management and optimization",
-  },
-  {
-    id: "governance",
-    name: "Governance & Policy",
-    icon: Globe,
-    status: "operational",
-    color: "text-blue-400",
-    bgColor: "bg-blue-400/10",
-    metrics: [
-      { label: "Nations Assisted", value: "89", trend: "+3" },
-      { label: "Policies Analyzed", value: "1,234", trend: "+45%" },
-      { label: "Crisis Predictions", value: "12", trend: "Prevented" },
-    ],
-    description: "AI-driven policy and civilization management",
-  },
-  {
-    id: "cybersecurity",
-    name: "Cybersecurity Intelligence",
-    icon: Database,
-    status: "active",
-    color: "text-purple-400",
-    bgColor: "bg-purple-400/10",
-    metrics: [
-      { label: "Networks Secured", value: "1,847", trend: "100%" },
-      { label: "Attacks Blocked", value: "23,456", trend: "+67%" },
-      { label: "Data Protected", value: "12.4TB", trend: "Encrypted" },
-    ],
-    description: "Real-time cyber defense and digital warfare",
-  },
-  {
-    id: "assistant",
-    name: "J.A.R.V.I.S. Interface",
-    icon: Brain,
-    status: "ready",
-    color: "text-cyan-400",
-    bgColor: "bg-cyan-400/10",
-    metrics: [
-      { label: "Commands Processed", value: "45,678", trend: "+89%" },
-      { label: "Response Time", value: "0.02s", trend: "Fast" },
-      { label: "Accuracy", value: "99.9%", trend: "Excellent" },
-    ],
-    description: "Natural language command and control interface",
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -136,12 +22,135 @@ const getStatusIcon = (status: string) => {
 };
 
 export const DivisionGrid = () => {
+  const [divisions, setDivisions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDivisions = async () => {
+      try {
+        const { data: aiDivisions } = await supabase
+          .from('ai_divisions')
+          .select('*')
+          .order('name');
+
+        const { data: revenue } = await supabase
+          .from('revenue_streams')
+          .select('amount_usd, division')
+          .gte('timestamp', new Date(Date.now() - 24 * 3600e3).toISOString());
+
+        const { data: energy } = await supabase
+          .from('energy_grid')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(50);
+
+        const { data: health } = await supabase
+          .from('health_data')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(50);
+
+        const { data: food } = await supabase
+          .from('food_security')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(50);
+
+        const { data: crises } = await supabase
+          .from('crisis_events')
+          .select('*')
+          .in('status', ['monitoring', 'escalated']);
+
+        const iconMap: Record<string, any> = {
+          'Financial Intelligence': DollarSign,
+          'Finance Division': DollarSign,
+          'Security Division': Shield,
+          'Healthcare Division': Heart,
+          'Food & Agriculture': Leaf,
+          'Energy & Infrastructure': Zap,
+          'Governance & Policy': Globe,
+          'Cybersecurity Intelligence': Database,
+          'J.A.R.V.I.S. Interface': Brain,
+        };
+
+        const divisionMetrics = (aiDivisions || []).map((div: any) => {
+          const icon = iconMap[div.name] || Database;
+          let metrics = [];
+
+          if (div.name.includes('Finance') || div.name.includes('Financial')) {
+            const total = (revenue || [])
+              .filter((r: any) => r.division === 'finance')
+              .reduce((a: number, b: any) => a + Number(b.amount_usd || 0), 0);
+            metrics = [
+              { label: 'Revenue (24h)', value: `$${Math.round(total).toLocaleString()}`, trend: '+42%' },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: 'Optimal' },
+              { label: 'Uptime', value: `${div.uptime_percentage}%`, trend: '100%' },
+            ];
+          } else if (div.name.includes('Energy')) {
+            const avgStability = (energy || []).reduce((a, b) => a + Number(b.stability_index || 0), 0) / Math.max(1, energy?.length || 1);
+            const avgRenew = (energy || []).reduce((a, b) => a + Number(b.renewable_percentage || 0), 0) / Math.max(1, energy?.length || 1);
+            metrics = [
+              { label: 'Grid Efficiency', value: `${avgStability.toFixed(1)}%`, trend: '+2.3%' },
+              { label: 'Renewable %', value: `${avgRenew.toFixed(0)}%`, trend: '+5%' },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: 'Online' },
+            ];
+          } else if (div.name.includes('Health')) {
+            const totalAffected = (health || []).reduce((a, b) => a + Number(b.affected_count || 0), 0);
+            metrics = [
+              { label: 'Patients Monitored', value: `${(totalAffected / 1000).toFixed(1)}K`, trend: '+7%' },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: '+15%' },
+              { label: 'Outbreak Alerts', value: '0', trend: 'Clear' },
+            ];
+          } else if (div.name.includes('Food') || div.name.includes('Agriculture')) {
+            const avgYield = (food || []).reduce((a, b) => a + Number(b.yield_index || 0), 0) / Math.max(1, food?.length || 1);
+            metrics = [
+              { label: 'Yield Index', value: `${avgYield.toFixed(0)}%`, trend: '+8%' },
+              { label: 'Regions', value: String((food || []).length), trend: 'Active' },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: '+12%' },
+            ];
+          } else {
+            metrics = [
+              { label: 'Performance', value: `${div.performance_score}%`, trend: 'Optimal' },
+              { label: 'Uptime', value: `${div.uptime_percentage}%`, trend: '100%' },
+              { label: 'Status', value: div.status, trend: 'Active' },
+            ];
+          }
+
+          return {
+            id: div.division_key,
+            name: div.name,
+            icon,
+            status: div.status,
+            color: 'text-primary',
+            bgColor: 'bg-primary/10',
+            metrics,
+            description: `Real-time ${div.name.toLowerCase()} operations`,
+          };
+        });
+
+        setDivisions(divisionMetrics);
+      } catch (e) {
+        console.error('Error loading divisions:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDivisions();
+    const interval = setInterval(loadDivisions, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-8 text-muted-foreground">Loading divisions...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-orbitron font-bold text-primary">Division Status</h2>
-          <p className="text-sm text-muted-foreground">All 8 AI divisions operational and synchronized</p>
+          <p className="text-sm text-muted-foreground">{divisions.length} AI divisions operational and synchronized</p>
         </div>
       </div>
 
