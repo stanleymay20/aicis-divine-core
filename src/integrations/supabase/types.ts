@@ -358,6 +358,42 @@ export type Database = {
         }
         Relationships: []
       }
+      data_source_log: {
+        Row: {
+          created_at: string | null
+          division: string
+          error_message: string | null
+          id: number
+          last_success: string | null
+          latency_ms: number | null
+          records_ingested: number
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          division: string
+          error_message?: string | null
+          id?: never
+          last_success?: string | null
+          latency_ms?: number | null
+          records_ingested?: number
+          source: string
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          division?: string
+          error_message?: string | null
+          id?: never
+          last_success?: string | null
+          latency_ms?: number | null
+          records_ingested?: number
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
       defense_posture: {
         Row: {
           advisories_md: string | null
@@ -1275,6 +1311,30 @@ export type Database = {
           status?: string
           total_available_sc?: number | null
           total_moved_sc?: number | null
+        }
+        Relationships: []
+      }
+      system_config: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: Json
         }
         Relationships: []
       }

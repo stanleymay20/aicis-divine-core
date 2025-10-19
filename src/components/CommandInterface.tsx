@@ -128,6 +128,38 @@ export const CommandInterface = () => {
         const { data, error } = await supabase.functions.invoke('pull-owid-health', { body: {} });
         if (error) throw error;
         response = data.message || `🏥 Health data updated: ${data.inserted ?? 0} records`;
+      } else if (userCommand.includes("fetch real finance") || userCommand.includes("fetch finance live")) {
+        const { data, error } = await supabase.functions.invoke('fetch-finance-live', { body: {} });
+        if (error) throw error;
+        response = `✅ ${data.message}\n\n${data.data?.message || 'Finance data refreshed and impact evaluated'}`;
+      } else if (userCommand.includes("fetch real energy") || userCommand.includes("fetch energy live")) {
+        const { data, error } = await supabase.functions.invoke('fetch-energy-live', { body: {} });
+        if (error) throw error;
+        response = `⚡ ${data.message}\n\n${data.data?.message || 'Energy data refreshed and impact evaluated'}`;
+      } else if (userCommand.includes("fetch real health") || userCommand.includes("fetch health live")) {
+        const { data, error } = await supabase.functions.invoke('fetch-health-live', { body: {} });
+        if (error) throw error;
+        response = `🏥 ${data.message}\n\n${data.data?.message || 'Health data refreshed and impact evaluated'}`;
+      } else if (userCommand.includes("fetch real food") || userCommand.includes("fetch food live")) {
+        const { data, error } = await supabase.functions.invoke('fetch-food-live', { body: {} });
+        if (error) throw error;
+        response = `🌾 ${data.message}\n\n${data.data?.message || 'Food data refreshed and impact evaluated'}`;
+      } else if (userCommand.includes("run all real-data refresh") || userCommand.includes("refresh all data")) {
+        const startTime = Date.now();
+        const results = await Promise.allSettled([
+          supabase.functions.invoke('fetch-finance-live', { body: {} }),
+          supabase.functions.invoke('fetch-energy-live', { body: {} }),
+          supabase.functions.invoke('fetch-health-live', { body: {} }),
+          supabase.functions.invoke('fetch-food-live', { body: {} })
+        ]);
+        const latency = Date.now() - startTime;
+        const successes = results.filter(r => r.status === 'fulfilled').length;
+        response = `🔄 All Data Refresh Complete\n\n✅ ${successes}/4 divisions updated\n⏱️ Total time: ${latency}ms\n\n${results.map((r, i) => {
+          const divisions = ['Finance', 'Energy', 'Health', 'Food'];
+          return r.status === 'fulfilled' 
+            ? `✅ ${divisions[i]}: Success` 
+            : `❌ ${divisions[i]}: ${(r as PromiseRejectedResult).reason}`;
+        }).join('\n')}`;
       } else if (userCommand.includes("my balance") || userCommand.includes("show sc balance")) {
         const { data, error } = await supabase.functions.invoke('sc-get-balance', { body: {} });
         if (error) throw error;

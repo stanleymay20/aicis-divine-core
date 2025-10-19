@@ -29,6 +29,7 @@ serve(async (req) => {
 
     console.log("CoinGecko data:", j);
 
+    const startTime = Date.now();
     // Normalize into revenue_streams (finance division)
     const now = new Date().toISOString();
     const rows = [
@@ -85,13 +86,25 @@ serve(async (req) => {
       data_accessed: { provider: 'coingecko', assets: ['BTC','ETH','USDT'] }
     });
     
+    const latencyMs = Date.now() - startTime;
+
+    // Log to data_source_log
+    await supabase.from('data_source_log').insert({
+      division: 'finance',
+      source: 'coingecko',
+      records_ingested: rows.length,
+      latency_ms: latencyMs,
+      status: 'success',
+      last_success: now
+    });
+
     await supabase.from('system_logs').insert({
       division: 'finance', 
       action: 'pull_coingecko', 
       user_id: user.id,
       result: 'success', 
       log_level: 'info', 
-      metadata: { rows: rows.length }
+      metadata: { rows: rows.length, latency_ms: latencyMs }
     });
 
     console.log("CoinGecko data pull complete:", rows.length, "rows");
@@ -102,6 +115,20 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("pull-coingecko error:", e);
+    
+    // Log failure
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    await supabase.from('data_source_log').insert({
+      division: 'finance',
+      source: 'coingecko',
+      records_ingested: 0,
+      status: 'failure',
+      error_message: e instanceof Error ? e.message : 'Unknown error'
+    });
+
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), 
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

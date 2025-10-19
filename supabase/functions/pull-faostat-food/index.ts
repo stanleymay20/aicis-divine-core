@@ -21,6 +21,7 @@ serve(async (req) => {
 
     console.log("Fetching FAOSTAT food data...");
 
+    const startTime = Date.now();
     // Public FAOSTAT API (no key)
     const countries = [288, 566, 404, 710]; // Ghana, Nigeria, Kenya, South Africa
     const items = [562, 27, 15]; // maize, rice, wheat
@@ -76,13 +77,25 @@ serve(async (req) => {
       data_accessed: { provider: 'FAOSTAT', domain: 'QCL', countries, items, year }
     });
     
+    const latencyMs = Date.now() - startTime;
+
+    // Log to data_source_log
+    await supabase.from('data_source_log').insert({
+      division: 'food',
+      source: 'faostat',
+      records_ingested: inserted,
+      latency_ms: latencyMs,
+      status: 'success',
+      last_success: now
+    });
+
     await supabase.from('system_logs').insert({
       division: 'food', 
       action: 'pull_faostat_food', 
       user_id: user.id,
       result: 'success', 
       log_level: 'info', 
-      metadata: { inserted }
+      metadata: { inserted, latency_ms: latencyMs }
     });
 
     console.log("FAOSTAT data pull complete:", inserted, "records");
@@ -93,6 +106,20 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("pull-faostat-food error:", e);
+    
+    // Log failure
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    await supabase.from('data_source_log').insert({
+      division: 'food',
+      source: 'faostat',
+      records_ingested: 0,
+      status: 'failure',
+      error_message: e instanceof Error ? e.message : 'Unknown error'
+    });
+
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), 
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

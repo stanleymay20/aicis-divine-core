@@ -20,6 +20,7 @@ import EconomyPanel from "@/components/EconomyPanel";
 import { UnifiedGovernancePanel } from "@/components/UnifiedGovernancePanel";
 import { NotificationsCenter } from "@/components/NotificationsCenter";
 import { AutomationMonitorPanel } from "@/components/AutomationMonitorPanel";
+import { DataHealthPanel } from "@/components/DataHealthPanel";
 import LearningAllocatorPanel from "@/components/LearningAllocatorPanel";
 import FederationPanel from "@/components/FederationPanel";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,7 +112,12 @@ const Index = () => {
           )}
           {activeView === "governance" && <UnifiedGovernancePanel />}
           {activeView === "dao" && <UnifiedGovernancePanel />}
-          {activeView === "automation" && <AutomationMonitorPanel />}
+          {activeView === "automation" && (
+            <div className="space-y-6">
+              <AutomationMonitorPanel />
+              <DataHealthPanel />
+            </div>
+          )}
           {activeView === "learning" && <LearningAllocatorPanel />}
           {activeView === "federation" && <FederationPanel />}
           
