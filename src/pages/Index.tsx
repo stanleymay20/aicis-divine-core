@@ -23,6 +23,8 @@ import { AutomationMonitorPanel } from "@/components/AutomationMonitorPanel";
 import { DataHealthPanel } from "@/components/DataHealthPanel";
 import LearningAllocatorPanel from "@/components/LearningAllocatorPanel";
 import FederationPanel from "@/components/FederationPanel";
+import { OrganizationPanel } from "@/components/OrganizationPanel";
+import { BillingPanel } from "@/components/BillingPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -120,6 +122,8 @@ const Index = () => {
           )}
           {activeView === "learning" && <LearningAllocatorPanel />}
           {activeView === "federation" && <FederationPanel />}
+          {activeView === "organization" && <OrganizationPanel />}
+          {activeView === "billing" && <BillingPanel />}
           
           <CommandInterface />
         </main>

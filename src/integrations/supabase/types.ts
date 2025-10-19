@@ -250,6 +250,73 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          org_id: string | null
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          org_id?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          org_id?: string | null
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_usage_queue: {
+        Row: {
+          id: string
+          metric_key: string
+          org_id: string | null
+          processed: boolean | null
+          quantity: number
+          recorded_at: string | null
+        }
+        Insert: {
+          id?: string
+          metric_key: string
+          org_id?: string | null
+          processed?: boolean | null
+          quantity: number
+          recorded_at?: string | null
+        }
+        Update: {
+          id?: string
+          metric_key?: string
+          org_id?: string | null
+          processed?: boolean | null
+          quantity?: number
+          recorded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_usage_queue_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       command_history: {
         Row: {
           command: string
@@ -1081,6 +1148,146 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          org_id: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          org_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          org_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_subscriptions: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          id: string
+          org_id: string | null
+          plan_id: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          org_id?: string | null
+          plan_id?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          org_id?: string | null
+          plan_id?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          billing_status: string | null
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          feature_flags: Json | null
+          id: string
+          name: string
+          owner_id: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_status?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string
+          name: string
+          owner_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_status?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string
+          name?: string
+          owner_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1314,6 +1521,36 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string | null
+          features: Json
+          id: string
+          key: string
+          name: string
+          price_usd: number
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          features: Json
+          id?: string
+          key: string
+          name: string
+          price_usd: number
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          features?: Json
+          id?: string
+          key?: string
+          name?: string
+          price_usd?: number
+        }
+        Relationships: []
+      }
       system_config: {
         Row: {
           created_at: string | null
@@ -1445,6 +1682,44 @@ export type Database = {
           status?: Database["public"]["Enums"]["trade_status"]
         }
         Relationships: []
+      }
+      usage_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_key: string
+          metric_value: number | null
+          org_id: string | null
+          period_end: string | null
+          period_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_key: string
+          metric_value?: number | null
+          org_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_key?: string
+          metric_value?: number | null
+          org_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_metrics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
