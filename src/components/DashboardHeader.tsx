@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare, LogOut, Settings, Home, Apple, Building, Users, CreditCard } from "lucide-react";
+import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare, LogOut, Settings, Home, Apple, Building, Users, CreditCard, Target, Scale, FileCheck, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardHeaderProps {
@@ -21,6 +21,11 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
     { id: "automation", label: "Automation", icon: Settings },
     { id: "learning", label: "Learning", icon: Activity },
     { id: "federation", label: "Federation", icon: Globe },
+    { id: "sdg", label: "SDG", icon: Target },
+    { id: "ethics", label: "Ethics", icon: Scale },
+    { id: "compliance", label: "Compliance", icon: FileCheck },
+    { id: "accountability", label: "Accountability", icon: Shield },
+    { id: "trust", label: "Trust Portal", icon: Lock },
     { id: "organization", label: "Organization", icon: Building },
     { id: "billing", label: "Billing", icon: CreditCard },
   ];

@@ -222,6 +222,12 @@ verify_jwt = true
 [functions.ledger-export-snapshot]
 verify_jwt = true
 
+[functions.compute-trust-metrics]
+verify_jwt = false
+
+[functions.cron-compute-trust-metrics]
+schedule = "0 6 * * *"
+
 [functions.privacy-check-consent]
 verify_jwt = true
 

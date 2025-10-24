@@ -31,6 +31,8 @@ import { EducationPanel } from "@/components/EducationPanel";
 import SDGDashboard from "@/components/SDGDashboard";
 import EthicsDashboard from "@/components/EthicsDashboard";
 import PolicyCompliancePanel from "@/components/PolicyCompliancePanel";
+import { AccountabilityDashboard } from "@/components/AccountabilityDashboard";
+import { TrustPortal } from "@/components/TrustPortal";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -141,6 +143,8 @@ const Index = () => {
           {activeView === "sdg" && <SDGDashboard />}
           {activeView === "ethics" && <EthicsDashboard />}
           {activeView === "compliance" && <PolicyCompliancePanel />}
+          {activeView === "accountability" && <AccountabilityDashboard />}
+          {activeView === "trust" && <TrustPortal />}
           
           <CommandInterface />
         </main>

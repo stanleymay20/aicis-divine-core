@@ -686,6 +686,56 @@ export type Database = {
           },
         ]
       }
+      data_access_control: {
+        Row: {
+          access_tier: Database["public"]["Enums"]["access_tier"]
+          approved_purposes:
+            | Database["public"]["Enums"]["data_purpose"][]
+            | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          jurisdiction: string | null
+          node_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_tier?: Database["public"]["Enums"]["access_tier"]
+          approved_purposes?:
+            | Database["public"]["Enums"]["data_purpose"][]
+            | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          jurisdiction?: string | null
+          node_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_tier?: Database["public"]["Enums"]["access_tier"]
+          approved_purposes?:
+            | Database["public"]["Enums"]["data_purpose"][]
+            | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          jurisdiction?: string | null
+          node_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_access_control_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_retention_policies: {
         Row: {
           auto_delete: boolean | null
@@ -798,6 +848,59 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      data_use_agreements: {
+        Row: {
+          agreement_text: string
+          created_at: string | null
+          data_categories: string[] | null
+          effective_from: string
+          expires_at: string | null
+          id: string
+          jurisdiction: string
+          node_id: string | null
+          purposes: Database["public"]["Enums"]["data_purpose"][] | null
+          signature: string
+          signed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          agreement_text: string
+          created_at?: string | null
+          data_categories?: string[] | null
+          effective_from: string
+          expires_at?: string | null
+          id?: string
+          jurisdiction: string
+          node_id?: string | null
+          purposes?: Database["public"]["Enums"]["data_purpose"][] | null
+          signature: string
+          signed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          agreement_text?: string
+          created_at?: string | null
+          data_categories?: string[] | null
+          effective_from?: string
+          expires_at?: string | null
+          id?: string
+          jurisdiction?: string
+          node_id?: string | null
+          purposes?: Database["public"]["Enums"]["data_purpose"][] | null
+          signature?: string
+          signed_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_use_agreements_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       defense_posture: {
         Row: {
@@ -945,6 +1048,45 @@ export type Database = {
           impact_weight?: number | null
           last_updated?: string | null
           trend?: number | null
+        }
+        Relationships: []
+      }
+      dpia_logs: {
+        Row: {
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          assessment_type: string
+          created_at: string | null
+          data_categories: string[] | null
+          id: string
+          mitigation_measures: Json | null
+          model_name: string | null
+          risk_level: string
+        }
+        Insert: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_type: string
+          created_at?: string | null
+          data_categories?: string[] | null
+          id?: string
+          mitigation_measures?: Json | null
+          model_name?: string | null
+          risk_level: string
+        }
+        Update: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_type?: string
+          created_at?: string | null
+          data_categories?: string[] | null
+          id?: string
+          mitigation_measures?: Json | null
+          model_name?: string | null
+          risk_level?: string
         }
         Relationships: []
       }
@@ -2409,6 +2551,84 @@ export type Database = {
         }
         Relationships: []
       }
+      transparency_reports: {
+        Row: {
+          avg_trust_score: number | null
+          created_at: string | null
+          data_breaches_count: number | null
+          ethics_appeals_count: number | null
+          gdpr_requests_count: number | null
+          id: string
+          published_at: string | null
+          report_content: string | null
+          report_period_end: string
+          report_period_start: string
+          signed_hash: string | null
+          total_decisions: number | null
+          total_users: number | null
+        }
+        Insert: {
+          avg_trust_score?: number | null
+          created_at?: string | null
+          data_breaches_count?: number | null
+          ethics_appeals_count?: number | null
+          gdpr_requests_count?: number | null
+          id?: string
+          published_at?: string | null
+          report_content?: string | null
+          report_period_end: string
+          report_period_start: string
+          signed_hash?: string | null
+          total_decisions?: number | null
+          total_users?: number | null
+        }
+        Update: {
+          avg_trust_score?: number | null
+          created_at?: string | null
+          data_breaches_count?: number | null
+          ethics_appeals_count?: number | null
+          gdpr_requests_count?: number | null
+          id?: string
+          published_at?: string | null
+          report_content?: string | null
+          report_period_end?: string
+          report_period_start?: string
+          signed_hash?: string | null
+          total_decisions?: number | null
+          total_users?: number | null
+        }
+        Relationships: []
+      }
+      trust_metrics: {
+        Row: {
+          computed_at: string | null
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_unit: string | null
+          metric_value: number
+          signature: string | null
+        }
+        Insert: {
+          computed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_unit?: string | null
+          metric_value: number
+          signature?: string | null
+        }
+        Update: {
+          computed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_unit?: string | null
+          metric_value?: number
+          signature?: string | null
+        }
+        Relationships: []
+      }
       usage_metrics: {
         Row: {
           created_at: string | null
@@ -2595,6 +2815,7 @@ export type Database = {
       }
     }
     Enums: {
+      access_tier: "public" | "institutional" | "administrative"
       alert_level:
         | "stable"
         | "monitoring"
@@ -2602,6 +2823,13 @@ export type Database = {
         | "critical"
         | "emergency"
       app_role: "admin" | "operator" | "observer"
+      data_purpose:
+        | "analytics"
+        | "reporting"
+        | "research"
+        | "crisis_response"
+        | "policy_making"
+        | "audit"
       division_status:
         | "optimal"
         | "operational"
@@ -2761,8 +2989,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_tier: ["public", "institutional", "administrative"],
       alert_level: ["stable", "monitoring", "warning", "critical", "emergency"],
       app_role: ["admin", "operator", "observer"],
+      data_purpose: [
+        "analytics",
+        "reporting",
+        "research",
+        "crisis_response",
+        "policy_making",
+        "audit",
+      ],
       division_status: [
         "optimal",
         "operational",

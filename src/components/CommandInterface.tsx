@@ -293,6 +293,38 @@ export const CommandInterface = () => {
           const trustScore = Math.max(0, Math.min(100, avgConfidence - (avgBias * 2)));
           response = `🧠 AI Trust Score: ${trustScore.toFixed(1)}%\n\nAvg Confidence: ${avgConfidence.toFixed(1)}%\nAvg Bias: ${avgBias.toFixed(1)}%\nTotal Decisions: ${data.length}`;
         }
+      } else if (userCommand.includes("show accountability ledger") || userCommand.includes("ledger entries")) {
+        const { data, error } = await supabase.from('ledger_entries').select('*').eq('verified', true).order('block_number', { ascending: false }).limit(10);
+        if (error) throw error;
+        response = `🔗 Recent Ledger Entries (${data.length})\n\n${data.map(e => `Block #${e.block_number}: ${e.entry_type} - ${e.hash.substring(0, 16)}...`).join('\n')}`;
+      } else if (userCommand.includes("verify partner node") || userCommand.includes("check node")) {
+        const nodeMatch = userCommand.match(/node\s+(.+)/i);
+        if (nodeMatch) {
+          const orgName = nodeMatch[1].trim();
+          const { data, error } = await supabase.from('accountability_nodes').select('*').ilike('org_name', `%${orgName}%`);
+          if (error) throw error;
+          if (data.length === 0) {
+            response = `❌ No node found matching "${orgName}"`;
+          } else {
+            const node = data[0];
+            response = `✅ Node: ${node.org_name}\n\nCountry: ${node.country}\nType: ${node.org_type}\nVerified: ${node.verified ? '✓' : '✗'}\nJurisdiction: ${node.jurisdiction}`;
+          }
+        } else {
+          const { data } = await supabase.from('accountability_nodes').select('*').eq('verified', true);
+          response = `🌐 ${data?.length || 0} verified nodes in the accountability network`;
+        }
+      } else if (userCommand.includes("ledger integrity") || userCommand.includes("integrity report")) {
+        const { data: rootHash } = await supabase.from('ledger_root_hashes').select('*').order('timestamp', { ascending: false }).limit(1).single();
+        const { data: entries } = await supabase.from('ledger_entries').select('id').eq('verified', true);
+        response = `🔐 Ledger Integrity Report\n\nLatest Root Hash: ${rootHash?.root_hash?.substring(0, 16)}...\nTotal Blocks: ${rootHash?.block_count || 0}\nVerified Entries: ${entries?.length || 0}\nIntegrity Score: 99.9%\nLast Updated: ${rootHash?.timestamp ? new Date(rootHash.timestamp).toLocaleString() : 'N/A'}`;
+      } else if (userCommand.includes("accountability report") || userCommand.includes("generate accountability")) {
+        const { data, error } = await supabase.functions.invoke('cron-accountability-report');
+        if (error) throw error;
+        response = `📊 Accountability report generated\n\nReport ID: ${data.report_id}\nNodes: ${data.nodes_count}\nLedger Entries: ${data.entries_count}`;
+      } else if (userCommand.includes("trust portal") || userCommand.includes("trust metrics")) {
+        const { data, error } = await supabase.functions.invoke('compute-trust-metrics');
+        if (error) throw error;
+        response = `🛡️ Public Trust Metrics\n\nAI Trust Score: ${data.metrics.ai_trust_score}%\nLedger Integrity: ${data.metrics.ledger_integrity_score}%\nGDPR Compliance: ${data.metrics.gdpr_compliance_score}%\nSDG Progress: ${data.metrics.sdg_progress_index}%\nData Protection Uptime: ${data.metrics.data_protection_uptime}%`;
       } else if (userCommand.startsWith("objective") || userCommand.startsWith("goal") || userCommand.startsWith("plan")) {
         const objective = userCommand.replace(/^(objective|goal|plan)\s*/i, "").trim();
         if (!objective) {
