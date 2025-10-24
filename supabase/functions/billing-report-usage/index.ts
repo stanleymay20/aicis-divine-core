@@ -84,7 +84,7 @@ serve(async (req) => {
       }
 
       // Find subscription item for this metric
-      const subscriptionItem = subscription.items.data.find(item => item.price.id === priceId);
+      const subscriptionItem = subscription.items.data.find((item: any) => item.price.id === priceId);
       
       if (!subscriptionItem) {
         console.log(`No subscription item for metric ${metric_key} in org ${org_id}, skipping`);
@@ -92,8 +92,8 @@ serve(async (req) => {
       }
 
       // Sum quantities and report to Stripe
-      const totalQuantity = records.reduce((sum, r) => sum + Number(r.quantity), 0);
-      const timestamp = Math.floor(new Date(records[0].recorded_at).getTime() / 1000);
+      const totalQuantity = (records as any[]).reduce((sum: number, r: any) => sum + Number(r.quantity), 0);
+      const timestamp = Math.floor(new Date((records as any[])[0].recorded_at).getTime() / 1000);
 
       try {
         await stripe.subscriptionItems.createUsageRecord(subscriptionItem.id, {
@@ -103,13 +103,13 @@ serve(async (req) => {
         });
 
         // Mark as processed
-        const recordIds = records.map(r => r.id);
+        const recordIds = (records as any[]).map((r: any) => r.id);
         await supabase
           .from("billing_usage_queue")
           .update({ processed: true })
           .in("id", recordIds);
 
-        processed += records.length;
+        processed += (records as any[]).length;
       } catch (error) {
         console.error(`Error reporting usage for ${key}:`, error);
         errors.push({ key, error: (error as Error).message });
