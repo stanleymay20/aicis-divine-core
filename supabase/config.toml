@@ -1,3 +1,15 @@
+project_id = "psonnnuhjjskrdazrakk"
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://localhost:5173"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.external.google]
+enabled = false
+
 [functions.billing-webhook]
 verify_jwt = false
 
@@ -12,3 +24,339 @@ verify_jwt = true
 
 [functions.cron-calculate-vulnerability]
 verify_jwt = false
+
+[functions.cron-ledger-root-hash]
+verify_jwt = false
+
+[functions.cron-verify-node-activity]
+verify_jwt = false
+
+[functions.cron-accountability-report]
+verify_jwt = false
+
+[functions.cron-compute-trust-metrics]
+verify_jwt = false
+
+[functions.cron-sdg-progress-update]
+verify_jwt = false
+
+[functions.cron-auto-purge-expired]
+verify_jwt = false
+
+[functions.cron-daily-bias-scan]
+verify_jwt = false
+
+[functions.register-node]
+verify_jwt = true
+
+[functions.verify-node]
+verify_jwt = true
+
+[functions.ledger-add-entry]
+verify_jwt = true
+
+[functions.ledger-verify-entry]
+verify_jwt = true
+
+[functions.ledger-export-snapshot]
+verify_jwt = true
+
+[functions.compute-trust-metrics]
+verify_jwt = true
+
+[functions.log-ai-decision]
+verify_jwt = true
+
+[functions.jarvis-command]
+verify_jwt = true
+
+[functions.fetch-division-data]
+verify_jwt = true
+
+[functions.fetch-energy-live]
+verify_jwt = true
+
+[functions.fetch-finance-live]
+verify_jwt = true
+
+[functions.fetch-health-live]
+verify_jwt = true
+
+[functions.fetch-food-live]
+verify_jwt = true
+
+[functions.cron-fetch-division-data]
+verify_jwt = false
+
+[functions.aggregate-global-insights]
+verify_jwt = true
+
+[functions.aggregate-usage]
+verify_jwt = false
+
+[functions.analyze-bias-trend]
+verify_jwt = true
+
+[functions.analyze-global-status]
+verify_jwt = true
+
+[functions.analyze-health]
+verify_jwt = true
+
+[functions.analyze-revenue]
+verify_jwt = true
+
+[functions.auto-learn-cycle]
+verify_jwt = true
+
+[functions.auto-purge-expired-records]
+verify_jwt = true
+
+[functions.billing-create-checkout]
+verify_jwt = true
+
+[functions.billing-create-customer]
+verify_jwt = true
+
+[functions.billing-customer-portal]
+verify_jwt = true
+
+[functions.billing-report-usage]
+verify_jwt = true
+
+[functions.collect-division-kpis]
+verify_jwt = true
+
+[functions.create-organization]
+verify_jwt = true
+
+[functions.crisis-scan]
+verify_jwt = true
+
+[functions.cron-6h-federation-export]
+verify_jwt = false
+
+[functions.cron-6h-federation-merge]
+verify_jwt = false
+
+[functions.cron-6h-partner-sync]
+verify_jwt = false
+
+[functions.cron-aggregate-global-insights]
+verify_jwt = false
+
+[functions.cron-daily-learn]
+verify_jwt = false
+
+[functions.cron-daily-mint]
+verify_jwt = false
+
+[functions.cron-generate-daily-report]
+verify_jwt = false
+
+[functions.cron-hourly-crisis-scan]
+verify_jwt = false
+
+[functions.cron-hourly-dao-tally]
+verify_jwt = false
+
+[functions.cron-hourly-rewards]
+verify_jwt = false
+
+[functions.cron-update-division-status]
+verify_jwt = false
+
+[functions.dao-execute]
+verify_jwt = true
+
+[functions.dao-get-dashboard]
+verify_jwt = true
+
+[functions.dao-propose]
+verify_jwt = true
+
+[functions.dao-snapshot]
+verify_jwt = true
+
+[functions.dao-tally]
+verify_jwt = true
+
+[functions.dao-vote]
+verify_jwt = true
+
+[functions.defense-posture-refresh]
+verify_jwt = true
+
+[functions.detect-anomalies]
+verify_jwt = true
+
+[functions.detect-global-anomalies]
+verify_jwt = true
+
+[functions.diplomacy-scan]
+verify_jwt = true
+
+[functions.energy-optimize]
+verify_jwt = true
+
+[functions.evaluate-impact]
+verify_jwt = true
+
+[functions.execute-objectives]
+verify_jwt = true
+
+[functions.fed-admin-test-peer]
+verify_jwt = true
+
+[functions.fed-ingest]
+verify_jwt = false
+
+[functions.fed-make-bundle]
+verify_jwt = true
+
+[functions.fed-merge-global-prior]
+verify_jwt = true
+
+[functions.fed-send-bundles]
+verify_jwt = true
+
+[functions.fetch-market-data]
+verify_jwt = true
+
+[functions.generate-division-report]
+verify_jwt = true
+
+[functions.generate-financial-report]
+verify_jwt = true
+
+[functions.generate-health-report]
+verify_jwt = true
+
+[functions.get-notifications]
+verify_jwt = true
+
+[functions.get-usage-metrics]
+verify_jwt = true
+
+[functions.gov-execute-trade]
+verify_jwt = true
+
+[functions.gov-get-assets]
+verify_jwt = true
+
+[functions.gov-initiate-trade]
+verify_jwt = true
+
+[functions.gov-oracle-update]
+verify_jwt = true
+
+[functions.gov-sync-partners]
+verify_jwt = true
+
+[functions.governance-scan]
+verify_jwt = true
+
+[functions.invite-member]
+verify_jwt = true
+
+[functions.issue-api-key]
+verify_jwt = true
+
+[functions.learn-policy-weights]
+verify_jwt = true
+
+[functions.manage-approval]
+verify_jwt = true
+
+[functions.mark-notification-read]
+verify_jwt = true
+
+[functions.optimize-food]
+verify_jwt = true
+
+[functions.predict-risks]
+verify_jwt = true
+
+[functions.privacy-check-consent]
+verify_jwt = true
+
+[functions.process-objective]
+verify_jwt = true
+
+[functions.publish-intel-event]
+verify_jwt = true
+
+[functions.pull-coingecko]
+verify_jwt = true
+
+[functions.pull-faostat-food]
+verify_jwt = true
+
+[functions.pull-owid-energy]
+verify_jwt = true
+
+[functions.pull-owid-health]
+verify_jwt = true
+
+[functions.record-usage]
+verify_jwt = true
+
+[functions.revoke-api-key]
+verify_jwt = true
+
+[functions.sc-award-rewards]
+verify_jwt = true
+
+[functions.sc-get-balance]
+verify_jwt = true
+
+[functions.sc-get-or-create-wallet]
+verify_jwt = true
+
+[functions.sc-mint-epoch]
+verify_jwt = true
+
+[functions.sc-oracle-update]
+verify_jwt = true
+
+[functions.sc-transfer]
+verify_jwt = true
+
+[functions.sdg-evaluate-progress]
+verify_jwt = true
+
+[functions.security-scan]
+verify_jwt = true
+
+[functions.simulate-rebalance]
+verify_jwt = true
+
+[functions.submit-ethics-appeal]
+verify_jwt = true
+
+[functions.tenant-create]
+verify_jwt = true
+
+[functions.tenant-invite]
+verify_jwt = true
+
+[functions.tenant-request-domain]
+verify_jwt = true
+
+[functions.tenant-start-checkout]
+verify_jwt = true
+
+[functions.tenant-update-branding]
+verify_jwt = true
+
+[functions.tenant-verify-domain]
+verify_jwt = true
+
+[functions.update-division-status]
+verify_jwt = true
+
+[functions.update-exchange-balances]
+verify_jwt = true
+
+[functions.update-subscription]
+verify_jwt = true
