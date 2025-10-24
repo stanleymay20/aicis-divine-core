@@ -26,6 +26,7 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
     { id: "compliance", label: "Compliance", icon: FileCheck },
     { id: "accountability", label: "Accountability", icon: Shield },
     { id: "trust", label: "Trust Portal", icon: Lock },
+    { id: "map", label: "Vulnerability Map", icon: Globe },
     { id: "organization", label: "Organization", icon: Building },
     { id: "billing", label: "Billing", icon: CreditCard },
   ];

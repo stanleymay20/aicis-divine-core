@@ -33,6 +33,7 @@ import EthicsDashboard from "@/components/EthicsDashboard";
 import PolicyCompliancePanel from "@/components/PolicyCompliancePanel";
 import { AccountabilityDashboard } from "@/components/AccountabilityDashboard";
 import { TrustPortal } from "@/components/TrustPortal";
+import { GlobalVulnerabilityMap } from "@/components/GlobalVulnerabilityMap";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -145,6 +146,12 @@ const Index = () => {
           {activeView === "compliance" && <PolicyCompliancePanel />}
           {activeView === "accountability" && <AccountabilityDashboard />}
           {activeView === "trust" && <TrustPortal />}
+          {activeView === "map" && (
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Global Vulnerability Map</h2>
+              <GlobalVulnerabilityMap />
+            </div>
+          )}
           
           <CommandInterface />
         </main>
