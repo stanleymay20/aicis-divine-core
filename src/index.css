@@ -8,34 +8,34 @@
 
 @layer base {
   :root {
-    /* Deep Space Backgrounds */
-    --background: 222 47% 4%;
-    --foreground: 189 100% 85%;
+    /* UN Blue Theme - Global Governance */
+    --background: 210 40% 8%;
+    --foreground: 210 40% 98%;
 
     /* Command Panel Colors */
-    --card: 222 47% 6%;
-    --card-foreground: 189 100% 85%;
+    --card: 210 40% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 189 100% 85%;
+    --popover: 210 40% 12%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Cyber Blue Primary */
-    --primary: 189 94% 55%;
-    --primary-foreground: 222 47% 4%;
-    --primary-glow: 189 100% 70%;
+    /* UN Blue Primary */
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 40% 98%;
+    --primary-glow: 199 89% 58%;
 
-    /* Power Gold Secondary */
-    --secondary: 45 100% 60%;
-    --secondary-foreground: 222 47% 4%;
-    --secondary-glow: 45 100% 75%;
+    /* Sustainable Green Secondary */
+    --secondary: 142 76% 45%;
+    --secondary-foreground: 210 40% 98%;
+    --secondary-glow: 142 76% 55%;
 
-    /* Muted Tech Gray */
-    --muted: 222 20% 15%;
-    --muted-foreground: 189 30% 65%;
+    /* Muted Gray */
+    --muted: 210 20% 20%;
+    --muted-foreground: 210 20% 65%;
 
-    /* Neural Accent */
-    --accent: 189 94% 55%;
-    --accent-foreground: 222 47% 4%;
+    /* Accent Blue */
+    --accent: 199 89% 48%;
+    --accent-foreground: 210 40% 98%;
 
     /* Critical Alert */
     --destructive: 0 84% 60%;
@@ -43,26 +43,26 @@
 
     /* Success/Active */
     --success: 142 76% 45%;
-    --success-glow: 142 76% 60%;
+    --success-glow: 142 76% 55%;
 
     /* Warning */
     --warning: 38 92% 50%;
 
     /* Interface Elements */
-    --border: 189 40% 20%;
-    --input: 222 30% 12%;
-    --ring: 189 94% 55%;
+    --border: 210 30% 25%;
+    --input: 210 40% 15%;
+    --ring: 199 89% 48%;
 
     --radius: 0.5rem;
 
     /* Gradients */
-    --gradient-cyber: linear-gradient(135deg, hsl(189 94% 55%) 0%, hsl(222 47% 25%) 100%);
-    --gradient-power: linear-gradient(135deg, hsl(45 100% 60%) 0%, hsl(25 100% 55%) 100%);
-    --gradient-neural: linear-gradient(180deg, hsl(222 47% 8%) 0%, hsl(222 47% 4%) 100%);
+    --gradient-un: linear-gradient(135deg, hsl(199 89% 48%) 0%, hsl(210 40% 20%) 100%);
+    --gradient-sdg: linear-gradient(135deg, hsl(142 76% 45%) 0%, hsl(199 89% 48%) 100%);
+    --gradient-neural: linear-gradient(180deg, hsl(210 40% 12%) 0%, hsl(210 40% 8%) 100%);
     
     /* Glows & Effects */
-    --glow-cyber: 0 0 20px hsl(189 94% 55% / 0.5);
-    --glow-power: 0 0 20px hsl(45 100% 60% / 0.5);
+    --glow-un: 0 0 20px hsl(199 89% 48% / 0.5);
+    --glow-sdg: 0 0 20px hsl(142 76% 45% / 0.5);
     --glow-critical: 0 0 20px hsl(0 84% 60% / 0.5);
     
     /* Transitions */

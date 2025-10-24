@@ -36,6 +36,53 @@ serve(async (req) => {
 
     // Handle different event types
     switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as any;
+        const customerId = session.customer as string;
+        const clientReferenceId = session.client_reference_id;
+
+        // Find org by customer ID or client reference ID
+        let org;
+        if (clientReferenceId) {
+          const { data } = await supabase
+            .from("organizations")
+            .select("id, stripe_customer_id")
+            .eq("id", clientReferenceId)
+            .single();
+          org = data;
+        }
+        
+        if (!org && customerId) {
+          const { data } = await supabase
+            .from("organizations")
+            .select("id, stripe_customer_id")
+            .eq("stripe_customer_id", customerId)
+            .single();
+          org = data;
+        }
+
+        if (!org) {
+          console.error("Organization not found for checkout session");
+          break;
+        }
+
+        // Update customer ID if needed
+        if (customerId && !org.stripe_customer_id) {
+          await supabase
+            .from("organizations")
+            .update({ stripe_customer_id: customerId })
+            .eq("id", org.id);
+        }
+
+        await supabase.from("billing_events").insert({
+          org_id: org.id,
+          event_type: event.type,
+          payload: event.data.object,
+        });
+
+        break;
+      }
+
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;

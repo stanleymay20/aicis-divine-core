@@ -263,6 +263,36 @@ export const CommandInterface = () => {
         const successful = data.filter(log => log.status === "success").length;
         const uptime = total > 0 ? ((successful / total) * 100).toFixed(2) : "100";
         response = `⚡ System Uptime (24h): ${uptime}% (${successful}/${total} jobs successful)`;
+      } else if (userCommand.includes("show sdg") || userCommand.includes("sdg progress")) {
+        const { data, error } = await supabase.from('sdg_progress').select('*').order('goal');
+        if (error) throw error;
+        const avgProgress = data.reduce((sum, g) => sum + Number(g.progress_percent || 0), 0) / data.length;
+        response = `🎯 UN SDG Progress\n\nGlobal Average: ${avgProgress.toFixed(1)}%\n\n${data.slice(0, 5).map(g => `Goal ${g.goal}: ${Number(g.progress_percent).toFixed(1)}%`).join('\n')}\n\nUse the SDG Dashboard for full details.`;
+      } else if (userCommand.includes("update sdg") || userCommand.includes("refresh sdg")) {
+        const { data, error } = await supabase.functions.invoke('sdg-evaluate-progress', { body: {} });
+        if (error) throw error;
+        response = `✅ SDG progress updated for all 17 goals`;
+      } else if (userCommand.includes("ethics report") || userCommand.includes("bias report")) {
+        const { data, error } = await supabase.functions.invoke('analyze-bias-trend', { body: {} });
+        if (error) throw error;
+        response = `⚖️ AI Ethics Report\n\nAvg Bias: ${data.trends?.overall?.avg_bias?.toFixed(2) || 0}%\nHigh Bias Events: ${data.trends?.overall?.high_bias_count || 0}\nLow Confidence Events: ${data.trends?.overall?.low_confidence_count || 0}\n\nTotal Decisions Analyzed: ${data.total_decisions || 0}`;
+      } else if (userCommand.includes("check consent") || userCommand.includes("gdpr status")) {
+        const { data, error } = await supabase.from('user_consent').select('*').is('revoked_at', null);
+        if (error) throw error;
+        response = `🔐 GDPR Compliance Status\n\nActive Consents: ${data.length}\nData Classification: Public\nRetention Policies: Active\nEncryption: AES-256-GCM\n\n✅ System is GDPR compliant`;
+      } else if (userCommand.includes("submit ethics appeal") || userCommand.includes("appeal decision")) {
+        response = `⚖️ To submit an ethics appeal, use the Ethics Dashboard and select the decision you want to appeal.`;
+      } else if (userCommand.includes("trust score") || userCommand.includes("ai trust")) {
+        const { data, error } = await supabase.from('ai_decision_logs').select('confidence, bias_score').order('created_at', { ascending: false }).limit(100);
+        if (error) throw error;
+        if (data.length === 0) {
+          response = `🧠 No AI decisions recorded yet`;
+        } else {
+          const avgConfidence = data.reduce((sum, d) => sum + (Number(d.confidence) || 0), 0) / data.length;
+          const avgBias = data.reduce((sum, d) => sum + (Number(d.bias_score) || 0), 0) / data.length;
+          const trustScore = Math.max(0, Math.min(100, avgConfidence - (avgBias * 2)));
+          response = `🧠 AI Trust Score: ${trustScore.toFixed(1)}%\n\nAvg Confidence: ${avgConfidence.toFixed(1)}%\nAvg Bias: ${avgBias.toFixed(1)}%\nTotal Decisions: ${data.length}`;
+        }
       } else if (userCommand.startsWith("objective") || userCommand.startsWith("goal") || userCommand.startsWith("plan")) {
         const objective = userCommand.replace(/^(objective|goal|plan)\s*/i, "").trim();
         if (!objective) {

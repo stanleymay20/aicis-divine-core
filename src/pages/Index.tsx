@@ -28,6 +28,9 @@ import { BillingPanel } from "@/components/BillingPanel";
 import { EnergyPanel } from "@/components/EnergyPanel";
 import { LogisticsPanel } from "@/components/LogisticsPanel";
 import { EducationPanel } from "@/components/EducationPanel";
+import SDGDashboard from "@/components/SDGDashboard";
+import EthicsDashboard from "@/components/EthicsDashboard";
+import PolicyCompliancePanel from "@/components/PolicyCompliancePanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -135,6 +138,9 @@ const Index = () => {
           {activeView === "federation" && <FederationPanel />}
           {activeView === "organization" && <OrganizationPanel />}
           {activeView === "billing" && <BillingPanel />}
+          {activeView === "sdg" && <SDGDashboard />}
+          {activeView === "ethics" && <EthicsDashboard />}
+          {activeView === "compliance" && <PolicyCompliancePanel />}
           
           <CommandInterface />
         </main>
