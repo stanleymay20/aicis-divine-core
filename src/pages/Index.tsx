@@ -25,6 +25,9 @@ import LearningAllocatorPanel from "@/components/LearningAllocatorPanel";
 import FederationPanel from "@/components/FederationPanel";
 import { OrganizationPanel } from "@/components/OrganizationPanel";
 import { BillingPanel } from "@/components/BillingPanel";
+import { EnergyPanel } from "@/components/EnergyPanel";
+import { LogisticsPanel } from "@/components/LogisticsPanel";
+import { EducationPanel } from "@/components/EducationPanel";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -87,7 +90,15 @@ const Index = () => {
                 <FoodSecurityPanel />
               </div>
               
-              <UnifiedGovernancePanel />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <EnergyPanel />
+                <LogisticsPanel />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <EducationPanel />
+                <UnifiedGovernancePanel />
+              </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DefensePanel />

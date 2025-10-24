@@ -14,7 +14,7 @@ export const LogisticsPanel = () => {
   const fetchLogisticsData = async () => {
     try {
       const { data } = await supabase
-        .from('logistics_data')
+        .from('logistics_data' as any)
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(10);

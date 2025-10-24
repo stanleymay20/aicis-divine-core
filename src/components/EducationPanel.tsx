@@ -14,7 +14,7 @@ export const EducationPanel = () => {
   const fetchEducationData = async () => {
     try {
       const { data } = await supabase
-        .from('education_metrics')
+        .from('education_metrics' as any)
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(10);
