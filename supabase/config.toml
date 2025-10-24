@@ -198,6 +198,30 @@ schedule = "0 3 * * *"
 [functions.cron-daily-bias-scan]
 schedule = "30 0 * * *"
 
+[functions.cron-ledger-root-hash]
+schedule = "0 0 * * *"
+
+[functions.cron-verify-node-activity]
+schedule = "0 3 * * *"
+
+[functions.cron-accountability-report]
+schedule = "0 6 * * *"
+
+[functions.register-node]
+verify_jwt = true
+
+[functions.verify-node]
+verify_jwt = true
+
+[functions.ledger-add-entry]
+verify_jwt = false
+
+[functions.ledger-verify-entry]
+verify_jwt = true
+
+[functions.ledger-export-snapshot]
+verify_jwt = true
+
 [functions.privacy-check-consent]
 verify_jwt = true
 

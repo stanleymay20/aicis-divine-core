@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      accountability_nodes: {
+        Row: {
+          api_endpoint: string | null
+          api_key: string | null
+          contact_email: string | null
+          country: string
+          created_at: string | null
+          id: string
+          joined_at: string | null
+          jurisdiction: string
+          last_active_at: string | null
+          metadata: Json | null
+          org_name: string
+          org_type: Database["public"]["Enums"]["org_type"]
+          pgp_public_key: string | null
+          rate_limit_per_hour: number | null
+          updated_at: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          api_key?: string | null
+          contact_email?: string | null
+          country: string
+          created_at?: string | null
+          id?: string
+          joined_at?: string | null
+          jurisdiction: string
+          last_active_at?: string | null
+          metadata?: Json | null
+          org_name: string
+          org_type: Database["public"]["Enums"]["org_type"]
+          pgp_public_key?: string | null
+          rate_limit_per_hour?: number | null
+          updated_at?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          api_key?: string | null
+          contact_email?: string | null
+          country?: string
+          created_at?: string | null
+          id?: string
+          joined_at?: string | null
+          jurisdiction?: string
+          last_active_at?: string | null
+          metadata?: Json | null
+          org_name?: string
+          org_type?: Database["public"]["Enums"]["org_type"]
+          pgp_public_key?: string | null
+          rate_limit_per_hour?: number | null
+          updated_at?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       ai_decision_logs: {
         Row: {
           bias_score: number | null
@@ -655,6 +712,56 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      data_sharing_agreements: {
+        Row: {
+          agreement_type: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          node_id: string | null
+          sdg_tags: string[] | null
+          signature: string
+          signed_contract: Json
+          status: string | null
+        }
+        Insert: {
+          agreement_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          node_id?: string | null
+          sdg_tags?: string[] | null
+          signature: string
+          signed_contract: Json
+          status?: string | null
+        }
+        Update: {
+          agreement_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          node_id?: string | null
+          sdg_tags?: string[] | null
+          signature?: string
+          signed_contract?: Json
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sharing_agreements_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       data_source_log: {
         Row: {
@@ -1324,6 +1431,124 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      ledger_entries: {
+        Row: {
+          block_number: number
+          created_at: string | null
+          entry_type: Database["public"]["Enums"]["ledger_entry_type"]
+          hash: string
+          id: string
+          node_id: string | null
+          payload: Json
+          previous_hash: string | null
+          signature: string | null
+          timestamp: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          block_number?: number
+          created_at?: string | null
+          entry_type: Database["public"]["Enums"]["ledger_entry_type"]
+          hash: string
+          id?: string
+          node_id?: string | null
+          payload: Json
+          previous_hash?: string | null
+          signature?: string | null
+          timestamp?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          block_number?: number
+          created_at?: string | null
+          entry_type?: Database["public"]["Enums"]["ledger_entry_type"]
+          hash?: string
+          id?: string
+          node_id?: string | null
+          payload?: Json
+          previous_hash?: string | null
+          signature?: string | null
+          timestamp?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_root_hashes: {
+        Row: {
+          block_count: number
+          id: string
+          metadata: Json | null
+          root_hash: string
+          timestamp: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          block_count: number
+          id?: string
+          metadata?: Json | null
+          root_hash: string
+          timestamp?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          block_count?: number
+          id?: string
+          metadata?: Json | null
+          root_hash?: string
+          timestamp?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      node_audit_trail: {
+        Row: {
+          action: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          node_id: string | null
+          status: string
+          timestamp: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          node_id?: string | null
+          status: string
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          node_id?: string | null
+          status?: string
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "node_audit_trail_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -2384,7 +2609,15 @@ export type Database = {
         | "degraded"
         | "offline"
       health_risk_level: "minimal" | "low" | "moderate" | "high" | "critical"
+      ledger_entry_type:
+        | "ethics"
+        | "sdg"
+        | "finance"
+        | "policy"
+        | "crisis"
+        | "compliance"
       log_level: "info" | "warning" | "error" | "critical" | "success"
+      org_type: "government" | "ngo" | "agency" | "academic" | "private"
       stability_status:
         | "stable"
         | "fluctuating"
@@ -2538,7 +2771,16 @@ export const Constants = {
         "offline",
       ],
       health_risk_level: ["minimal", "low", "moderate", "high", "critical"],
+      ledger_entry_type: [
+        "ethics",
+        "sdg",
+        "finance",
+        "policy",
+        "crisis",
+        "compliance",
+      ],
       log_level: ["info", "warning", "error", "critical", "success"],
+      org_type: ["government", "ngo", "agency", "academic", "private"],
       stability_status: [
         "stable",
         "fluctuating",
