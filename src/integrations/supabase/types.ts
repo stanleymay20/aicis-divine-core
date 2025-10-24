@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_decision_logs: {
+        Row: {
+          bias_score: number | null
+          confidence: number | null
+          created_at: string | null
+          division_key: string
+          ethical_flags: string[] | null
+          explanation: Json | null
+          id: string
+          input_summary: string
+          model_name: string
+          output_summary: string
+          reviewer_id: string | null
+        }
+        Insert: {
+          bias_score?: number | null
+          confidence?: number | null
+          created_at?: string | null
+          division_key: string
+          ethical_flags?: string[] | null
+          explanation?: Json | null
+          id?: string
+          input_summary: string
+          model_name: string
+          output_summary: string
+          reviewer_id?: string | null
+        }
+        Update: {
+          bias_score?: number | null
+          confidence?: number | null
+          created_at?: string | null
+          division_key?: string
+          ethical_flags?: string[] | null
+          explanation?: Json | null
+          id?: string
+          input_summary?: string
+          model_name?: string
+          output_summary?: string
+          reviewer_id?: string | null
+        }
+        Relationships: []
+      }
       ai_divisions: {
         Row: {
           created_at: string
@@ -587,6 +629,33 @@ export type Database = {
           },
         ]
       }
+      data_retention_policies: {
+        Row: {
+          auto_delete: boolean | null
+          category: string
+          created_at: string | null
+          id: string
+          max_days: number
+          updated_at: string | null
+        }
+        Insert: {
+          auto_delete?: boolean | null
+          category: string
+          created_at?: string | null
+          id?: string
+          max_days: number
+          updated_at?: string | null
+        }
+        Update: {
+          auto_delete?: boolean | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          max_days?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       data_source_log: {
         Row: {
           created_at: string | null
@@ -808,6 +877,68 @@ export type Database = {
         }
         Relationships: []
       }
+      ethics_cases: {
+        Row: {
+          created_at: string | null
+          decision_id: string | null
+          id: string
+          reason: string
+          resolved_at: string | null
+          reviewer_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          decision_id?: string | null
+          id?: string
+          reason: string
+          resolved_at?: string | null
+          reviewer_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          decision_id?: string | null
+          id?: string
+          reason?: string
+          resolved_at?: string | null
+          reviewer_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ethics_cases_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "ai_decision_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ethics_reviewers: {
+        Row: {
+          cert_level: string
+          created_at: string | null
+          id: string
+          jurisdiction: string
+          user_id: string
+        }
+        Insert: {
+          cert_level: string
+          created_at?: string | null
+          id?: string
+          jurisdiction: string
+          user_id: string
+        }
+        Update: {
+          cert_level?: string
+          created_at?: string | null
+          id?: string
+          jurisdiction?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exchange_accounts: {
         Row: {
           balance_usd: number
@@ -950,27 +1081,33 @@ export type Database = {
       }
       federation_policies: {
         Row: {
+          data_classification: string | null
           dp_epsilon: number | null
           enabled: boolean | null
           id: string
+          jurisdiction: string | null
           max_daily_weight_drift: number | null
           min_sample: number | null
           share_divisions: string[] | null
           updated_at: string | null
         }
         Insert: {
+          data_classification?: string | null
           dp_epsilon?: number | null
           enabled?: boolean | null
           id?: string
+          jurisdiction?: string | null
           max_daily_weight_drift?: number | null
           min_sample?: number | null
           share_divisions?: string[] | null
           updated_at?: string | null
         }
         Update: {
+          data_classification?: string | null
           dp_epsilon?: number | null
           enabled?: boolean | null
           id?: string
+          jurisdiction?: string | null
           max_daily_weight_drift?: number | null
           min_sample?: number | null
           share_divisions?: string[] | null
@@ -1737,6 +1874,63 @@ export type Database = {
         }
         Relationships: []
       }
+      sdg_mappings: {
+        Row: {
+          created_at: string | null
+          division_key: string
+          id: string
+          indicator: string
+          metric_source: string
+          sdg_goal: number
+          sdg_target: string
+        }
+        Insert: {
+          created_at?: string | null
+          division_key: string
+          id?: string
+          indicator: string
+          metric_source: string
+          sdg_goal: number
+          sdg_target: string
+        }
+        Update: {
+          created_at?: string | null
+          division_key?: string
+          id?: string
+          indicator?: string
+          metric_source?: string
+          sdg_goal?: number
+          sdg_target?: string
+        }
+        Relationships: []
+      }
+      sdg_progress: {
+        Row: {
+          current_value: number | null
+          goal: number
+          id: string
+          progress_percent: number | null
+          target: string
+          updated_at: string | null
+        }
+        Insert: {
+          current_value?: number | null
+          goal: number
+          id?: string
+          progress_percent?: number | null
+          target: string
+          updated_at?: string | null
+        }
+        Update: {
+          current_value?: number | null
+          goal?: number
+          id?: string
+          progress_percent?: number | null
+          target?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           billing_cycle: string | null
@@ -2074,6 +2268,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_consent: {
+        Row: {
+          accepted_at: string
+          created_at: string | null
+          id: string
+          retention_days: number
+          revoked_at: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string | null
+          id?: string
+          retention_days?: number
+          revoked_at?: string | null
+          user_id: string
+          version?: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string | null
+          id?: string
+          retention_days?: number
+          revoked_at?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
