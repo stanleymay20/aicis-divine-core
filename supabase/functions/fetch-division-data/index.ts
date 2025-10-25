@@ -27,13 +27,15 @@ serve(async (req) => {
     const results: any = {};
 
     if (!division || division === 'finance') {
-      const { data: financeData } = await supabase.functions.invoke('pull-coingecko');
-      results.finance = financeData;
+      const { data: coingeckoData } = await supabase.functions.invoke('pull-coingecko');
+      const { data: alphaVantageData } = await supabase.functions.invoke('pull-alpha-vantage');
+      results.finance = { coingecko: coingeckoData, alphaVantage: alphaVantageData };
     }
 
     if (!division || division === 'energy') {
-      const { data: energyData } = await supabase.functions.invoke('pull-owid-energy');
-      results.energy = energyData;
+      const { data: owidData } = await supabase.functions.invoke('pull-owid-energy');
+      const { data: eiaData } = await supabase.functions.invoke('pull-eia-energy');
+      results.energy = { owid: owidData, eia: eiaData };
     }
 
     if (!division || division === 'food') {
@@ -44,6 +46,11 @@ serve(async (req) => {
     if (!division || division === 'health') {
       const { data: healthData } = await supabase.functions.invoke('pull-owid-health');
       results.health = healthData;
+    }
+
+    if (!division || division === 'defense') {
+      const { data: nvdData } = await supabase.functions.invoke('pull-nvd-security');
+      results.defense = { nvd: nvdData };
     }
 
     // Update last_synced_at for the division(s)

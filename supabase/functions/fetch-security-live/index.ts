@@ -19,18 +19,13 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    console.log("Invoking pull-coingecko and pull-alpha-vantage for live finance data...");
+    console.log("Invoking pull-nvd-security for live security data...");
     
-    const { data: coingeckoData, error: coingeckoError } = await supabase.functions.invoke('pull-coingecko', {
+    const { data: nvdData, error: nvdError } = await supabase.functions.invoke('pull-nvd-security', {
       body: {}
     });
 
-    const { data: alphaVantageData, error: alphaVantageError } = await supabase.functions.invoke('pull-alpha-vantage', {
-      body: {}
-    });
-
-    if (coingeckoError) console.error("CoinGecko error:", coingeckoError);
-    if (alphaVantageError) console.error("Alpha Vantage error:", alphaVantageError);
+    if (nvdError) console.error("NVD error:", nvdError);
 
     // Trigger impact evaluation and learning
     await supabase.functions.invoke('evaluate-impact');
@@ -39,13 +34,13 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         ok: true, 
-        message: "Finance data refreshed successfully from multiple sources",
-        data: { coingecko: coingeckoData, alphaVantage: alphaVantageData }
+        message: "Security vulnerability data refreshed successfully",
+        data: nvdData
       }), 
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("fetch-finance-live error:", e);
+    console.error("fetch-security-live error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), 
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

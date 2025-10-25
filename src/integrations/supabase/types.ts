@@ -1090,6 +1090,45 @@ export type Database = {
         }
         Relationships: []
       }
+      economic_indicators: {
+        Row: {
+          country: string
+          created_at: string | null
+          date: string
+          id: string
+          indicator_name: string
+          metadata: Json | null
+          source: string | null
+          unit: string | null
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          date: string
+          id?: string
+          indicator_name: string
+          metadata?: Json | null
+          source?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          date?: string
+          id?: string
+          indicator_name?: string
+          metadata?: Json | null
+          source?: string | null
+          unit?: string | null
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
       energy_grid: {
         Row: {
           capacity: number
@@ -2294,6 +2333,48 @@ export type Database = {
           id?: string
           progress_percent?: number | null
           target?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      security_vulnerabilities: {
+        Row: {
+          affected_products: string[] | null
+          created_at: string | null
+          cve_id: string
+          cvss_score: number | null
+          description: string | null
+          id: string
+          last_modified: string | null
+          published_date: string | null
+          reference_links: Json | null
+          severity: string
+          updated_at: string | null
+        }
+        Insert: {
+          affected_products?: string[] | null
+          created_at?: string | null
+          cve_id: string
+          cvss_score?: number | null
+          description?: string | null
+          id?: string
+          last_modified?: string | null
+          published_date?: string | null
+          reference_links?: Json | null
+          severity: string
+          updated_at?: string | null
+        }
+        Update: {
+          affected_products?: string[] | null
+          created_at?: string | null
+          cve_id?: string
+          cvss_score?: number | null
+          description?: string | null
+          id?: string
+          last_modified?: string | null
+          published_date?: string | null
+          reference_links?: Json | null
+          severity?: string
           updated_at?: string | null
         }
         Relationships: []

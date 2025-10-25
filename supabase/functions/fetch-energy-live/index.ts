@@ -19,13 +19,18 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    console.log("Invoking pull-owid-energy for live energy data...");
+    console.log("Invoking pull-owid-energy and pull-eia-energy for live energy data...");
     
-    const { data, error } = await supabase.functions.invoke('pull-owid-energy', {
+    const { data: owidData, error: owidError } = await supabase.functions.invoke('pull-owid-energy', {
       body: {}
     });
 
-    if (error) throw error;
+    const { data: eiaData, error: eiaError } = await supabase.functions.invoke('pull-eia-energy', {
+      body: {}
+    });
+
+    if (owidError) console.error("OWID error:", owidError);
+    if (eiaError) console.error("EIA error:", eiaError);
 
     // Trigger impact evaluation and learning
     await supabase.functions.invoke('evaluate-impact');
@@ -34,8 +39,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         ok: true, 
-        message: "Energy data refreshed successfully",
-        data
+        message: "Energy data refreshed successfully from multiple sources",
+        data: { owid: owidData, eia: eiaData }
       }), 
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
