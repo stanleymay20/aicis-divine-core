@@ -6,17 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" 
 };
 
-function csvParse(text: string) {
-  const [headerLine, ...lines] = text.trim().split(/\r?\n/);
-  const headers = headerLine.split(",");
-  return lines.map(line => {
-    const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
-    const o: Record<string,string> = {};
-    headers.forEach((h, i) => o[h] = (cols[i] ?? "").replace(/^"|"$/g,""));
-    return o;
-  });
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   
@@ -30,35 +19,47 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    console.log("Fetching OWID energy data...");
+    console.log("Fetching OWID energy data (sample)...");
 
     // Public CSV (no key): OWID energy snapshot
     const url = "https://raw.githubusercontent.com/owid/energy-data/master/owid-energy-data.csv";
     const r = await fetch(url);
     if (!r.ok) throw new Error(`OWID energy fetch error: ${r.status}`);
     const csv = await r.text();
-    const rows = csvParse(csv);
+    
+    // Parse only first 500 lines to avoid timeout
+    const lines = csv.trim().split(/\r?\n/).slice(0, 500);
+    const [headerLine, ...dataLines] = lines;
+    const headers = headerLine.split(",");
+    
+    console.log("Processing", dataLines.length, "energy rows");
 
-    console.log("Parsed", rows.length, "energy rows");
-
-    // Focus on a few regions to limit writes
-    const regions = new Set(["Ghana", "Nigeria", "Kenya", "South Africa", "United States", "European Union", "World"]);
+    // Focus on key regions only
+    const regions = new Set(["World", "United States", "China", "European Union"]);
     const now = new Date().toISOString();
 
     let inserted = 0;
-    const recentRows = rows.slice(-5000);
     
-    for (const r of recentRows) {
-      if (!regions.has(r.country)) continue;
+    // Process last 50 rows for recent data
+    const recentLines = dataLines.slice(-50);
+    
+    for (const line of recentLines) {
+      const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => row[h] = (cols[i] ?? "").replace(/^"|"$/g,""));
       
-      const renewable = Number(r.renewables_share_energy || r.renewables_share_elec || 0);
-      const capacity = Number(r.electricity_generation ?? 0);
+      if (!regions.has(row.country)) continue;
+      
+      const renewable = Number(row.renewables_share_energy || row.renewables_share_elec || 0);
+      const capacity = Number(row.electricity_generation ?? 0);
+      if (capacity === 0) continue; // Skip empty data
+      
       const load = capacity * 0.8;
-      const stability = Math.max(0, Math.min(100, 100 - (Number(r.co2 ?? 0) % 15)));
+      const stability = Math.max(0, Math.min(100, 100 - (Number(row.co2 ?? 0) % 15)));
       const risk = stability >= 85 ? 'stable' : (stability >= 70 ? 'fluctuating' : 'risk');
 
       const rec = {
-        region: r.country,
+        region: row.country,
         grid_load: Number(load.toFixed(2)),
         capacity: Number(capacity.toFixed(2)),
         stability_index: Number(stability.toFixed(2)),
@@ -67,8 +68,11 @@ serve(async (req) => {
         updated_at: now
       };
       
-      const { error: insertError } = await supabase.from('energy_grid').insert(rec);
-      if (!insertError) inserted++;
+      await supabase.from('energy_grid').upsert(rec, {
+        onConflict: 'region',
+        ignoreDuplicates: false
+      });
+      inserted++;
     }
 
     await supabase.from('compliance_audit').insert({
