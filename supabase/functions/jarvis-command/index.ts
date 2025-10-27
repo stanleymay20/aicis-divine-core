@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,14 @@ serve(async (req) => {
   }
 
   try {
-    const { command } = await req.json();
+    // Validate input
+    const commandSchema = z.object({
+      command: z.string().trim().min(1, "Command cannot be empty").max(5000, "Command too long")
+    });
+    
+    const rawBody = await req.json();
+    const { command } = commandSchema.parse(rawBody);
+    
     const authHeader = req.headers.get('Authorization')!;
     
     const supabaseClient = createClient(
@@ -78,6 +86,18 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in jarvis-command:', error);
+    
+    // Handle validation errors separately
+    if (error instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid input",
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

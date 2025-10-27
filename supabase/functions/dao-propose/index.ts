@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +22,17 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    const { space_slug, title, body_md, actions, voting_window_hours } = await req.json();
+    // Validate input
+    const proposalSchema = z.object({
+      space_slug: z.string().trim().min(1).max(50).regex(/^[a-z0-9-]+$/, "Space slug must be lowercase alphanumeric with hyphens").optional(),
+      title: z.string().trim().min(5, "Title too short").max(200, "Title too long"),
+      body_md: z.string().trim().min(10, "Body too short").max(50000, "Body too long"),
+      actions: z.array(z.any()).max(10, "Too many actions").optional(),
+      voting_window_hours: z.number().int().min(1).max(720).optional()
+    });
+    
+    const rawBody = await req.json();
+    const { space_slug, title, body_md, actions, voting_window_hours } = proposalSchema.parse(rawBody);
 
     // Get space
     const { data: space, error: spaceError } = await supabase
@@ -84,6 +95,18 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Error in dao-propose:", e);
+    
+    // Handle validation errors
+    if (e instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid proposal data",
+          details: e.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
