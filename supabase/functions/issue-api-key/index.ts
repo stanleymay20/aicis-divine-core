@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
@@ -38,8 +39,33 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    const { org_id, name, rate_limit_per_minute } = await req.json();
-    if (!org_id || !name) throw new Error("Organization ID and name are required");
+    const apiKeySchema = z.object({
+      org_id: z.string().uuid(),
+      name: z.string()
+        .trim()
+        .min(3, "Name too short")
+        .max(100, "Name too long")
+        .regex(/^[a-zA-Z0-9\s-]+$/, "Only alphanumeric, spaces, and hyphens allowed"),
+      rate_limit_per_minute: z.number()
+        .int()
+        .min(1)
+        .max(10000)
+        .optional()
+    });
+
+    const { org_id, name, rate_limit_per_minute } = apiKeySchema.parse(await req.json());
+
+    // Check for duplicate names
+    const { count: duplicateCount } = await supabase
+      .from("api_keys")
+      .select("*", { count: "exact", head: true })
+      .eq("org_id", org_id)
+      .eq("name", name)
+      .eq("revoked", false);
+
+    if (duplicateCount && duplicateCount > 0) {
+      throw new Error("An API key with this name already exists");
+    }
 
     // Verify user is org owner
     const { data: org } = await supabase
@@ -144,6 +170,18 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Error in issue-api-key:", e);
+    
+    // Handle Zod validation errors
+    if (e instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Validation failed", 
+          details: e.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

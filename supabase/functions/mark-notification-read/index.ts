@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +22,15 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    const { notification_id, mark_all } = await req.json();
+    const notificationSchema = z.object({
+      notification_id: z.string().uuid().optional(),
+      mark_all: z.boolean().optional()
+    }).refine(
+      (data) => data.notification_id || data.mark_all,
+      { message: "Either notification_id or mark_all must be provided" }
+    );
+
+    const { notification_id, mark_all } = notificationSchema.parse(await req.json());
 
     if (mark_all) {
       await supabase
@@ -43,6 +52,18 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Error in mark-notification-read:", e);
+    
+    // Handle Zod validation errors
+    if (e instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Validation failed", 
+          details: e.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

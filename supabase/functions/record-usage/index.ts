@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,45 +13,27 @@ serve(async (req) => {
   }
 
   try {
+    const usageSchema = z.object({
+      org_id: z.string().uuid(),
+      metric_key: z.enum(["api_calls", "scrollcoin_tx"]),
+      quantity: z.number().int().min(1).max(100000)
+    });
+
+    const input = usageSchema.parse(await req.json());
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
     );
 
-    const { org_id, metric_key, quantity = 1 } = await req.json();
-    if (!org_id || !metric_key) {
-      throw new Error("Organization ID and metric key are required");
-    }
+    // Call the secure function which validates org and records usage
+    const { error } = await supabase.rpc("record_usage_secure", {
+      p_org: input.org_id,
+      p_metric: input.metric_key,
+      p_qty: input.quantity
+    });
 
-    // Validate metric_key
-    const validMetrics = ["api_calls", "scrollcoin_tx"];
-    if (!validMetrics.includes(metric_key)) {
-      throw new Error(`Invalid metric key. Must be one of: ${validMetrics.join(", ")}`);
-    }
-
-    // Record usage in queue
-    const { error: queueError } = await supabase
-      .from("billing_usage_queue")
-      .insert({
-        org_id,
-        metric_key,
-        quantity: Number(quantity),
-        processed: false,
-      });
-
-    if (queueError) throw queueError;
-
-    // Also update usage_metrics for real-time tracking
-    const { error: metricsError } = await supabase
-      .from("usage_metrics")
-      .insert({
-        org_id,
-        metric_key,
-        metric_value: Number(quantity),
-        period_start: new Date().toISOString(),
-      });
-
-    if (metricsError) console.error("Error updating usage_metrics:", metricsError);
+    if (error) throw error;
 
     return new Response(
       JSON.stringify({ ok: true, recorded: true }),
@@ -58,6 +41,18 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Error in record-usage:", e);
+    
+    // Handle Zod validation errors
+    if (e instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Validation failed", 
+          details: e.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
