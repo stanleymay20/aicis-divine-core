@@ -82,19 +82,19 @@ export function JarvisInterface() {
   };
 
   return (
-    <Card className="h-full flex flex-col bg-background/95 backdrop-blur">
-      <div className="p-4 border-b flex items-center gap-2">
+    <Card className="h-full flex flex-col bg-card/95 backdrop-blur-sm border-primary/20">
+      <div className="p-4 border-b border-primary/20 flex items-center gap-2">
         <Brain className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">J.A.R.V.I.S. Global Analyst</h2>
+        <h2 className="text-lg font-semibold font-orbitron">J.A.R.V.I.S. Global Analyst</h2>
       </div>
 
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
-              <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Ask me anything about global intelligence data</p>
-              <p className="text-sm mt-2">Try: "Optimize food production" or "Analyze global health risks"</p>
+              <Brain className="h-12 w-12 mx-auto mb-4 opacity-50 text-primary" />
+              <p className="font-rajdhani">Ask me anything about global intelligence data</p>
+              <p className="text-sm mt-2 text-muted-foreground">Try: "Optimize food production" or "Analyze global health risks"</p>
             </div>
           )}
 
@@ -174,7 +174,7 @@ export function JarvisInterface() {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t border-primary/20">
         <div className="flex gap-2">
           <Input
             value={input}
@@ -182,6 +182,7 @@ export function JarvisInterface() {
             onKeyDown={(e) => e.key === 'Enter' && handleQuery()}
             placeholder="Ask J.A.R.V.I.S. about global intelligence..."
             disabled={loading}
+            className="bg-input border-primary/20"
           />
           <Button onClick={handleQuery} disabled={loading || !input.trim()}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
