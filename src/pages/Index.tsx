@@ -34,6 +34,7 @@ import PolicyCompliancePanel from "@/components/PolicyCompliancePanel";
 import { AccountabilityDashboard } from "@/components/AccountabilityDashboard";
 import { TrustPortal } from "@/components/TrustPortal";
 import { GlobalVulnerabilityMap } from "@/components/GlobalVulnerabilityMap";
+import { JarvisInterface } from "@/components/JarvisInterface";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -153,7 +154,10 @@ const Index = () => {
             </div>
           )}
           
-          <CommandInterface />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CommandInterface />
+            <JarvisInterface />
+          </div>
         </main>
       </div>
 
