@@ -10,14 +10,11 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   
   try {
+    // Use service role for system operations (cron jobs)
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "", 
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "", 
-      { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
 
     console.log("Fetching FAOSTAT food data...");
 
@@ -71,7 +68,6 @@ serve(async (req) => {
     await supabase.from('compliance_audit').insert({
       action_type: 'data_pull', 
       division: 'food', 
-      user_id: user.id,
       action_description: 'Pulled FAOSTAT QCL production data', 
       compliance_status: 'compliant',
       data_accessed: { provider: 'FAOSTAT', domain: 'QCL', countries, items, year }
@@ -92,7 +88,6 @@ serve(async (req) => {
     await supabase.from('system_logs').insert({
       division: 'food', 
       action: 'pull_faostat_food', 
-      user_id: user.id,
       result: 'success', 
       log_level: 'info', 
       metadata: { inserted, latency_ms: latencyMs }

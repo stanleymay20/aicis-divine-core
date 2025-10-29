@@ -10,14 +10,11 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   
   try {
+    // Use service role for system operations (cron jobs)
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
 
     console.log("Fetching CoinGecko market data...");
     
@@ -80,7 +77,6 @@ serve(async (req) => {
     await supabase.from('compliance_audit').insert({
       action_type: 'data_pull', 
       division: 'finance',
-      user_id: user.id, 
       action_description: 'Pulled CoinGecko market data',
       compliance_status: 'compliant', 
       data_accessed: { provider: 'coingecko', assets: ['BTC','ETH','USDT'] }
@@ -101,7 +97,6 @@ serve(async (req) => {
     await supabase.from('system_logs').insert({
       division: 'finance', 
       action: 'pull_coingecko', 
-      user_id: user.id,
       result: 'success', 
       log_level: 'info', 
       metadata: { rows: rows.length, latency_ms: latencyMs }

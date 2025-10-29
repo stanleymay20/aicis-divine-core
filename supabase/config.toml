@@ -13,11 +13,32 @@ enabled = false
 [functions.billing-webhook]
 verify_jwt = false
 
+[functions.pull-coingecko]
+verify_jwt = false
+
+[functions.pull-faostat-food]
+verify_jwt = false
+
+[functions.pull-owid-energy]
+verify_jwt = false
+
+[functions.pull-owid-health]
+verify_jwt = false
+
 [functions.pull-worldbank]
-verify_jwt = true
+verify_jwt = false
 
 [functions.pull-worldpop]
-verify_jwt = true
+verify_jwt = false
+
+[functions.pull-nvd-security]
+verify_jwt = false
+
+[functions.pull-eia-energy]
+verify_jwt = false
+
+[functions.pull-alpha-vantage]
+verify_jwt = false
 
 [functions.calculate-vulnerability]
 verify_jwt = true
@@ -286,17 +307,6 @@ verify_jwt = true
 [functions.publish-intel-event]
 verify_jwt = true
 
-[functions.pull-coingecko]
-verify_jwt = true
-
-[functions.pull-faostat-food]
-verify_jwt = true
-
-[functions.pull-owid-energy]
-verify_jwt = true
-
-[functions.pull-owid-health]
-verify_jwt = true
 
 [functions.record-usage]
 verify_jwt = true
