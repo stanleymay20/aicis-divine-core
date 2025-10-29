@@ -443,6 +443,59 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          org_id: string | null
+          request_id: string | null
+          resource_id: string | null
+          resource_type: string | null
+          severity: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          org_id?: string | null
+          request_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          org_id?: string | null
+          request_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_logs: {
         Row: {
           executed_at: string | null
@@ -840,6 +893,75 @@ export type Database = {
           trigger_count?: number | null
           trigger_name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      data_deletion_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          completed_at: string | null
+          id: string
+          reason: string | null
+          rejection_reason: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          completed_at?: string | null
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_export_requests: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          export_url: string | null
+          id: string
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          export_url?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          export_url?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1906,6 +2028,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_access_control: {
+        Row: {
+          access_type: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          ip_address: unknown
+          ip_range: unknown
+          org_id: string | null
+          reason: string | null
+        }
+        Insert: {
+          access_type: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address: unknown
+          ip_range?: unknown
+          org_id?: string | null
+          reason?: string | null
+        }
+        Update: {
+          access_type?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_address?: unknown
+          ip_range?: unknown
+          org_id?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_access_control_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ledger_entries: {
         Row: {
           block_number: number
@@ -2409,6 +2575,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          blocked_until: string | null
+          endpoint: string
+          id: string
+          ip_address: unknown
+          request_count: number
+          user_id: string | null
+          window_start: string
+        }
+        Insert: {
+          blocked_until?: string | null
+          endpoint: string
+          id?: string
+          ip_address?: unknown
+          request_count?: number
+          user_id?: string | null
+          window_start?: string
+        }
+        Update: {
+          blocked_until?: string | null
+          endpoint?: string
+          id?: string
+          ip_address?: unknown
+          request_count?: number
+          user_id?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       revenue_metrics: {
         Row: {
           active_subscriptions: number | null
@@ -2858,6 +3054,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_health: {
+        Row: {
+          checked_at: string
+          component: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          response_time_ms: number | null
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          component: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          response_time_ms?: number | null
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          component?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          response_time_ms?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       system_logs: {
         Row: {
           action: string
@@ -2925,6 +3151,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_action_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_metrics: {
+        Row: {
+          active_users_count: number | null
+          api_requests_count: number | null
+          avg_response_time_ms: number | null
+          cost_estimate_usd: number | null
+          database_queries_count: number | null
+          edge_function_invocations: number | null
+          error_count: number | null
+          id: string
+          metric_date: string
+          org_id: string
+          storage_used_bytes: number | null
+        }
+        Insert: {
+          active_users_count?: number | null
+          api_requests_count?: number | null
+          avg_response_time_ms?: number | null
+          cost_estimate_usd?: number | null
+          database_queries_count?: number | null
+          edge_function_invocations?: number | null
+          error_count?: number | null
+          id?: string
+          metric_date?: string
+          org_id: string
+          storage_used_bytes?: number | null
+        }
+        Update: {
+          active_users_count?: number | null
+          api_requests_count?: number | null
+          avg_response_time_ms?: number | null
+          cost_estimate_usd?: number | null
+          database_queries_count?: number | null
+          edge_function_invocations?: number | null
+          error_count?: number | null
+          id?: string
+          metric_date?: string
+          org_id?: string
+          storage_used_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_metrics_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3271,6 +3547,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: unknown
+          last_active_at: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: unknown
+          last_active_at?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          last_active_at?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       vulnerability_scores: {
         Row: {
           calculated_at: string | null
@@ -3372,12 +3687,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_ip_access: {
+        Args: { _ip_address: unknown; _org_id: string }
+        Returns: boolean
+      }
+      check_rate_limit: {
+        Args: {
+          _endpoint: string
+          _ip: unknown
+          _limit?: number
+          _user_id: string
+          _window_minutes?: number
+        }
+        Returns: boolean
+      }
+      cleanup_expired_exports: { Args: never; Returns: undefined }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _ip_address?: unknown
+          _metadata?: Json
+          _org_id: string
+          _resource_id?: string
+          _resource_type?: string
+          _severity?: string
+          _user_agent?: string
+          _user_id: string
+        }
+        Returns: string
       }
     }
     Enums: {
