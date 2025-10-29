@@ -736,6 +736,51 @@ export type Database = {
           },
         ]
       }
+      data_collection_triggers: {
+        Row: {
+          condition_config: Json
+          condition_type: string
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          last_triggered: string | null
+          priority: string | null
+          target_endpoint: string
+          target_source: string
+          trigger_count: number | null
+          trigger_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          condition_config: Json
+          condition_type: string
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_triggered?: string | null
+          priority?: string | null
+          target_endpoint: string
+          target_source: string
+          trigger_count?: number | null
+          trigger_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          condition_config?: Json
+          condition_type?: string
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_triggered?: string | null
+          priority?: string | null
+          target_endpoint?: string
+          target_source?: string
+          trigger_count?: number | null
+          trigger_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       data_retention_policies: {
         Row: {
           auto_delete: boolean | null
@@ -1403,6 +1448,102 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_data: {
+        Row: {
+          country: string
+          created_at: string | null
+          currency: string | null
+          date: string
+          id: string
+          indicator_name: string
+          iso_code: string | null
+          metadata: Json | null
+          source: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          currency?: string | null
+          date: string
+          id?: string
+          indicator_name: string
+          iso_code?: string | null
+          metadata?: Json | null
+          source: string
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          currency?: string | null
+          date?: string
+          id?: string
+          indicator_name?: string
+          iso_code?: string | null
+          metadata?: Json | null
+          source?: string
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
+      food_data: {
+        Row: {
+          country: string
+          created_at: string | null
+          crop: string | null
+          date: string
+          id: string
+          ipc_phase: number | null
+          iso_code: string | null
+          latitude: number | null
+          longitude: number | null
+          metadata: Json | null
+          metric_name: string
+          source: string
+          unit: string | null
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          crop?: string | null
+          date: string
+          id?: string
+          ipc_phase?: number | null
+          iso_code?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          metric_name: string
+          source: string
+          unit?: string | null
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          crop?: string | null
+          date?: string
+          id?: string
+          ipc_phase?: number | null
+          iso_code?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json | null
+          metric_name?: string
+          source?: string
+          unit?: string | null
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
       food_security: {
         Row: {
           alert_level: Database["public"]["Enums"]["alert_level"]
@@ -1478,6 +1619,48 @@ export type Database = {
         }
         Relationships: []
       }
+      governance_global: {
+        Row: {
+          category: string | null
+          country: string
+          created_at: string | null
+          id: string
+          indicator_name: string
+          iso_code: string | null
+          metadata: Json | null
+          source: string
+          updated_at: string | null
+          value: number | null
+          year: number
+        }
+        Insert: {
+          category?: string | null
+          country: string
+          created_at?: string | null
+          id?: string
+          indicator_name: string
+          iso_code?: string | null
+          metadata?: Json | null
+          source: string
+          updated_at?: string | null
+          value?: number | null
+          year: number
+        }
+        Update: {
+          category?: string | null
+          country?: string
+          created_at?: string | null
+          id?: string
+          indicator_name?: string
+          iso_code?: string | null
+          metadata?: Json | null
+          source?: string
+          updated_at?: string | null
+          value?: number | null
+          year?: number
+        }
+        Relationships: []
+      }
       health_data: {
         Row: {
           affected_count: number
@@ -1517,6 +1700,54 @@ export type Database = {
           risk_level?: Database["public"]["Enums"]["health_risk_level"]
           severity_index?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      health_metrics: {
+        Row: {
+          age_group: string | null
+          country: string
+          created_at: string | null
+          date: string
+          id: string
+          iso_code: string | null
+          metadata: Json | null
+          metric_name: string
+          sex: string | null
+          source: string
+          unit: string | null
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          age_group?: string | null
+          country: string
+          created_at?: string | null
+          date: string
+          id?: string
+          iso_code?: string | null
+          metadata?: Json | null
+          metric_name: string
+          sex?: string | null
+          source: string
+          unit?: string | null
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          age_group?: string | null
+          country?: string
+          created_at?: string | null
+          date?: string
+          id?: string
+          iso_code?: string | null
+          metadata?: Json | null
+          metric_name?: string
+          sex?: string | null
+          source?: string
+          unit?: string | null
+          updated_at?: string | null
+          value?: number
         }
         Relationships: []
       }
@@ -2005,6 +2236,54 @@ export type Database = {
           },
         ]
       }
+      population_projection: {
+        Row: {
+          age_group: string | null
+          country: string
+          created_at: string | null
+          density_per_km2: number | null
+          id: string
+          iso_code: string
+          metadata: Json | null
+          population: number | null
+          projection_variant: string | null
+          sex: string | null
+          updated_at: string | null
+          urban_percentage: number | null
+          year: number
+        }
+        Insert: {
+          age_group?: string | null
+          country: string
+          created_at?: string | null
+          density_per_km2?: number | null
+          id?: string
+          iso_code: string
+          metadata?: Json | null
+          population?: number | null
+          projection_variant?: string | null
+          sex?: string | null
+          updated_at?: string | null
+          urban_percentage?: number | null
+          year: number
+        }
+        Update: {
+          age_group?: string | null
+          country?: string
+          created_at?: string | null
+          density_per_km2?: number | null
+          id?: string
+          iso_code?: string
+          metadata?: Json | null
+          population?: number | null
+          projection_variant?: string | null
+          sex?: string | null
+          updated_at?: string | null
+          urban_percentage?: number | null
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2029,6 +2308,42 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      query_feedback: {
+        Row: {
+          data_sources_used: Json | null
+          execution_time_ms: number | null
+          id: string
+          query_text: string
+          response_relevance: number | null
+          timestamp: string | null
+          top_apis: Json
+          user_id: string | null
+          user_satisfaction: number | null
+        }
+        Insert: {
+          data_sources_used?: Json | null
+          execution_time_ms?: number | null
+          id?: string
+          query_text: string
+          response_relevance?: number | null
+          timestamp?: string | null
+          top_apis: Json
+          user_id?: string | null
+          user_satisfaction?: number | null
+        }
+        Update: {
+          data_sources_used?: Json | null
+          execution_time_ms?: number | null
+          id?: string
+          query_text?: string
+          response_relevance?: number | null
+          timestamp?: string | null
+          top_apis?: Json
+          user_id?: string | null
+          user_satisfaction?: number | null
         }
         Relationships: []
       }
@@ -2334,6 +2649,54 @@ export type Database = {
           progress_percent?: number | null
           target?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          affected_systems: Json | null
+          created_at: string | null
+          cve_id: string | null
+          description: string | null
+          detected_at: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          severity: string
+          source: string
+          threat_score: number | null
+          title: string
+        }
+        Insert: {
+          affected_systems?: Json | null
+          created_at?: string | null
+          cve_id?: string | null
+          description?: string | null
+          detected_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          severity: string
+          source: string
+          threat_score?: number | null
+          title: string
+        }
+        Update: {
+          affected_systems?: Json | null
+          created_at?: string | null
+          cve_id?: string | null
+          description?: string | null
+          detected_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          severity?: string
+          source?: string
+          threat_score?: number | null
+          title?: string
         }
         Relationships: []
       }
@@ -2843,6 +3206,66 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vulnerability_scores: {
+        Row: {
+          calculated_at: string | null
+          climate_risk: number | null
+          confidence: number | null
+          country: string
+          created_at: string | null
+          data_sources: Json | null
+          economic_risk: number | null
+          energy_risk: number | null
+          food_risk: number | null
+          governance_risk: number | null
+          health_risk: number | null
+          id: string
+          iso_code: string
+          latitude: number | null
+          longitude: number | null
+          overall_score: number
+          population: number | null
+        }
+        Insert: {
+          calculated_at?: string | null
+          climate_risk?: number | null
+          confidence?: number | null
+          country: string
+          created_at?: string | null
+          data_sources?: Json | null
+          economic_risk?: number | null
+          energy_risk?: number | null
+          food_risk?: number | null
+          governance_risk?: number | null
+          health_risk?: number | null
+          id?: string
+          iso_code: string
+          latitude?: number | null
+          longitude?: number | null
+          overall_score: number
+          population?: number | null
+        }
+        Update: {
+          calculated_at?: string | null
+          climate_risk?: number | null
+          confidence?: number | null
+          country?: string
+          created_at?: string | null
+          data_sources?: Json | null
+          economic_risk?: number | null
+          energy_risk?: number | null
+          food_risk?: number | null
+          governance_risk?: number | null
+          health_risk?: number | null
+          id?: string
+          iso_code?: string
+          latitude?: number | null
+          longitude?: number | null
+          overall_score?: number
+          population?: number | null
         }
         Relationships: []
       }
