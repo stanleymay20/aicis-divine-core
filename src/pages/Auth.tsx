@@ -150,15 +150,24 @@ const Auth = () => {
             {loading ? "Processing..." : isLogin ? "Access System" : "Register Account"}
           </Button>
 
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            {isLogin
-              ? "Need an account? Register here"
-              : "Already have an account? Sign in"}
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/onboarding")}
+              className="w-full text-center text-sm text-primary hover:underline font-medium"
+            >
+              New to AICIS? Start Enterprise Onboarding →
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {isLogin
+                ? "Need an account? Quick Register"
+                : "Already have an account? Sign in"}
+            </button>
+          </div>
         </form>
       </Card>
     </div>
