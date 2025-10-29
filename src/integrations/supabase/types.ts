@@ -1803,6 +1803,48 @@ export type Database = {
         }
         Relationships: []
       }
+      governance_assets: {
+        Row: {
+          asset_name: string
+          asset_symbol: string
+          created_at: string
+          current_price: number
+          enabled: boolean | null
+          id: string
+          market_cap: number | null
+          metadata: Json | null
+          price_change_24h: number | null
+          total_supply: number | null
+          updated_at: string
+        }
+        Insert: {
+          asset_name: string
+          asset_symbol: string
+          created_at?: string
+          current_price?: number
+          enabled?: boolean | null
+          id?: string
+          market_cap?: number | null
+          metadata?: Json | null
+          price_change_24h?: number | null
+          total_supply?: number | null
+          updated_at?: string
+        }
+        Update: {
+          asset_name?: string
+          asset_symbol?: string
+          created_at?: string
+          current_price?: number
+          enabled?: boolean | null
+          id?: string
+          market_cap?: number | null
+          metadata?: Json | null
+          price_change_24h?: number | null
+          total_supply?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       governance_global: {
         Row: {
           category: string | null
@@ -2464,6 +2506,51 @@ export type Database = {
           },
         ]
       }
+      partner_oracles: {
+        Row: {
+          api_key_hash: string | null
+          created_at: string
+          enabled: boolean | null
+          endpoint_url: string
+          id: string
+          last_sync_at: string | null
+          metadata: Json | null
+          partner_name: string
+          response_time_avg_ms: number | null
+          success_rate: number | null
+          trust_score: number
+          updated_at: string
+        }
+        Insert: {
+          api_key_hash?: string | null
+          created_at?: string
+          enabled?: boolean | null
+          endpoint_url: string
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          partner_name: string
+          response_time_avg_ms?: number | null
+          success_rate?: number | null
+          trust_score?: number
+          updated_at?: string
+        }
+        Update: {
+          api_key_hash?: string | null
+          created_at?: string
+          enabled?: boolean | null
+          endpoint_url?: string
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json | null
+          partner_name?: string
+          response_time_avg_ms?: number | null
+          success_rate?: number | null
+          trust_score?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       population_projection: {
         Row: {
           age_group: string | null
@@ -2761,6 +2848,36 @@ export type Database = {
           policy_key?: string
           updated_at?: string | null
           weights?: Json
+        }
+        Relationships: []
+      }
+      sc_oracle_prices: {
+        Row: {
+          captured_at: string
+          confidence: number | null
+          id: string
+          price_usd: number
+          source: string
+          symbol: string
+          volume_24h: number | null
+        }
+        Insert: {
+          captured_at?: string
+          confidence?: number | null
+          id?: string
+          price_usd: number
+          source: string
+          symbol: string
+          volume_24h?: number | null
+        }
+        Update: {
+          captured_at?: string
+          confidence?: number | null
+          id?: string
+          price_usd?: number
+          source?: string
+          symbol?: string
+          volume_24h?: number | null
         }
         Relationships: []
       }
