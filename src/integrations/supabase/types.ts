@@ -300,6 +300,48 @@ export type Database = {
         }
         Relationships: []
       }
+      alerts: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          country: string | null
+          created_at: string | null
+          division: string
+          id: string
+          message: string
+          metadata: Json | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          country?: string | null
+          created_at?: string | null
+          division: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          severity: string
+          title: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          country?: string | null
+          created_at?: string | null
+          division?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
       anomaly_detections: {
         Row: {
           anomaly_type: string
@@ -2596,6 +2638,36 @@ export type Database = {
           updated_at?: string | null
           urban_percentage?: number | null
           year?: number
+        }
+        Relationships: []
+      }
+      predictions: {
+        Row: {
+          confidence: number | null
+          country: string
+          division: string
+          forecast: Json
+          id: string
+          predicted_at: string | null
+          volatility_index: number | null
+        }
+        Insert: {
+          confidence?: number | null
+          country: string
+          division: string
+          forecast: Json
+          id?: string
+          predicted_at?: string | null
+          volatility_index?: number | null
+        }
+        Update: {
+          confidence?: number | null
+          country?: string
+          division?: string
+          forecast?: Json
+          id?: string
+          predicted_at?: string | null
+          volatility_index?: number | null
         }
         Relationships: []
       }

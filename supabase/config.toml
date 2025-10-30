@@ -40,6 +40,12 @@ verify_jwt = false
 [functions.pull-alpha-vantage]
 verify_jwt = false
 
+[functions.generate-alerts]
+verify_jwt = false
+
+[functions.generate-predictions]
+verify_jwt = false
+
 [functions.calculate-vulnerability]
 verify_jwt = true
 
