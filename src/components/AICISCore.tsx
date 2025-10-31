@@ -41,12 +41,42 @@ export function AICISCore() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const queryText = input;
     setInput('');
     setLoading(true);
 
     try {
+      // Check if this is a country profile/governance query
+      const profileMatch = queryText.match(/(?:governance|profile|deep.?dive)\s+(?:for\s+)?(.+)/i);
+      
+      if (profileMatch) {
+        const country = profileMatch[1].trim();
+        
+        const { data, error } = await supabase.functions.invoke('country-profile', {
+          body: { query: country }
+        });
+
+        if (error) throw error;
+
+        if (data && data.ok) {
+          const assistantMessage: Message = {
+            role: 'assistant',
+            content: `Opening comprehensive country profile for ${data.location.name} (${data.location.iso3}). This includes governance, health, education, energy, finance, population, climate, food, and security data.`,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, assistantMessage]);
+          
+          // Open the deep dive page
+          window.open(`/deepdive/${data.location.iso3}`, '_blank');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Otherwise use regular query
       const { data, error } = await supabase.functions.invoke('aicis-query', {
-        body: { query: input }
+        body: { query: queryText }
       });
 
       if (error) throw error;

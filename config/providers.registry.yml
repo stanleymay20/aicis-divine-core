@@ -1,18 +1,36 @@
 version: 1
 providers:
   worldbank:
-    domain: governance|finance
+    domain: governance|finance|education
     type: http
     auth: none
     endpoints:
       governance_effectiveness:
-        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/GE.EST?format=json&per_page=1000"
+        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/GE.EST?format=json&per_page=2000"
+        method: GET
+        path_map:
+          data: "$[1]"
+        cache_ttl_sec: 86400
+      gdp_current_usd:
+        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/NY.GDP.MKTP.CD?format=json&per_page=2000"
         method: GET
         path_map:
           data: "$[1]"
         cache_ttl_sec: 86400
       gdp_per_capita:
-        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/NY.GDP.PCAP.CD?format=json&per_page=1000"
+        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/NY.GDP.PCAP.CD?format=json&per_page=2000"
+        method: GET
+        path_map:
+          data: "$[1]"
+        cache_ttl_sec: 86400
+      secondary_enrolment:
+        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/SE.SEC.ENRR?format=json&per_page=2000"
+        method: GET
+        path_map:
+          data: "$[1]"
+        cache_ttl_sec: 86400
+      population_total:
+        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/SP.POP.TOTL?format=json&per_page=2000"
         method: GET
         path_map:
           data: "$[1]"
@@ -37,6 +55,12 @@ providers:
     endpoints:
       crop_production:
         url: "https://fenixservices.fao.org/faostat/api/v1/en/data/QCL?area={iso3}"
+        method: GET
+        path_map:
+          data: "$.data"
+        cache_ttl_sec: 86400
+      food_supply:
+        url: "https://fenixservices.fao.org/faostat/api/v1/en/data/FBS?area={iso3}"
         method: GET
         path_map:
           data: "$.data"

@@ -379,3 +379,9 @@ verify_jwt = true
 
 [functions.update-subscription]
 verify_jwt = true
+
+[functions.country-profile]
+verify_jwt = false
+
+[functions.cron-country-refresh]
+verify_jwt = false
