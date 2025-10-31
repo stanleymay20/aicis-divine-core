@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { parse } from "https://deno.land/std@0.177.0/yaml/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,9 +27,29 @@ serve(async (req) => {
     // 2. Classify domain
     const domain = classifyDomain(query);
     
-    // 3. Load provider registry
-    const registryText = await Deno.readTextFile('./config/providers.registry.yml');
-    const registry = parse(registryText) as any;
+    // 3. Use embedded provider registry
+    const registry = {
+      providers: {
+        worldbank: {
+          domain: 'governance|finance',
+          endpoints: {
+            governance_effectiveness: {
+              url: 'https://api.worldbank.org/v2/country/{iso3}/indicator/GE.EST?format=json&per_page=100',
+              method: 'GET'
+            }
+          }
+        },
+        who_gho: {
+          domain: 'health',
+          endpoints: {
+            life_expectancy: {
+              url: 'https://ghoapi.azureedge.net/api/WHOSIS_000001?$filter=SpatialDim eq \'{iso3}\'',
+              method: 'GET'
+            }
+          }
+        }
+      }
+    };
     
     // 4. Select relevant providers
     const providers = Object.entries(registry.providers)
