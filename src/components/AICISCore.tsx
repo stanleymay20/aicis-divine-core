@@ -25,7 +25,7 @@ interface Message {
   timestamp: Date;
 }
 
-export function JarvisInterface() {
+export function AICISCore() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ export function JarvisInterface() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('jarvis-query', {
+      const { data, error } = await supabase.functions.invoke('aicis-query', {
         body: { query: input }
       });
 
@@ -85,7 +85,7 @@ export function JarvisInterface() {
     <Card className="h-full flex flex-col bg-card/95 backdrop-blur-sm border-primary/20">
       <div className="p-4 border-b border-primary/20 flex items-center gap-2">
         <Brain className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold font-orbitron">J.A.R.V.I.S. Global Analyst</h2>
+        <h2 className="text-lg font-semibold font-orbitron">AICIS • Planetary Intelligence</h2>
       </div>
 
       <ScrollArea className="flex-1 p-4">
@@ -180,7 +180,7 @@ export function JarvisInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleQuery()}
-            placeholder="Ask J.A.R.V.I.S. about global intelligence..."
+            placeholder="Ask AICIS about planetary intelligence..."
             disabled={loading}
             className="bg-input border-primary/20"
           />

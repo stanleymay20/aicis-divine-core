@@ -6,7 +6,7 @@ import { AlertCenter } from "@/components/AlertCenter";
 import { PredictiveIntelligence } from "@/components/PredictiveIntelligence";
 import { TrustPortal } from "@/components/TrustPortal";
 import { NodeFederationPanel } from "@/components/NodeFederationPanel";
-import { JarvisInterface } from "@/components/JarvisInterface";
+import { AICISCore } from "@/components/AICISCore";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Globe, Shield, Brain, AlertTriangle } from "lucide-react";
 
@@ -97,7 +97,7 @@ export default function CitizenPortal() {
                 </p>
               </CardHeader>
               <CardContent>
-                <JarvisInterface />
+                <AICISCore />
               </CardContent>
             </Card>
 

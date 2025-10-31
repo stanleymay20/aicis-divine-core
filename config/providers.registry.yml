@@ -1,0 +1,103 @@
+version: 1
+providers:
+  worldbank:
+    domain: governance|finance
+    type: http
+    auth: none
+    endpoints:
+      governance_effectiveness:
+        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/GE.EST?format=json&per_page=1000"
+        method: GET
+        path_map:
+          data: "$[1]"
+        cache_ttl_sec: 86400
+      gdp_per_capita:
+        url: "https://api.worldbank.org/v2/country/{iso3}/indicator/NY.GDP.PCAP.CD?format=json&per_page=1000"
+        method: GET
+        path_map:
+          data: "$[1]"
+        cache_ttl_sec: 86400
+  
+  who_gho:
+    domain: health
+    type: http
+    auth: none
+    endpoints:
+      life_expectancy:
+        url: "https://ghoapi.azureedge.net/api/WHOSIS_000001?$filter=SpatialDim eq '{iso3}'"
+        method: GET
+        path_map:
+          data: "$.value"
+        cache_ttl_sec: 86400
+  
+  faostat:
+    domain: food
+    type: http
+    auth: none
+    endpoints:
+      crop_production:
+        url: "https://fenixservices.fao.org/faostat/api/v1/en/data/QCL?area={iso3}"
+        method: GET
+        path_map:
+          data: "$.data"
+        cache_ttl_sec: 86400
+  
+  nasa_power:
+    domain: climate|food
+    type: http
+    auth: none
+    endpoints:
+      daily_point:
+        url: "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M,PRECTOT&latitude={lat}&longitude={lon}&start={start}&end={end}&format=JSON"
+        method: GET
+        path_map:
+          data: "$.properties.parameter"
+        cache_ttl_sec: 43200
+  
+  worldpop:
+    domain: population
+    type: http
+    auth: none
+    endpoints:
+      pop_iso3:
+        url: "https://www.worldpop.org/rest/data/pop/{iso3}"
+        method: GET
+        path_map:
+          data: "$.data"
+        cache_ttl_sec: 86400
+  
+  osm_overpass:
+    domain: urban|infrastructure
+    type: http
+    auth: none
+    endpoints:
+      overpass:
+        url: "https://overpass-api.de/api/interpreter"
+        method: POST
+        cache_ttl_sec: 3600
+  
+  eia:
+    domain: energy
+    type: http
+    auth: header
+    headers:
+      "X-API-Key": "${EIA_API_KEY}"
+    endpoints:
+      wti_daily:
+        url: "https://api.eia.gov/v2/petroleum/pri/spt/data/?api_key={api_key}&frequency=daily&data[0]=value"
+        method: GET
+        path_map:
+          data: "$.response.data"
+        cache_ttl_sec: 21600
+  
+  gdelt:
+    domain: governance|diplomacy
+    type: http
+    auth: none
+    endpoints:
+      events:
+        url: "https://api.gdeltproject.org/api/v2/doc/doc?query={query}&mode=artlist&format=json&maxrecords=50"
+        method: GET
+        path_map:
+          data: "$.articles"
+        cache_ttl_sec: 7200

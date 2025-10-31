@@ -27,9 +27,24 @@ export const NodeFederationPanel = () => {
         .order('last_active_at', { ascending: false });
       
       if (error) throw error;
-      return data as Node[];
+      
+      // Map database org_type to display node type
+      return (data || []).map(node => ({
+        ...node,
+        org_type: mapOrgTypeToNodeType(node.org_type)
+      })) as Node[];
     }
   });
+
+  const mapOrgTypeToNodeType = (orgType: string): Node['org_type'] => {
+    switch (orgType) {
+      case 'government': return 'national';
+      case 'academic':
+      case 'ngo': 
+      case 'private': return 'institutional';
+      default: return 'individual';
+    }
+  };
 
   const getNodeIcon = (type: string) => {
     switch (type) {

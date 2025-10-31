@@ -1809,6 +1809,51 @@ export type Database = {
         }
         Relationships: []
       }
+      geo_catalog: {
+        Row: {
+          bbox: number[] | null
+          created_at: string | null
+          fips: string | null
+          id: string
+          iso2: string | null
+          iso3: string | null
+          lat: number | null
+          lon: number | null
+          name: string
+          raw: Json | null
+          source: string
+          type: string | null
+        }
+        Insert: {
+          bbox?: number[] | null
+          created_at?: string | null
+          fips?: string | null
+          id?: string
+          iso2?: string | null
+          iso3?: string | null
+          lat?: number | null
+          lon?: number | null
+          name: string
+          raw?: Json | null
+          source: string
+          type?: string | null
+        }
+        Update: {
+          bbox?: number[] | null
+          created_at?: string | null
+          fips?: string | null
+          id?: string
+          iso2?: string | null
+          iso3?: string | null
+          lat?: number | null
+          lon?: number | null
+          name?: string
+          raw?: Json | null
+          source?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
       gov_policies: {
         Row: {
           compliance_level: string | null
@@ -2232,6 +2277,59 @@ export type Database = {
           verified?: boolean | null
         }
         Relationships: []
+      }
+      metrics: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          domain: string
+          geo_id: string | null
+          id: string
+          iso3: string | null
+          metric: string
+          period: string | null
+          raw: Json | null
+          source: string | null
+          unit: string | null
+          value: number | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          domain: string
+          geo_id?: string | null
+          id?: string
+          iso3?: string | null
+          metric: string
+          period?: string | null
+          raw?: Json | null
+          source?: string | null
+          unit?: string | null
+          value?: number | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          domain?: string
+          geo_id?: string | null
+          id?: string
+          iso3?: string | null
+          metric?: string
+          period?: string | null
+          raw?: Json | null
+          source?: string | null
+          unit?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metrics_geo_id_fkey"
+            columns: ["geo_id"]
+            isOneToOne: false
+            referencedRelation: "geo_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       node_audit_trail: {
         Row: {

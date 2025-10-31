@@ -94,6 +94,9 @@ verify_jwt = true
 [functions.log-ai-decision]
 verify_jwt = true
 
+[functions.aicis-query]
+verify_jwt = false
+
 [functions.jarvis-command]
 verify_jwt = true
 
