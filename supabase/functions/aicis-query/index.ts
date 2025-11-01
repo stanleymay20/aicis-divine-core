@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,169 +13,221 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const querySchema = z.object({
+      query: z.string().min(1).max(1000),
+      options: z.object({}).optional()
+    });
+    
+    const rawBody = await req.json();
+    const { query, options } = querySchema.parse(rawBody);
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('Processing AICIS query:', query);
+    // Intent detection
+    const intent = detectIntent(query);
+    console.log('Query:', query, 'Intent:', intent);
 
-    // 1. Resolve location
-    const location = await resolveLocation(query, supabase);
-    
-    // 2. Classify domain
-    const domain = classifyDomain(query);
-    
-    // 3. Use embedded provider registry
-    const registry = {
-      providers: {
-        worldbank: {
-          domain: 'governance|finance',
-          endpoints: {
-            governance_effectiveness: {
-              url: 'https://api.worldbank.org/v2/country/{iso3}/indicator/GE.EST?format=json&per_page=100',
-              method: 'GET'
-            }
-          }
-        },
-        who_gho: {
-          domain: 'health',
-          endpoints: {
-            life_expectancy: {
-              url: 'https://ghoapi.azureedge.net/api/WHOSIS_000001?$filter=SpatialDim eq \'{iso3}\'',
-              method: 'GET'
-            }
-          }
-        }
+    let response: any = { ok: true, intent, query };
+
+    // Route based on intent
+    if (intent === 'critical_incidents') {
+      const { data: alerts } = await supabase
+        .from('critical_alerts')
+        .select('*, security_incidents(*)')
+        .gte('triggered_at', new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
+        .order('triggered_at', { ascending: false })
+        .limit(50);
+      
+      response.results = alerts || [];
+      response.message = `Found ${alerts?.length || 0} critical incidents in the last 72 hours`;
+      
+    } else if (intent === 'country_dashboard') {
+      const country = extractCountry(query);
+      const iso3 = await resolveISO3(country, supabase);
+      
+      if (!iso3) {
+        response.ok = false;
+        response.error = `Could not resolve country: ${country}`;
+      } else {
+        const dashboard = await fetchCountryDashboard(iso3, supabase);
+        response.results = dashboard;
+        response.country = country;
+        response.iso3 = iso3;
+        response.message = `Country dashboard for ${country} (${iso3})`;
       }
-    };
-    
-    // 4. Select relevant providers
-    const providers = Object.entries(registry.providers)
-      .filter(([_, config]: [string, any]) => 
-        config.domain.split('|').includes(domain)
-      );
-
-    // 5. Fetch data from providers
-    const metrics: any[] = [];
-    
-    for (const [providerName, config] of providers) {
-      for (const [endpointName, endpoint] of Object.entries((config as any).endpoints)) {
-        try {
-          const url = interpolateUrl((endpoint as any).url, location);
-          const response = await fetch(url, {
-            method: (endpoint as any).method || 'GET',
-            headers: interpolateHeaders((config as any).headers || {}, Deno.env.toObject())
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const extracted = extractData(data, (endpoint as any).path_map?.data);
-            
-            // Store in metrics table
-            if (Array.isArray(extracted)) {
-              for (const item of extracted.slice(0, 10)) { // Limit to 10 per endpoint
-                await supabase.from('metrics').insert({
-                  domain,
-                  metric: endpointName,
-                  iso3: location.iso3,
-                  period: new Date().getFullYear().toString(),
-                  value: extractValue(item),
-                  source: providerName,
-                  raw: item
-                });
-              }
-              metrics.push(...extracted.slice(0, 10));
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching from ${providerName}:`, error);
-        }
-      }
+      
+    } else if (intent === 'map_query') {
+      response.message = 'Map query detected - please specify layers to view';
+      response.facets = ['vulnerability', 'incidents', 'energy', 'food'];
+      
+    } else {
+      // General query
+      const domains = detectDomain(query);
+      const dataContext = await fetchRelevantData(domains, supabase);
+      
+      response.domains = domains;
+      response.results = dataContext;
+      response.message = `Analysis across ${domains.length} domains`;
     }
 
-    // 6. Log query
-    await supabase.from('query_logs').insert({
-      query,
-      domain,
-      target: location,
-      sources: providers.map(([name]) => name),
-      success: metrics.length > 0
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-    return new Response(
-      JSON.stringify({
-        location,
-        domain,
-        metrics,
-        count: metrics.length
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
-    console.error('AICIS query error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('Error in aicis-query:', error);
+    
+    if (error instanceof z.ZodError) {
+      return new Response(JSON.stringify({ 
+        ok: false,
+        error: 'Invalid input',
+        details: error.errors 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    return new Response(JSON.stringify({ 
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
 
-async function resolveLocation(query: string, supabase: any) {
-  // Simple location extraction
-  const words = query.toLowerCase().split(' ');
-  const isoCountries = ['usa', 'gbr', 'deu', 'fra', 'chn', 'ind', 'bra', 'nga', 'gha', 'ken'];
-  
-  for (const word of words) {
-    if (isoCountries.includes(word)) {
-      return { name: word.toUpperCase(), iso3: word.toUpperCase(), type: 'country' };
-    }
-  }
-
-  return { name: 'Global', type: 'region' };
-}
-
-function classifyDomain(query: string): string {
+function detectIntent(query: string): string {
   const q = query.toLowerCase();
-  if (q.includes('governance') || q.includes('government')) return 'governance';
-  if (q.includes('health') || q.includes('disease')) return 'health';
-  if (q.includes('food') || q.includes('crop')) return 'food';
-  if (q.includes('energy') || q.includes('power')) return 'energy';
-  if (q.includes('climate') || q.includes('weather')) return 'climate';
+  
+  if (q.match(/kill|attack|violence|conflict|incident|crisis|shooting|bombing/)) {
+    return 'critical_incidents';
+  }
+  
+  if (q.match(/country|governance|nation|profile|dashboard/) || q.match(/for\s+\w+/)) {
+    return 'country_dashboard';
+  }
+  
+  if (q.match(/map|show|display|overlay|layer/)) {
+    return 'map_query';
+  }
+  
   return 'general';
 }
 
-function interpolateUrl(template: string, location: any): string {
-  return template
-    .replace('{iso3}', location.iso3 || '')
-    .replace('{lat}', location.lat || '0')
-    .replace('{lon}', location.lon || '0');
+function extractCountry(query: string): string {
+  const forMatch = query.match(/for\s+([a-z]+)/i);
+  if (forMatch) return forMatch[1];
+  
+  const ofMatch = query.match(/of\s+([a-z]+)/i);
+  if (ofMatch) return ofMatch[1];
+  
+  return query.split(' ').pop() || query;
 }
 
-function interpolateHeaders(headers: Record<string, string>, env: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    result[key] = value.replace(/\${([^}]+)}/g, (_, varName) => env[varName] || '');
-  }
-  return result;
+async function resolveISO3(country: string, supabase: any): Promise<string | null> {
+  const isoMap: Record<string, string> = {
+    'nauru': 'NRU', 'usa': 'USA', 'us': 'USA', 'united states': 'USA',
+    'germany': 'DEU', 'ghana': 'GHA', 'kenya': 'KEN', 'uk': 'GBR',
+    'france': 'FRA', 'japan': 'JPN', 'china': 'CHN', 'india': 'IND'
+  };
+  
+  const normalized = country.toLowerCase().trim();
+  if (isoMap[normalized]) return isoMap[normalized];
+  if (country.length === 3) return country.toUpperCase();
+  
+  return null;
 }
 
-function extractData(data: any, path?: string): any {
-  if (!path) return data;
-  // Simple JSONPath extraction
-  if (path.startsWith('$[') && path.endsWith(']')) {
-    const index = parseInt(path.slice(2, -1));
-    return Array.isArray(data) ? data[index] : data;
+async function fetchCountryDashboard(iso3: string, supabase: any) {
+  const dashboard: any = { iso3 };
+  
+  const { data: governance } = await supabase
+    .from('governance_global')
+    .select('*')
+    .eq('iso3', iso3)
+    .order('year', { ascending: false })
+    .limit(10);
+  
+  const { data: health } = await supabase
+    .from('health_metrics')
+    .select('*')
+    .eq('iso3', iso3)
+    .order('year', { ascending: false })
+    .limit(10);
+  
+  const { data: food } = await supabase
+    .from('food_data')
+    .select('*')
+    .eq('iso3', iso3)
+    .order('date', { ascending: false })
+    .limit(10);
+  
+  const { data: finance } = await supabase
+    .from('finance_data')
+    .select('*')
+    .eq('iso3', iso3)
+    .order('date', { ascending: false })
+    .limit(10);
+  
+  const { data: energy } = await supabase
+    .from('metrics')
+    .select('*')
+    .eq('iso3', iso3)
+    .eq('domain', 'energy')
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  const { data: vulnerability } = await supabase
+    .from('vulnerability_scores')
+    .select('*')
+    .eq('iso3', iso3)
+    .order('computed_at', { ascending: false })
+    .limit(1);
+  
+  dashboard.governance = governance || [];
+  dashboard.health = health || [];
+  dashboard.food = food || [];
+  dashboard.finance = finance || [];
+  dashboard.energy = energy || [];
+  dashboard.vulnerability = vulnerability?.[0] || null;
+  
+  return dashboard;
+}
+
+async function fetchRelevantData(domains: string[], supabase: any) {
+  const data: any = {};
+  
+  for (const domain of domains) {
+    const { data: records } = await supabase
+      .from('metrics')
+      .select('*')
+      .eq('domain', domain)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    
+    data[domain] = records || [];
   }
+  
   return data;
 }
 
-function extractValue(item: any): number {
-  if (typeof item === 'number') return item;
-  if (item?.value !== undefined) return parseFloat(item.value);
-  if (item?.NumericValue !== undefined) return parseFloat(item.NumericValue);
-  if (item?.Value !== undefined) return parseFloat(item.Value);
-  return 0;
+function detectDomain(query: string): string[] {
+  const domains: string[] = [];
+  const q = query.toLowerCase();
+  
+  if (q.match(/governance|government|policy|corruption/)) domains.push('governance');
+  if (q.match(/health|medical|disease|hospital/)) domains.push('health');
+  if (q.match(/education|school|literacy|student/)) domains.push('education');
+  if (q.match(/energy|power|electricity|grid/)) domains.push('energy');
+  if (q.match(/finance|economic|gdp|debt|trade/)) domains.push('finance');
+  if (q.match(/food|agriculture|hunger|crop/)) domains.push('food');
+  if (q.match(/climate|weather|temperature|rain/)) domains.push('climate');
+  if (q.match(/security|military|defense|threat/)) domains.push('security');
+  
+  return domains.length > 0 ? domains : ['general'];
 }

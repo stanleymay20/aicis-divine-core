@@ -748,6 +748,51 @@ export type Database = {
         }
         Relationships: []
       }
+      country_profiles: {
+        Row: {
+          chartspec: Json | null
+          compiled_at: string | null
+          confidence: number | null
+          country_name: string
+          created_at: string | null
+          id: string
+          iso3: string
+          kpis: Json | null
+          mapspec: Json | null
+          sources: Json | null
+          summary: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          chartspec?: Json | null
+          compiled_at?: string | null
+          confidence?: number | null
+          country_name: string
+          created_at?: string | null
+          id?: string
+          iso3: string
+          kpis?: Json | null
+          mapspec?: Json | null
+          sources?: Json | null
+          summary?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          chartspec?: Json | null
+          compiled_at?: string | null
+          confidence?: number | null
+          country_name?: string
+          created_at?: string | null
+          id?: string
+          iso3?: string
+          kpis?: Json | null
+          mapspec?: Json | null
+          sources?: Json | null
+          summary?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       crisis_events: {
         Row: {
           created_at: string | null
@@ -786,6 +831,59 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      critical_alerts: {
+        Row: {
+          ack_by: string | null
+          acknowledged: boolean | null
+          country: string | null
+          event_type: string | null
+          headline: string
+          id: string
+          incident_id: string | null
+          iso3: string | null
+          level: string
+          meta: Json | null
+          severity: number | null
+          triggered_at: string | null
+        }
+        Insert: {
+          ack_by?: string | null
+          acknowledged?: boolean | null
+          country?: string | null
+          event_type?: string | null
+          headline: string
+          id?: string
+          incident_id?: string | null
+          iso3?: string | null
+          level: string
+          meta?: Json | null
+          severity?: number | null
+          triggered_at?: string | null
+        }
+        Update: {
+          ack_by?: string | null
+          acknowledged?: boolean | null
+          country?: string | null
+          event_type?: string | null
+          headline?: string
+          id?: string
+          incident_id?: string | null
+          iso3?: string | null
+          level?: string
+          meta?: Json | null
+          severity?: number | null
+          triggered_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "critical_alerts_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "security_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custom_domains: {
         Row: {
@@ -3242,6 +3340,84 @@ export type Database = {
           source?: string
           threat_score?: number | null
           title?: string
+        }
+        Relationships: []
+      }
+      security_incidents: {
+        Row: {
+          admin1: string | null
+          admin2: string | null
+          country: string | null
+          created_at: string | null
+          dedupe_key: string | null
+          displaced: number | null
+          end_time: string | null
+          event_type: string | null
+          id: string
+          injured: number | null
+          iso2: string | null
+          iso3: string | null
+          killed: number | null
+          lat: number | null
+          lon: number | null
+          raw: Json | null
+          severity: number | null
+          source: string
+          source_id: string | null
+          start_time: string | null
+          summary: string | null
+          title: string
+          url: string | null
+        }
+        Insert: {
+          admin1?: string | null
+          admin2?: string | null
+          country?: string | null
+          created_at?: string | null
+          dedupe_key?: string | null
+          displaced?: number | null
+          end_time?: string | null
+          event_type?: string | null
+          id?: string
+          injured?: number | null
+          iso2?: string | null
+          iso3?: string | null
+          killed?: number | null
+          lat?: number | null
+          lon?: number | null
+          raw?: Json | null
+          severity?: number | null
+          source: string
+          source_id?: string | null
+          start_time?: string | null
+          summary?: string | null
+          title: string
+          url?: string | null
+        }
+        Update: {
+          admin1?: string | null
+          admin2?: string | null
+          country?: string | null
+          created_at?: string | null
+          dedupe_key?: string | null
+          displaced?: number | null
+          end_time?: string | null
+          event_type?: string | null
+          id?: string
+          injured?: number | null
+          iso2?: string | null
+          iso3?: string | null
+          killed?: number | null
+          lat?: number | null
+          lon?: number | null
+          raw?: Json | null
+          severity?: number | null
+          source?: string
+          source_id?: string | null
+          start_time?: string | null
+          summary?: string | null
+          title?: string
+          url?: string | null
         }
         Relationships: []
       }

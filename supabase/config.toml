@@ -97,8 +97,11 @@ verify_jwt = true
 [functions.aicis-query]
 verify_jwt = false
 
-[functions.jarvis-command]
-verify_jwt = true
+[functions.fetch-security-incidents]
+verify_jwt = false
+
+[functions.score-security-incidents]
+verify_jwt = false
 
 [functions.fetch-division-data]
 verify_jwt = true
