@@ -28,7 +28,7 @@ serve(async (req) => {
       .select('*')
       .eq('iso3', location.iso3)
       .gte('compiled_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .single();
+      .maybeSingle();
 
     if (existingProfile) {
       return new Response(JSON.stringify({

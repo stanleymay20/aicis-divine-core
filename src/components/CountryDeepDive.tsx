@@ -57,16 +57,18 @@ const getCompletenessColor = (score: number) => {
 };
 
 export default function CountryDeepDive({ location, profile, completeness_overall, notes }: CountryDeepDiveProps) {
-  const divisions = Object.entries(profile).filter(([_, data]) => data && data.metrics.length > 0);
+  const divisions = Object.entries(profile || {}).filter(([_, data]) => data && data.metrics && data.metrics.length > 0);
 
   const getLatestValue = (metrics: any[], metricName: string) => {
-    const filtered = metrics.filter(m => m.metric === metricName).sort((a, b) => b.period.localeCompare(a.period));
+    if (!metrics || metrics.length === 0) return null;
+    const filtered = metrics.filter(m => m && m.metric === metricName).sort((a, b) => b.period.localeCompare(a.period));
     return filtered[0]?.value;
   };
 
   const prepareTimeSeriesData = (metrics: any[], metricName: string) => {
+    if (!metrics || metrics.length === 0) return [];
     return metrics
-      .filter(m => m.metric === metricName)
+      .filter(m => m && m.metric === metricName)
       .sort((a, b) => a.period.localeCompare(b.period))
       .map(m => ({ period: m.period, value: m.value }));
   };
@@ -74,7 +76,7 @@ export default function CountryDeepDive({ location, profile, completeness_overal
   const prepareRadarData = () => {
     const radarData = divisions.map(([division, data]) => ({
       division: division.charAt(0).toUpperCase() + division.slice(1),
-      completeness: Math.round(data.completeness * 100)
+      completeness: Math.round((data?.completeness || 0) * 100)
     }));
     return radarData;
   };
