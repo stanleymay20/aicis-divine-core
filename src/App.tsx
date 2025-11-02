@@ -11,6 +11,7 @@ import Privacy from "./pages/Privacy";
 import CitizenPortal from "./pages/CitizenPortal";
 import CountryDeepDivePage from "./pages/CountryDeepDivePage";
 import AICISCommandCenter from "./pages/AICISCommandCenter";
+import Debug from "./pages/Debug";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/citizen-portal" element={<CitizenPortal />} />
           <Route path="/deepdive/:iso3" element={<CountryDeepDivePage />} />
           <Route path="/command" element={<AICISCommandCenter />} />
+          <Route path="/debug" element={<Debug />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

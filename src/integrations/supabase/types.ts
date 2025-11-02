@@ -1534,6 +1534,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ethics_audit_log: {
+        Row: {
+          assessment: string | null
+          bias_index: number | null
+          country: string | null
+          created_at: string | null
+          id: string
+          reviewed_by: string | null
+          source: string
+        }
+        Insert: {
+          assessment?: string | null
+          bias_index?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          reviewed_by?: string | null
+          source: string
+        }
+        Update: {
+          assessment?: string | null
+          bias_index?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          reviewed_by?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       ethics_cases: {
         Row: {
           created_at: string | null
@@ -2837,6 +2867,39 @@ export type Database = {
         }
         Relationships: []
       }
+      predicted_scores: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          division: string
+          id: string
+          iso_code: string
+          model_version: string | null
+          predicted_date: string
+          risk_score: number
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          division: string
+          id?: string
+          iso_code: string
+          model_version?: string | null
+          predicted_date: string
+          risk_score: number
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          division?: string
+          id?: string
+          iso_code?: string
+          model_version?: string | null
+          predicted_date?: string
+          risk_score?: number
+        }
+        Relationships: []
+      }
       predictions: {
         Row: {
           confidence: number | null
@@ -3083,6 +3146,51 @@ export type Database = {
           risk_level?: string
           title?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      satellite_observations: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          id: string
+          iso_code: string | null
+          lat: number | null
+          layer: string
+          lon: number | null
+          metadata: Json | null
+          related_event: string | null
+          source: string
+          timestamp: string | null
+          value: number | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          iso_code?: string | null
+          lat?: number | null
+          layer: string
+          lon?: number | null
+          metadata?: Json | null
+          related_event?: string | null
+          source: string
+          timestamp?: string | null
+          value?: number | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          iso_code?: string | null
+          lat?: number | null
+          layer?: string
+          lon?: number | null
+          metadata?: Json | null
+          related_event?: string | null
+          source?: string
+          timestamp?: string | null
+          value?: number | null
         }
         Relationships: []
       }
@@ -3514,6 +3622,30 @@ export type Database = {
           key?: string
           updated_at?: string | null
           value?: Json
+        }
+        Relationships: []
+      }
+      system_errors: {
+        Row: {
+          component: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          message: string
+        }
+        Insert: {
+          component: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          message: string
+        }
+        Update: {
+          component?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          message?: string
         }
         Relationships: []
       }

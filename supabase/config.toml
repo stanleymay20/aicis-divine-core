@@ -385,3 +385,9 @@ verify_jwt = true
 
 [functions.country-profile]
 verify_jwt = false
+
+[functions.fetch-satellite-global]
+verify_jwt = false
+
+[functions.train-global-model]
+verify_jwt = false

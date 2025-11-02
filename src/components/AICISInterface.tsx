@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,9 +28,9 @@ export default function AICISInterface() {
   const [criticalAlerts, setCriticalAlerts] = useState<any[]>([]);
 
   // Load critical alerts on mount
-  useState(() => {
+  useEffect(() => {
     loadCriticalAlerts();
-  });
+  }, []);
 
   const loadCriticalAlerts = async () => {
     const { data } = await supabase
@@ -179,11 +179,10 @@ export default function AICISInterface() {
                     </div>
                   )}
 
-                  {/* Render country dashboard */}
                   {msg.data && msg.data.intent === 'country_dashboard' && msg.data.results && (
                     <div className="mt-4">
                       <CountryDeepDive
-                        location={{ name: msg.data.country, iso3: msg.data.iso3, lat: 0, lon: 0, type: 'country' }}
+                        location={{ name: msg.data.country, iso3: msg.data.iso3, lat: 0, lon: 0 }}
                         profile={msg.data.results}
                         completeness_overall={0.7}
                         notes={[]}
