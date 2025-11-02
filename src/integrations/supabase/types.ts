@@ -1298,6 +1298,36 @@ export type Database = {
         }
         Relationships: []
       }
+      diagnostics_log: {
+        Row: {
+          created_at: string | null
+          failed_apis: Json | null
+          failed_tables: string[] | null
+          id: string
+          latency_ms: number | null
+          missing_env: string[] | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          failed_apis?: Json | null
+          failed_tables?: string[] | null
+          id?: string
+          latency_ms?: number | null
+          missing_env?: string[] | null
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          failed_apis?: Json | null
+          failed_tables?: string[] | null
+          id?: string
+          latency_ms?: number | null
+          missing_env?: string[] | null
+          status?: string
+        }
+        Relationships: []
+      }
       diplo_signals: {
         Row: {
           country: string

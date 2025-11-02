@@ -391,3 +391,9 @@ verify_jwt = false
 
 [functions.train-global-model]
 verify_jwt = false
+
+[functions.log-system-health]
+verify_jwt = false
+
+[functions.aicis-self-heal]
+verify_jwt = false
