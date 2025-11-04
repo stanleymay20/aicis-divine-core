@@ -397,3 +397,6 @@ verify_jwt = false
 
 [functions.aicis-self-heal]
 verify_jwt = false
+
+[functions.diagnose-auth]
+verify_jwt = false
