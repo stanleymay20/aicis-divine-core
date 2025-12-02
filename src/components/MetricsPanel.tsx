@@ -43,7 +43,14 @@ export const MetricsPanel = () => {
           value: Math.round(revenueBuckets[time] || 0),
         }));
 
-        // Operations data
+        // Operations data - use actual revenue transactions as proxy for trades activity
+        const revenueTransactionsByHour: Record<number, number> = {};
+        (revenue || []).forEach((r: any) => {
+          const hour = new Date(r.timestamp).getHours();
+          const bucket = Math.floor(hour / 4) * 4;
+          revenueTransactionsByHour[bucket] = (revenueTransactionsByHour[bucket] || 0) + 1;
+        });
+
         const opsChartData = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'].map((time, idx) => {
           const hourBucket = parseInt(time.split(':')[0]);
           const energyInBucket = (energy || []).filter((e: any) => {
@@ -58,7 +65,7 @@ export const MetricsPanel = () => {
           
           return {
             time,
-            trades: Math.round(1200 + Math.random() * 800), // trades table doesn't have hourly timestamps, approximate
+            trades: revenueTransactionsByHour[hourBucket] || 0,
             threats: threatsInBucket.length,
             energy: Math.round(avgEnergy || 90),
           };

@@ -125,7 +125,7 @@ export const UnifiedGovernancePanel = () => {
               <Card className="p-4 bg-muted/20">
                 <p className="text-sm text-muted-foreground">Governance Index</p>
                 <p className="text-3xl font-bold text-primary">
-                  {(Math.random() * 0.3 + 0.7).toFixed(3)}
+                  {((daoData?.activeProposals?.length || 0) * 0.2 + (daoData?.userVotes?.length || 0) * 0.1 + 0.5).toFixed(3)}
                 </p>
               </Card>
             </div>

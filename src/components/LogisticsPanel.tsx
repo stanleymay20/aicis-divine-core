@@ -28,12 +28,13 @@ export const LogisticsPanel = () => {
   const optimizeRoutes = async () => {
     setLoading(true);
     try {
-      // Simulate route optimization
-      const optimizedCount = Math.floor(Math.random() * 5) + 1;
+      // Calculate optimization based on actual logistics data
+      const highDelayRoutes = logisticsData.filter(route => Number(route.delay_index) > 30);
+      const optimizedCount = highDelayRoutes.length > 0 ? highDelayRoutes.length : logisticsData.length;
       
       toast({
         title: "Route Optimization Complete",
-        description: `${optimizedCount} routes optimized for efficiency`,
+        description: `${optimizedCount} route${optimizedCount !== 1 ? 's' : ''} analyzed for efficiency improvements`,
       });
       
       await fetchLogisticsData();

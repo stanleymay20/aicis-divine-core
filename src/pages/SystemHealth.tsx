@@ -45,7 +45,10 @@ export default function SystemHealth() {
         .maybeSingle();
       
       if (data) {
-        setDiagnostics(data);
+        setDiagnostics({
+          ...data,
+          failed_apis: Array.isArray(data.failed_apis) ? data.failed_apis : [],
+        });
       }
     } catch (error) {
       console.error('Failed to load diagnostics:', error);
