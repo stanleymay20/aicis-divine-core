@@ -73,46 +73,92 @@ export const DivisionGrid = () => {
           'J.A.R.V.I.S. Interface': Brain,
         };
 
+        // Get historical data for trend calculations
+        const { data: prevRevenue } = await supabase
+          .from('revenue_streams')
+          .select('amount_usd, division')
+          .gte('timestamp', new Date(Date.now() - 48 * 3600e3).toISOString())
+          .lt('timestamp', new Date(Date.now() - 24 * 3600e3).toISOString());
+
+        const { data: prevEnergy } = await supabase
+          .from('energy_grid')
+          .select('stability_index, renewable_percentage')
+          .lt('updated_at', new Date(Date.now() - 24 * 3600e3).toISOString())
+          .limit(50);
+
+        const { data: prevHealth } = await supabase
+          .from('health_data')
+          .select('affected_count')
+          .lt('updated_at', new Date(Date.now() - 24 * 3600e3).toISOString())
+          .limit(50);
+
+        const { data: healthAlerts } = await supabase
+          .from('health_data')
+          .select('id')
+          .eq('risk_level', 'critical');
+
+        const { data: prevFood } = await supabase
+          .from('food_security')
+          .select('yield_index')
+          .lt('updated_at', new Date(Date.now() - 24 * 3600e3).toISOString())
+          .limit(50);
+
         const divisionMetrics = (aiDivisions || []).map((div: any) => {
           const icon = iconMap[div.name] || Database;
           let metrics = [];
+
+          // Helper to format trend
+          const formatTrend = (current: number, previous: number) => {
+            if (previous === 0) return current > 0 ? '↑' : '—';
+            const change = ((current - previous) / previous) * 100;
+            if (Math.abs(change) < 0.1) return '—';
+            return change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
+          };
 
           if (div.name.includes('Finance') || div.name.includes('Financial')) {
             const total = (revenue || [])
               .filter((r: any) => r.division === 'finance')
               .reduce((a: number, b: any) => a + Number(b.amount_usd || 0), 0);
+            const prevTotal = (prevRevenue || [])
+              .filter((r: any) => r.division === 'finance')
+              .reduce((a: number, b: any) => a + Number(b.amount_usd || 0), 0);
             metrics = [
-              { label: 'Revenue (24h)', value: `$${Math.round(total).toLocaleString()}`, trend: '+42%' },
-              { label: 'Performance', value: `${div.performance_score}%`, trend: 'Optimal' },
-              { label: 'Uptime', value: `${div.uptime_percentage}%`, trend: '100%' },
+              { label: 'Revenue (24h)', value: `$${Math.round(total).toLocaleString()}`, trend: formatTrend(total, prevTotal) },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: div.performance_score >= 90 ? 'Optimal' : 'Active' },
+              { label: 'Uptime', value: `${div.uptime_percentage}%`, trend: `${div.uptime_percentage}%` },
             ];
           } else if (div.name.includes('Energy')) {
             const avgStability = (energy || []).reduce((a, b) => a + Number(b.stability_index || 0), 0) / Math.max(1, energy?.length || 1);
             const avgRenew = (energy || []).reduce((a, b) => a + Number(b.renewable_percentage || 0), 0) / Math.max(1, energy?.length || 1);
+            const prevAvgStab = (prevEnergy || []).reduce((a: number, b: any) => a + Number(b.stability_index || 0), 0) / Math.max(1, (prevEnergy || []).length);
+            const prevAvgRenew = (prevEnergy || []).reduce((a: number, b: any) => a + Number(b.renewable_percentage || 0), 0) / Math.max(1, (prevEnergy || []).length);
             metrics = [
-              { label: 'Grid Efficiency', value: `${avgStability.toFixed(1)}%`, trend: '+2.3%' },
-              { label: 'Renewable %', value: `${avgRenew.toFixed(0)}%`, trend: '+5%' },
-              { label: 'Performance', value: `${div.performance_score}%`, trend: 'Online' },
+              { label: 'Grid Efficiency', value: `${avgStability.toFixed(1)}%`, trend: formatTrend(avgStability, prevAvgStab) },
+              { label: 'Renewable %', value: `${avgRenew.toFixed(0)}%`, trend: formatTrend(avgRenew, prevAvgRenew) },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: div.status === 'operational' ? 'Online' : div.status },
             ];
           } else if (div.name.includes('Health')) {
             const totalAffected = (health || []).reduce((a, b) => a + Number(b.affected_count || 0), 0);
+            const prevTotalAffected = (prevHealth || []).reduce((a: number, b: any) => a + Number(b.affected_count || 0), 0);
+            const alertCount = (healthAlerts || []).length;
             metrics = [
-              { label: 'Patients Monitored', value: `${(totalAffected / 1000).toFixed(1)}K`, trend: '+7%' },
-              { label: 'Performance', value: `${div.performance_score}%`, trend: '+15%' },
-              { label: 'Outbreak Alerts', value: '0', trend: 'Clear' },
+              { label: 'Patients Monitored', value: `${(totalAffected / 1000).toFixed(1)}K`, trend: formatTrend(totalAffected, prevTotalAffected) },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: formatTrend(div.performance_score, 85) },
+              { label: 'Critical Alerts', value: String(alertCount), trend: alertCount === 0 ? 'Clear' : 'Active' },
             ];
           } else if (div.name.includes('Food') || div.name.includes('Agriculture')) {
             const avgYield = (food || []).reduce((a, b) => a + Number(b.yield_index || 0), 0) / Math.max(1, food?.length || 1);
+            const prevAvgYield = (prevFood || []).reduce((a: number, b: any) => a + Number(b.yield_index || 0), 0) / Math.max(1, (prevFood || []).length);
             metrics = [
-              { label: 'Yield Index', value: `${avgYield.toFixed(0)}%`, trend: '+8%' },
-              { label: 'Regions', value: String((food || []).length), trend: 'Active' },
-              { label: 'Performance', value: `${div.performance_score}%`, trend: '+12%' },
+              { label: 'Yield Index', value: `${avgYield.toFixed(0)}%`, trend: formatTrend(avgYield, prevAvgYield) },
+              { label: 'Regions', value: String((food || []).length), trend: (food || []).length > 0 ? 'Active' : '—' },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: formatTrend(div.performance_score, 80) },
             ];
           } else {
             metrics = [
-              { label: 'Performance', value: `${div.performance_score}%`, trend: 'Optimal' },
-              { label: 'Uptime', value: `${div.uptime_percentage}%`, trend: '100%' },
-              { label: 'Status', value: div.status, trend: 'Active' },
+              { label: 'Performance', value: `${div.performance_score}%`, trend: div.performance_score >= 90 ? 'Optimal' : 'Active' },
+              { label: 'Uptime', value: `${div.uptime_percentage}%`, trend: `${div.uptime_percentage}%` },
+              { label: 'Status', value: div.status, trend: div.status === 'operational' ? 'Active' : div.status },
             ];
           }
 
