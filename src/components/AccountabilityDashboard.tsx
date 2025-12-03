@@ -95,7 +95,12 @@ export const AccountabilityDashboard = () => {
     return colors[type] || 'bg-gray-500';
   };
 
-  const integrityScore = 99.9;
+  // Calculate integrity score from verified ledger entries
+  const integrityScore = (() => {
+    if (!ledgerEntries || ledgerEntries.length === 0) return 0;
+    const verifiedCount = ledgerEntries.filter(e => e.verified).length;
+    return Number(((verifiedCount / ledgerEntries.length) * 100).toFixed(1));
+  })();
 
   return (
     <div className="space-y-6">

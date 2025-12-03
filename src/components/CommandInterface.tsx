@@ -315,8 +315,11 @@ export const CommandInterface = () => {
         }
       } else if (userCommand.includes("ledger integrity") || userCommand.includes("integrity report")) {
         const { data: rootHash } = await supabase.from('ledger_root_hashes').select('*').order('timestamp', { ascending: false }).limit(1).single();
-        const { data: entries } = await supabase.from('ledger_entries').select('id').eq('verified', true);
-        response = `🔐 Ledger Integrity Report\n\nLatest Root Hash: ${rootHash?.root_hash?.substring(0, 16)}...\nTotal Blocks: ${rootHash?.block_count || 0}\nVerified Entries: ${entries?.length || 0}\nIntegrity Score: 99.9%\nLast Updated: ${rootHash?.timestamp ? new Date(rootHash.timestamp).toLocaleString() : 'N/A'}`;
+        const { data: entries } = await supabase.from('ledger_entries').select('id, verified');
+        const verifiedCount = (entries || []).filter((e: any) => e.verified).length;
+        const totalCount = (entries || []).length;
+        const integrityScore = totalCount > 0 ? ((verifiedCount / totalCount) * 100).toFixed(1) : '0';
+        response = `🔐 Ledger Integrity Report\n\nLatest Root Hash: ${rootHash?.root_hash?.substring(0, 16)}...\nTotal Blocks: ${rootHash?.block_count || 0}\nVerified Entries: ${verifiedCount}\nIntegrity Score: ${integrityScore}%\nLast Updated: ${rootHash?.timestamp ? new Date(rootHash.timestamp).toLocaleString() : 'N/A'}`;
       } else if (userCommand.includes("accountability report") || userCommand.includes("generate accountability")) {
         const { data, error } = await supabase.functions.invoke('cron-accountability-report');
         if (error) throw error;
