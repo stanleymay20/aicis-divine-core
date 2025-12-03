@@ -8,7 +8,6 @@ import { MetricsPanel } from "@/components/MetricsPanel";
 import { FinancialPanel } from "@/components/FinancialPanel";
 import { HealthcarePanel } from "@/components/HealthcarePanel";
 import { FoodSecurityPanel } from "@/components/FoodSecurityPanel";
-import { GovernancePanel } from "@/components/GovernancePanel";
 import { DefensePanel } from "@/components/DefensePanel";
 import { DiplomacyPanel } from "@/components/DiplomacyPanel";
 import { CrisisPanel } from "@/components/CrisisPanel";
@@ -35,6 +34,7 @@ import { AccountabilityDashboard } from "@/components/AccountabilityDashboard";
 import { TrustPortal } from "@/components/TrustPortal";
 import { GlobalVulnerabilityMap } from "@/components/GlobalVulnerabilityMap";
 import { AICISCorePanel } from "@/components/AICISCorePanel";
+import { AnalysisDashboard } from "@/components/AnalysisDashboard";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -109,12 +109,11 @@ const Index = () => {
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DefensePanel />
-                <GovernancePanel />
+                <CrisisPanel />
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DiplomacyPanel />
-                <CrisisPanel />
               </div>
               
               <DivisionGrid />
@@ -131,7 +130,7 @@ const Index = () => {
             </div>
           )}
           {activeView === "governance" && <UnifiedGovernancePanel />}
-          {activeView === "dao" && <UnifiedGovernancePanel />}
+          {activeView === "analysis" && <AnalysisDashboard />}
           {activeView === "automation" && (
             <div className="space-y-6">
               <AutomationMonitorPanel />
