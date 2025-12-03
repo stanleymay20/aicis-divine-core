@@ -12,12 +12,12 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
   
   const navItems = [
     { id: "overview", label: "Dashboard", icon: Home },
+    { id: "analysis", label: "Analysis", icon: Activity },
     { id: "economy", label: "Economy", icon: DollarSign },
     { id: "health", label: "Health", icon: Heart },
     { id: "food", label: "Food", icon: Apple },
     { id: "energy", label: "Energy", icon: Zap },
     { id: "governance", label: "Governance", icon: Building },
-    { id: "dao", label: "DAO", icon: Users },
     { id: "automation", label: "Automation", icon: Settings },
     { id: "learning", label: "Learning", icon: Activity },
     { id: "federation", label: "Federation", icon: Globe },
