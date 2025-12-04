@@ -1,44 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { SystemStatus } from "@/components/SystemStatus";
-import { DivisionGrid } from "@/components/DivisionGrid";
-import { CommandInterface } from "@/components/CommandInterface";
-import { MetricsPanel } from "@/components/MetricsPanel";
-import { FinancialPanel } from "@/components/FinancialPanel";
-import { HealthcarePanel } from "@/components/HealthcarePanel";
-import { FoodSecurityPanel } from "@/components/FoodSecurityPanel";
-import { DefensePanel } from "@/components/DefensePanel";
-import { DiplomacyPanel } from "@/components/DiplomacyPanel";
-import { CrisisPanel } from "@/components/CrisisPanel";
-import { IntelligenceHub } from "@/components/IntelligenceHub";
-import { EventBusMonitor } from "@/components/EventBusMonitor";
-import { ExecutivePanel } from "@/components/ExecutivePanel";
-import { ObjectivePanel } from "@/components/ObjectivePanel";
-import EconomyPanel from "@/components/EconomyPanel";
-import { UnifiedGovernancePanel } from "@/components/UnifiedGovernancePanel";
 import { NotificationsCenter } from "@/components/NotificationsCenter";
-import { AutomationMonitorPanel } from "@/components/AutomationMonitorPanel";
-import { DataHealthPanel } from "@/components/DataHealthPanel";
-import LearningAllocatorPanel from "@/components/LearningAllocatorPanel";
-import FederationPanel from "@/components/FederationPanel";
-import { OrganizationPanel } from "@/components/OrganizationPanel";
-import { BillingPanel } from "@/components/BillingPanel";
-import { EnergyPanel } from "@/components/EnergyPanel";
-import { LogisticsPanel } from "@/components/LogisticsPanel";
-import { EducationPanel } from "@/components/EducationPanel";
-import SDGDashboard from "@/components/SDGDashboard";
-import EthicsDashboard from "@/components/EthicsDashboard";
-import PolicyCompliancePanel from "@/components/PolicyCompliancePanel";
-import { AccountabilityDashboard } from "@/components/AccountabilityDashboard";
-import { TrustPortal } from "@/components/TrustPortal";
-import { GlobalVulnerabilityMap } from "@/components/GlobalVulnerabilityMap";
-import { AICISCorePanel } from "@/components/AICISCorePanel";
-import { AnalysisDashboard } from "@/components/AnalysisDashboard";
+import { ChatDashboard } from "@/components/dashboards/ChatDashboard";
+import { VisualizationDashboard } from "@/components/dashboards/VisualizationDashboard";
+import { VideoDashboard } from "@/components/dashboards/VideoDashboard";
+import { SatelliteDashboard } from "@/components/dashboards/SatelliteDashboard";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
-  const [activeView, setActiveView] = useState("overview");
+  const [activeView, setActiveView] = useState("chat");
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -73,90 +44,11 @@ const Index = () => {
       <div className="relative z-10">
         <DashboardHeader activeView={activeView} setActiveView={setActiveView} />
         
-        <main className="container mx-auto px-4 py-6 space-y-6">
-          {activeView === "overview" && (
-            <>
-              <SystemStatus />
-              <MetricsPanel />
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <ExecutivePanel />
-                <ObjectivePanel />
-                <EconomyPanel />
-              </div>
-              
-              <IntelligenceHub />
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <EventBusMonitor />
-                <FinancialPanel />
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <HealthcarePanel />
-                <FoodSecurityPanel />
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <EnergyPanel />
-                <LogisticsPanel />
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <EducationPanel />
-                <UnifiedGovernancePanel />
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DefensePanel />
-                <CrisisPanel />
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DiplomacyPanel />
-              </div>
-              
-              <DivisionGrid />
-            </>
-          )}
-          
-          {activeView === "economy" && <EconomyPanel />}
-          {activeView === "health" && <HealthcarePanel />}
-          {activeView === "food" && <FoodSecurityPanel />}
-          {activeView === "energy" && (
-            <div className="space-y-6">
-              <SystemStatus />
-              <MetricsPanel />
-            </div>
-          )}
-          {activeView === "governance" && <UnifiedGovernancePanel />}
-          {activeView === "analysis" && <AnalysisDashboard />}
-          {activeView === "automation" && (
-            <div className="space-y-6">
-              <AutomationMonitorPanel />
-              <DataHealthPanel />
-            </div>
-          )}
-          {activeView === "learning" && <LearningAllocatorPanel />}
-          {activeView === "federation" && <FederationPanel />}
-          {activeView === "organization" && <OrganizationPanel />}
-          {activeView === "billing" && <BillingPanel />}
-          {activeView === "sdg" && <SDGDashboard />}
-          {activeView === "ethics" && <EthicsDashboard />}
-          {activeView === "compliance" && <PolicyCompliancePanel />}
-          {activeView === "accountability" && <AccountabilityDashboard />}
-          {activeView === "trust" && <TrustPortal />}
-          {activeView === "map" && (
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Global Vulnerability Map</h2>
-              <GlobalVulnerabilityMap />
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CommandInterface />
-            <AICISCorePanel />
-          </div>
+        <main className="container mx-auto px-4 py-6">
+          {activeView === "chat" && <ChatDashboard />}
+          {activeView === "visualizations" && <VisualizationDashboard />}
+          {activeView === "video" && <VideoDashboard />}
+          {activeView === "satellite" && <SatelliteDashboard />}
         </main>
       </div>
 

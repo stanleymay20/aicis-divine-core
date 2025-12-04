@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Activity, Shield, DollarSign, Heart, Leaf, Zap, Globe, MessageSquare, LogOut, Settings, Home, Apple, Building, Users, CreditCard, Target, Scale, FileCheck, Lock } from "lucide-react";
+import { MessageSquare, BarChart3, Video, Satellite, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardHeaderProps {
@@ -11,24 +11,10 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
   const { user, signOut } = useAuth();
   
   const navItems = [
-    { id: "overview", label: "Dashboard", icon: Home },
-    { id: "analysis", label: "Analysis", icon: Activity },
-    { id: "economy", label: "Economy", icon: DollarSign },
-    { id: "health", label: "Health", icon: Heart },
-    { id: "food", label: "Food", icon: Apple },
-    { id: "energy", label: "Energy", icon: Zap },
-    { id: "governance", label: "Governance", icon: Building },
-    { id: "automation", label: "Automation", icon: Settings },
-    { id: "learning", label: "Learning", icon: Activity },
-    { id: "federation", label: "Federation", icon: Globe },
-    { id: "sdg", label: "SDG", icon: Target },
-    { id: "ethics", label: "Ethics", icon: Scale },
-    { id: "compliance", label: "Compliance", icon: FileCheck },
-    { id: "accountability", label: "Accountability", icon: Shield },
-    { id: "trust", label: "Trust Portal", icon: Lock },
-    { id: "map", label: "Vulnerability Map", icon: Globe },
-    { id: "organization", label: "Organization", icon: Building },
-    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "chat", label: "Chat", icon: MessageSquare },
+    { id: "visualizations", label: "Visualizations", icon: BarChart3 },
+    { id: "video", label: "Video", icon: Video },
+    { id: "satellite", label: "Satellite", icon: Satellite },
   ];
 
   return (
@@ -67,7 +53,7 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
           </div>
         </div>
 
-        <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <nav className="flex gap-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -77,9 +63,7 @@ export const DashboardHeader = ({ activeView, setActiveView }: DashboardHeaderPr
                 variant={isActive ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setActiveView(item.id)}
-                className={`flex items-center gap-2 whitespace-nowrap ${
-                  isActive ? "glow-cyber" : ""
-                }`}
+                className={`flex items-center gap-2 ${isActive ? "glow-cyber" : ""}`}
               >
                 <Icon className="w-4 h-4" />
                 {item.label}
