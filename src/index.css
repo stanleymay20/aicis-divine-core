@@ -86,36 +86,45 @@
 }
 
 @layer utilities {
-  .glow-cyber {
-    box-shadow: var(--glow-cyber);
+  .glow-un {
+    box-shadow: var(--glow-un);
   }
   
-  .glow-power {
-    box-shadow: var(--glow-power);
+  .glow-sdg {
+    box-shadow: var(--glow-sdg);
   }
 
   .glow-critical {
     box-shadow: var(--glow-critical);
   }
 
-  .text-glow-cyber {
-    text-shadow: 0 0 10px hsl(189 94% 55% / 0.8);
+  .text-glow-un {
+    text-shadow: 0 0 10px hsl(199 89% 48% / 0.8);
   }
 
-  .text-glow-power {
-    text-shadow: 0 0 10px hsl(45 100% 60% / 0.8);
+  .text-glow-sdg {
+    text-shadow: 0 0 10px hsl(142 76% 45% / 0.8);
   }
 
-  .gradient-cyber {
-    background: var(--gradient-cyber);
+  .gradient-un {
+    background: var(--gradient-un);
   }
 
-  .gradient-power {
-    background: var(--gradient-power);
+  .gradient-sdg {
+    background: var(--gradient-sdg);
   }
 
   .gradient-neural {
     background: var(--gradient-neural);
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 
   /* Animations */
