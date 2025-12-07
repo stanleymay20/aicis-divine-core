@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Send, Mic, Sparkles, ChevronUp, ChevronDown, 
-  Globe, AlertTriangle, BarChart3, X, Loader2
+  Send, Sparkles, ChevronUp, ChevronDown, 
+  Globe, AlertTriangle, BarChart3, X, Loader2,
+  Command, Zap, Target, Radio
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { searchCountries, type Country } from "@/lib/geo/all-countries";
 import { cn } from "@/lib/utils";
+import { VoiceCommandButton } from "./VoiceCommandButton";
 
 interface Message {
   id: string;
@@ -157,6 +159,11 @@ export const CommandBar = ({ onCountrySelect, onNavigate, className }: CommandBa
     }
   };
 
+  const handleVoiceCommand = (command: string) => {
+    setInput(command);
+    setTimeout(() => handleSend(), 100);
+  };
+
   const handleSelectCountry = (country: Country) => {
     onCountrySelect?.(country);
     setSuggestions([]);
@@ -164,9 +171,11 @@ export const CommandBar = ({ onCountrySelect, onNavigate, className }: CommandBa
   };
 
   const quickCommands = [
-    { label: "Global Status", icon: Globe, cmd: "global status" },
-    { label: "Crisis Alerts", icon: AlertTriangle, cmd: "crisis alerts" },
-    { label: "Analytics", icon: BarChart3, cmd: "analytics" },
+    { label: "Global Status", icon: Globe, cmd: "global status", color: "text-primary" },
+    { label: "Crisis Scan", icon: AlertTriangle, cmd: "crisis scan", color: "text-destructive" },
+    { label: "Analytics", icon: BarChart3, cmd: "analytics", color: "text-success" },
+    { label: "SDG Progress", icon: Target, cmd: "sdg progress", color: "text-secondary" },
+    { label: "Live Alerts", icon: Radio, cmd: "alerts", color: "text-warning" },
   ];
 
   return (
@@ -179,7 +188,10 @@ export const CommandBar = ({ onCountrySelect, onNavigate, className }: CommandBa
       {isExpanded && messages.length > 0 && (
         <div className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-x border-primary/20 rounded-t-xl max-h-64 overflow-hidden animate-fade-in">
           <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
-            <span className="text-xs font-medium text-muted-foreground">Command History</span>
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <Command className="h-3.5 w-3.5" />
+              Command History
+            </span>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -223,7 +235,7 @@ export const CommandBar = ({ onCountrySelect, onNavigate, className }: CommandBa
 
       {/* Country suggestions dropdown */}
       {suggestions.length > 0 && (
-        <div className="absolute bottom-full left-0 right-0 mx-4 mb-2 bg-card/95 backdrop-blur-xl border border-primary/20 rounded-lg overflow-hidden animate-fade-in">
+        <div className="absolute bottom-full left-0 right-0 mx-4 mb-2 bg-card/95 backdrop-blur-xl border border-primary/20 rounded-lg overflow-hidden animate-fade-in shadow-2xl">
           {suggestions.map((country) => (
             <button
               key={country.iso3}
@@ -243,13 +255,13 @@ export const CommandBar = ({ onCountrySelect, onNavigate, className }: CommandBa
 
       {/* Main command bar */}
       <div className="bg-card/95 backdrop-blur-xl border-t border-primary/20 shadow-2xl">
-        <div className="max-w-5xl mx-auto px-4 py-3">
+        <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center gap-2">
             {/* Expand toggle */}
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 shrink-0"
+              className="h-10 w-10 shrink-0"
               onClick={() => setIsExpanded(!isExpanded)}
             >
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -264,7 +276,7 @@ export const CommandBar = ({ onCountrySelect, onNavigate, className }: CommandBa
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Search countries, run commands, or ask anything... (⌘K)"
-                className="pl-10 pr-4 h-10 bg-muted/30 border-primary/20 focus:border-primary/50"
+                className="pl-10 pr-4 h-11 bg-muted/30 border-primary/20 focus:border-primary/50 font-rajdhani"
                 disabled={isProcessing}
               />
             </div>
@@ -273,42 +285,47 @@ export const CommandBar = ({ onCountrySelect, onNavigate, className }: CommandBa
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isProcessing}
-              className="h-10 px-4"
+              className="h-11 px-5 gap-2 font-orbitron"
             >
               {isProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <>
+                  <Zap className="h-4 w-4" />
+                  <span className="hidden sm:inline">Execute</span>
+                </>
               )}
             </Button>
 
             {/* Voice button */}
-            <Button variant="outline" size="icon" className="h-10 w-10">
-              <Mic className="h-4 w-4" />
-            </Button>
+            <VoiceCommandButton onCommand={handleVoiceCommand} />
           </div>
 
           {/* Quick commands */}
-          <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1">
-            {quickCommands.map(({ label, icon: Icon, cmd }) => (
+          <div className="flex items-center gap-2 mt-2 overflow-x-auto pb-1 scrollbar-hide">
+            {quickCommands.map(({ label, icon: Icon, cmd, color }) => (
               <Button
                 key={cmd}
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs gap-1.5 shrink-0"
+                className="h-7 text-xs gap-1.5 shrink-0 hover:bg-muted/50"
                 onClick={() => {
                   setInput(cmd);
-                  handleSend();
+                  setTimeout(() => handleSend(), 100);
                 }}
               >
-                <Icon className="h-3 w-3" />
+                <Icon className={cn("h-3 w-3", color)} />
                 {label}
               </Button>
             ))}
-            <div className="h-4 w-px bg-border mx-1" />
-            <span className="text-[10px] text-muted-foreground">
+            <div className="h-4 w-px bg-border mx-1 shrink-0" />
+            <span className="text-[10px] text-muted-foreground shrink-0">
               Try: "Kenya", "health analysis", "show alerts"
             </span>
+            <div className="ml-auto hidden sm:flex items-center gap-1">
+              <Badge variant="outline" className="text-[10px] px-1.5">?</Badge>
+              <span className="text-[10px] text-muted-foreground">for shortcuts</span>
+            </div>
           </div>
         </div>
       </div>

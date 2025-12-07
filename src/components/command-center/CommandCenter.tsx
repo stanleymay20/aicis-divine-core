@@ -5,6 +5,10 @@ import { AlertsPanel } from "./AlertsPanel";
 import { AnalyticsOverlay } from "./AnalyticsOverlay";
 import { GlobalMap, GlobalMapRef } from "./GlobalMap";
 import { CountryPanel } from "./CountryPanel";
+import { IntelligenceHUD } from "./IntelligenceHUD";
+import { DataStreamPanel } from "./DataStreamPanel";
+import { GlobalStatsBar } from "./GlobalStatsBar";
+import { KeyboardShortcutsModal, useKeyboardShortcuts } from "./KeyboardShortcuts";
 import { type Country, getCountryCoordinates } from "@/lib/geo/all-countries";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -48,29 +52,6 @@ export const CommandCenter = () => {
     };
   }, []);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      if (e.key === "a" || e.key === "A") {
-        setAlertsOpen(prev => !prev);
-      }
-      if (e.key === "d" || e.key === "D") {
-        setAnalyticsOpen(prev => !prev);
-      }
-      if (e.key === "Escape") {
-        setAlertsOpen(false);
-        setAnalyticsOpen(false);
-        setSelectedCountry(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   const handleCountrySelect = useCallback((country: Country) => {
     const coords = getCountryCoordinates(country.iso2);
     mapRef.current?.flyToCountry(country);
@@ -87,7 +68,7 @@ export const CommandCenter = () => {
     setSelectedCountry({
       name: data.country,
       iso3: data.iso3,
-      lat: 0, // Will be updated when clicking on map
+      lat: 0,
       lng: 0,
     });
   }, []);
@@ -107,6 +88,25 @@ export const CommandCenter = () => {
     }
   }, []);
 
+  // Keyboard shortcuts
+  const shortcutHandlers = {
+    a: () => setAlertsOpen(prev => !prev),
+    d: () => setAnalyticsOpen(prev => !prev),
+    escape: () => {
+      setAlertsOpen(false);
+      setAnalyticsOpen(false);
+      setSelectedCountry(null);
+    },
+    g: () => mapRef.current?.spinGlobe(),
+    r: () => mapRef.current?.resetView(),
+    "cmd+k": () => {
+      const input = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+      input?.focus();
+    },
+  };
+
+  const { showShortcuts, setShowShortcuts } = useKeyboardShortcuts(shortcutHandlers);
+
   return (
     <div className="h-screen w-full overflow-hidden bg-background">
       {/* Header with live ticker */}
@@ -118,7 +118,7 @@ export const CommandCenter = () => {
         unreadAlerts={unreadAlerts}
       />
 
-      {/* Main map area - adjusted for taller header */}
+      {/* Main map area */}
       <div className="pt-[88px] pb-24 h-full">
         <GlobalMap
           ref={mapRef}
@@ -126,6 +126,15 @@ export const CommandCenter = () => {
           className="w-full h-full"
         />
       </div>
+
+      {/* Global stats bar - centered top */}
+      <GlobalStatsBar />
+
+      {/* Intelligence HUD - top right */}
+      <IntelligenceHUD />
+
+      {/* Data stream panel - bottom right */}
+      <DataStreamPanel />
 
       {/* Country detail panel */}
       <CountryPanel
@@ -145,6 +154,11 @@ export const CommandCenter = () => {
         onClose={() => setAnalyticsOpen(false)}
         selectedCountry={selectedCountry ? { name: selectedCountry.name, iso3: selectedCountry.iso3 } : null}
       />
+
+      {/* Keyboard shortcuts modal */}
+      {showShortcuts && (
+        <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
+      )}
 
       {/* Command bar at bottom */}
       <CommandBar
