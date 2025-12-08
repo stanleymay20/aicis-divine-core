@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import maplibregl from "maplibre-gl";
 import { Header } from "./Header";
 import { CommandBar } from "./CommandBar";
 import { AlertsPanel } from "./AlertsPanel";
@@ -8,6 +9,7 @@ import { CountryPanel } from "./CountryPanel";
 import { IntelligenceHUD } from "./IntelligenceHUD";
 import { DataStreamPanel } from "./DataStreamPanel";
 import { GlobalStatsBar } from "./GlobalStatsBar";
+import { MiniMap } from "./MiniMap";
 import { KeyboardShortcutsModal, useKeyboardShortcuts } from "./KeyboardShortcuts";
 import { type Country, getCountryCoordinates } from "@/lib/geo/all-countries";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,12 +20,22 @@ export const CommandCenter = () => {
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [mainMap, setMainMap] = useState<maplibregl.Map | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string;
     iso3: string;
     lat: number;
     lng: number;
   } | null>(null);
+
+  // Sync main map reference for MiniMap
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const m = mapRef.current?.getMap();
+      if (m && !mainMap) setMainMap(m);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [mainMap]);
 
   // Fetch unread alerts count
   useEffect(() => {
@@ -135,6 +147,9 @@ export const CommandCenter = () => {
 
       {/* Data stream panel - bottom right */}
       <DataStreamPanel />
+
+      {/* MiniMap - bottom left */}
+      <MiniMap mainMap={mainMap} />
 
       {/* Country detail panel */}
       <CountryPanel

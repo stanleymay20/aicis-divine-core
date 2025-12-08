@@ -22,6 +22,7 @@ export interface GlobalMapRef {
   flyToCountry: (country: Country) => void;
   resetView: () => void;
   spinGlobe: () => void;
+  getMap: () => maplibregl.Map | null;
 }
 
 interface GlobalMapProps {
@@ -250,6 +251,7 @@ export const GlobalMap = forwardRef<GlobalMapRef, GlobalMapProps>(
       flyToCountry,
       resetView,
       spinGlobe,
+      getMap: () => map.current,
     }));
 
     return (
