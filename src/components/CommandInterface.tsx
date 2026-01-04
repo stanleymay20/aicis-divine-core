@@ -61,11 +61,16 @@ export const CommandInterface = () => {
         if (error) throw error;
         response = `📋 Comprehensive Health & Food Report\n\n${data.report}`;
       } else if (userCommand.includes("governance scan") || userCommand.includes("scan governance")) {
+        // Extract jurisdiction and topics from command or use defaults
+        const jurisdictionMatch = userCommand.match(/(?:for|in)\s+(\w+)/i);
+        const jurisdiction = jurisdictionMatch ? jurisdictionMatch[1].toUpperCase() : 'Global';
+        const topicMatch = userCommand.match(/(?:on|about)\s+([^,]+(?:,\s*[^,]+)*)/i);
+        const topics = topicMatch ? topicMatch[1].split(',').map(t => t.trim()) : ['AI', 'Data Protection', 'Cybersecurity'];
         const { data, error } = await supabase.functions.invoke('governance-scan', {
-          body: { jurisdiction: 'EU', topics: ['AI', 'Data Protection'] }
+          body: { jurisdiction, topics }
         });
         if (error) throw error;
-        response = `🏛️ ${data.message}\n\nUpdated ${data.policies.length} policies`;
+        response = `🏛️ ${data.message}\n\nUpdated ${data.policies.length} policies for ${jurisdiction}`;
       } else if (userCommand.includes("defense posture") || userCommand.includes("refresh defense")) {
         const { data, error } = await supabase.functions.invoke('defense-posture-refresh', {
           body: {}
@@ -73,8 +78,13 @@ export const CommandInterface = () => {
         if (error) throw error;
         response = `🛡️ ${data.message}\n\nRefreshed ${data.postures.length} regional postures`;
       } else if (userCommand.includes("diplomacy scan") || userCommand.includes("scan diplomacy")) {
+        // Extract countries from command or analyze all available countries
+        const forMatch = userCommand.match(/(?:for|in)\s+([^,]+(?:,\s*[^,]+)*)/i);
+        const countries = forMatch 
+          ? forMatch[1].split(',').map(c => c.trim()) 
+          : await supabase.from('country_profiles').select('country_name').limit(10).then(r => r.data?.map(c => c.country_name) || ['Global']);
         const { data, error } = await supabase.functions.invoke('diplomacy-scan', {
-          body: { countries: ['Ghana', 'Nigeria', 'Kenya'] }
+          body: { countries }
         });
         if (error) throw error;
         response = `🌍 ${data.message}\n\nAnalyzed ${data.signals.length} countries`;

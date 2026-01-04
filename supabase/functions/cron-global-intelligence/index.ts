@@ -23,7 +23,14 @@ serve(async (req) => {
       message: "Starting global data collection cycle",
     });
 
-    const results = {
+    const results: {
+      finance: any;
+      security: any;
+      health: any;
+      food: any;
+      governance: any;
+      errors: string[];
+    } = {
       finance: null,
       security: null,
       health: null,

@@ -43,9 +43,10 @@ serve(async (req) => {
         
         if (!r.ok && r.status !== 401) throw new Error(`Status ${r.status}`);
         return { name, ok: true, status: r.status };
-      } catch (e) {
-        failedAPIs.push({ name, error: e.message });
-        return { name, ok: false, error: e.message };
+      } catch (e: unknown) {
+        const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+        failedAPIs.push({ name, error: errorMsg });
+        return { name, ok: false, error: errorMsg };
       }
     }
 

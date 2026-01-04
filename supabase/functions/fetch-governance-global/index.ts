@@ -16,7 +16,7 @@ serve(async (req) => {
     );
 
     const NEWSAPI_KEY = Deno.env.get("NEWSAPI_KEY");
-    const results = { governance: 0, errors: [] };
+    const results: { governance: number; errors: string[] } = { governance: 0, errors: [] };
     const currentYear = new Date().getFullYear();
 
     // Transparency International - CPI
@@ -47,8 +47,8 @@ serve(async (req) => {
           if (!error) results.governance += cpiRecords.length;
         }
       }
-    } catch (e) {
-      results.errors.push(`Transparency.org: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`Transparency.org: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // World Bank - Governance indicators
@@ -81,8 +81,8 @@ serve(async (req) => {
           if (!error) results.governance += govRecords.length;
         }
       }
-    } catch (e) {
-      results.errors.push(`World Bank: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`World Bank: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // GDELT - Global events
@@ -112,8 +112,8 @@ serve(async (req) => {
         const { error } = await supabase.from('governance_global').insert(eventRecords);
         if (!error) results.governance += eventRecords.length;
       }
-    } catch (e) {
-      results.errors.push(`GDELT: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`GDELT: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // CIA Factbook - Country profiles (sample countries)
@@ -146,8 +146,8 @@ serve(async (req) => {
           }
         }
       }
-    } catch (e) {
-      results.errors.push(`CIA Factbook: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`CIA Factbook: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // Log completion

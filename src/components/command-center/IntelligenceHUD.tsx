@@ -37,10 +37,11 @@ export const IntelligenceHUD = () => {
 
   useEffect(() => {
     const fetchSystemStatus = async () => {
-      const [divisionsRes, sourcesRes, alertsRes] = await Promise.all([
+      const [divisionsRes, sourcesRes, alertsRes, usageRes] = await Promise.all([
         supabase.from("ai_divisions").select("*"),
         supabase.from("data_source_log").select("*").order("created_at", { ascending: false }).limit(20),
         supabase.from("alerts").select("*", { count: "exact", head: true }).eq("acknowledged", false),
+        supabase.from("data_source_log").select("records_ingested, latency_ms").gte("created_at", new Date(Date.now() - 60000).toISOString()),
       ]);
 
       const divisions = divisionsRes.data || [];
@@ -69,9 +70,19 @@ export const IntelligenceHUD = () => {
       });
       setDataSources(Array.from(sourceMap.values()).slice(0, 8));
 
-      // Simulated real-time metrics
-      setProcessingLoad(Math.min(100, 45 + Math.random() * 30));
-      setDataIngestionRate(Math.floor(1200 + Math.random() * 800));
+      // Calculate real-time metrics from actual data
+      const recentUsage = usageRes.data || [];
+      const totalRecords = recentUsage.reduce((sum, r) => sum + (r.records_ingested || 0), 0);
+      const avgLatency = recentUsage.length > 0 
+        ? recentUsage.reduce((sum, r) => sum + (r.latency_ms || 0), 0) / recentUsage.length 
+        : 0;
+      
+      // Processing load: based on avg latency (normalize to 0-100 scale, higher latency = higher load)
+      const calculatedLoad = Math.min(100, Math.max(0, avgLatency / 10));
+      setProcessingLoad(calculatedLoad > 0 ? calculatedLoad : avgPerformance * 0.8);
+      
+      // Data ingestion rate: records per minute from recent logs
+      setDataIngestionRate(totalRecords > 0 ? Math.floor(totalRecords / (recentUsage.length || 1) * 60) : Math.floor(avgPerformance * 20));
     };
 
     fetchSystemStatus();
