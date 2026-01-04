@@ -29,11 +29,11 @@ serve(async (req) => {
         status: "healthy",
         response_time_ms: Date.now() - dbStart,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       healthChecks.push({
         component: "database",
         status: "down",
-        error_message: error.message,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
 
@@ -46,11 +46,11 @@ serve(async (req) => {
         status: "healthy",
         response_time_ms: Date.now() - storageStart,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       healthChecks.push({
         component: "storage",
         status: "degraded",
-        error_message: error.message,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
 

@@ -17,7 +17,7 @@ serve(async (req) => {
 
     const ALPHA_KEY = Deno.env.get("ALPHAVANTAGE_API_KEY");
     const EIA_KEY = Deno.env.get("EIA_API_KEY");
-    const results = { finance: 0, errors: [] };
+    const results: { finance: number; errors: string[] } = { finance: 0, errors: [] };
 
     // Alpha Vantage - Global GDP
     try {
@@ -40,8 +40,8 @@ serve(async (req) => {
         const { error } = await supabase.from('finance_data').insert(records);
         if (!error) results.finance += records.length;
       }
-    } catch (e) {
-      results.errors.push(`Alpha Vantage: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`Alpha Vantage: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // Binance - Crypto prices
@@ -63,8 +63,8 @@ serve(async (req) => {
       
       const { error } = await supabase.from('finance_data').insert(cryptoRecords);
       if (!error) results.finance += cryptoRecords.length;
-    } catch (e) {
-      results.errors.push(`Binance: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`Binance: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // EIA - Oil prices
@@ -89,8 +89,8 @@ serve(async (req) => {
         const { error } = await supabase.from('finance_data').insert(latestOil);
         if (!error) results.finance += latestOil.length;
       }
-    } catch (e) {
-      results.errors.push(`EIA: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`EIA: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // World Bank - GDP for multiple countries
@@ -122,8 +122,8 @@ serve(async (req) => {
           }
         }
       }
-    } catch (e) {
-      results.errors.push(`World Bank: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`World Bank: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // Log completion

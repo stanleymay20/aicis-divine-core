@@ -15,7 +15,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const results = { health: 0, errors: [] };
+    const results: { health: number; errors: string[] } = { health: 0, errors: [] };
 
     // WHO - Global health indicators
     try {
@@ -46,8 +46,8 @@ serve(async (req) => {
         const { error } = await supabase.from('health_metrics').insert(healthRecords);
         if (!error) results.health += healthRecords.length;
       }
-    } catch (e) {
-      results.errors.push(`WHO: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`WHO: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // CDC - COVID data (sample)
@@ -80,8 +80,8 @@ serve(async (req) => {
           if (!error) results.health += cdcRecords.length;
         }
       }
-    } catch (e) {
-      results.errors.push(`CDC: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`CDC: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // OWID COVID - Global summary
@@ -121,8 +121,8 @@ serve(async (req) => {
         const { error } = await supabase.from('health_metrics').insert(owidRecords);
         if (!error) results.health += owidRecords.length;
       }
-    } catch (e) {
-      results.errors.push(`OWID: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`OWID: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // Log completion

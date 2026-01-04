@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const InputSchema = z.object({
+  region: z.string().min(1).max(100).optional(),
+  regions: z.array(z.string().min(1).max(100)).min(1).max(20).optional(),
+  country: z.string().min(1).max(100).optional(),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -23,20 +31,71 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { region } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    
+    // Validate input
+    const validation = InputSchema.safeParse(body);
+    if (!validation.success) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid input', 
+        details: validation.error.issues 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { region, regions, country } = validation.data;
     const startTime = Date.now();
 
-    console.log('Refreshing defense posture:', { region, user: user.id });
+    // Build regions list dynamically
+    let regionList: string[] = [];
+    
+    if (regions && regions.length > 0) {
+      regionList = regions;
+    } else if (region) {
+      regionList = [region];
+    } else if (country) {
+      // Use country as a region
+      regionList = [country];
+    } else {
+      // Fetch existing defense posture regions or use comprehensive defaults
+      const { data: existingPostures } = await supabaseClient
+        .from('defense_posture')
+        .select('region')
+        .order('updated_at', { ascending: false })
+        .limit(10);
+      
+      if (existingPostures && existingPostures.length > 0) {
+        regionList = existingPostures.map(p => p.region);
+      } else {
+        // Global coverage regions
+        regionList = ['North America', 'Europe', 'Asia-Pacific', 'Middle East', 'Africa', 'South America', 'Global'];
+      }
+    }
+
+    console.log('Refreshing defense posture:', { regions: regionList, user: user.id });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const regions = region ? [region] : ['EU-West', 'US-East', 'Asia-Pacific', 'Global'];
     const results = [];
 
-    for (const reg of regions) {
+    for (const reg of regionList) {
+      // Fetch existing threat data from security_incidents for context
+      const { data: recentIncidents } = await supabaseClient
+        .from('security_incidents')
+        .select('threat_type, severity, event_type')
+        .or(`country.ilike.%${reg}%,region.ilike.%${reg}%`)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const incidentContext = recentIncidents && recentIncidents.length > 0
+        ? `Recent incidents: ${recentIncidents.map(i => `${i.event_type || i.threat_type} (severity: ${i.severity})`).join(', ')}`
+        : 'No recent incidents recorded.';
+
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -47,22 +106,36 @@ serve(async (req) => {
           model: 'google/gemini-2.5-flash',
           messages: [{
             role: 'system',
-            content: 'You are a defensive cybersecurity analyst. Only provide defensive recommendations (patching, hardening, monitoring). Never suggest offensive actions.'
+            content: 'You are a defensive cybersecurity analyst. Only provide defensive recommendations (patching, hardening, monitoring). Never suggest offensive actions. Return JSON with format: {"threat_level": number 1-10, "advisories": "markdown formatted defensive recommendations"}'
           }, {
             role: 'user',
-            content: `Analyze current cyber threat landscape for ${reg}. Provide defensive recommendations only. Rate threat level 0-10. Format as markdown.`
+            content: `Analyze current cyber threat landscape for ${reg}. ${incidentContext} Provide defensive recommendations only. Return valid JSON.`
           }]
         }),
       });
 
       if (!aiResponse.ok) {
-        throw new Error(`AI API error: ${aiResponse.status}`);
+        console.error(`AI API error for ${reg}: ${aiResponse.status}`);
+        continue;
       }
 
       const aiData = await aiResponse.json();
-      const advisories = aiData.choices[0].message.content;
+      const content = aiData.choices[0].message.content;
 
-      const threatLevel = Math.floor(Math.random() * 5) + 1;
+      // Parse AI response
+      let threatLevel = 5;
+      let advisories = content;
+      
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          threatLevel = parseInt(parsed.threat_level) || 5;
+          advisories = parsed.advisories || content;
+        }
+      } catch (e) {
+        console.error('JSON parse error, using raw content:', e);
+      }
 
       const { data: posture, error: insertError } = await supabaseClient
         .from('defense_posture')
@@ -90,7 +163,7 @@ serve(async (req) => {
       user_id: user.id,
       log_level: 'info',
       result: `Refreshed ${results.length} regional defense postures`,
-      metadata: { regions, execution_time_ms: executionTime }
+      metadata: { regions: regionList, execution_time_ms: executionTime }
     });
 
     return new Response(

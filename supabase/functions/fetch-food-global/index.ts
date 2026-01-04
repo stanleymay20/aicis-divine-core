@@ -15,7 +15,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const results = { food: 0, errors: [] };
+    const results: { food: number; errors: string[] } = { food: 0, errors: [] };
 
     // WFP HungerMap - Food insecurity
     try {
@@ -45,8 +45,8 @@ serve(async (req) => {
           if (!error) results.food++;
         }
       }
-    } catch (e) {
-      results.errors.push(`WFP: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`WFP: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // NASA POWER - Agricultural weather data
@@ -68,10 +68,10 @@ serve(async (req) => {
         const nasaData = await nasaResponse.json();
         
         if (nasaData.properties?.parameter) {
-          const temps = Object.values(nasaData.properties.parameter.T2M);
-          const precip = Object.values(nasaData.properties.parameter.PRECTOT);
-          const avgTemp = temps.reduce((a: any, b: any) => a + b, 0) / temps.length;
-          const totalPrecip = precip.reduce((a: any, b: any) => a + b, 0);
+          const temps = Object.values(nasaData.properties.parameter.T2M) as number[];
+          const precip = Object.values(nasaData.properties.parameter.PRECTOT) as number[];
+          const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
+          const totalPrecip = precip.reduce((a, b) => a + b, 0);
           
           const { error } = await supabase.from('food_data').insert({
             country: loc.name,
@@ -92,8 +92,8 @@ serve(async (req) => {
           if (!error) results.food++;
         }
       }
-    } catch (e) {
-      results.errors.push(`NASA POWER: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`NASA POWER: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // FAO - Crop yield (simulated - FAO API requires authentication)
@@ -117,8 +117,8 @@ serve(async (req) => {
       
       const { error } = await supabase.from('food_data').insert(faoRecords);
       if (!error) results.food += faoRecords.length;
-    } catch (e) {
-      results.errors.push(`FAO: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`FAO: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // Log completion

@@ -18,7 +18,7 @@ serve(async (req) => {
     const ABUSEIPDB_KEY = Deno.env.get("ABUSEIPDB_API_KEY");
     const NVD_KEY = Deno.env.get("NVD_API_KEY");
     const VIRUSTOTAL_KEY = Deno.env.get("VIRUSTOTAL_API_KEY");
-    const results = { security: 0, errors: [] };
+    const results: { security: number; errors: string[] } = { security: 0, errors: [] };
 
     // NVD - Recent CVEs
     try {
@@ -53,8 +53,8 @@ serve(async (req) => {
         const { error } = await supabase.from('security_events').insert(cveRecords);
         if (!error) results.security += cveRecords.length;
       }
-    } catch (e) {
-      results.errors.push(`NVD: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`NVD: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // AbuseIPDB - Check known bad IPs
@@ -87,8 +87,8 @@ serve(async (req) => {
           if (!error) results.security++;
         }
       }
-    } catch (e) {
-      results.errors.push(`AbuseIPDB: ${e.message}`);
+    } catch (e: unknown) {
+      results.errors.push(`AbuseIPDB: ${e instanceof Error ? e.message : 'Unknown error'}`);
     }
 
     // Log completion
