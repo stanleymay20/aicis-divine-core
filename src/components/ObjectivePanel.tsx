@@ -6,10 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Target, Play, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { type Objective, type BadgeVariant, getErrorMessage } from "@/types/aicis";
+
+const statusVariants: Record<string, BadgeVariant> = {
+  pending: "outline",
+  executing: "default",
+  completed: "default",
+  failed: "destructive",
+};
 
 export const ObjectivePanel = () => {
   const { toast } = useToast();
-  const [objectives, setObjectives] = useState<any[]>([]);
+  const [objectives, setObjectives] = useState<Objective[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -23,15 +31,15 @@ export const ObjectivePanel = () => {
         .limit(20);
 
       if (error) throw error;
-      setObjectives(data || []);
-    } catch (e: any) {
-      console.error("Load objectives error:", e);
+      setObjectives((data || []) as Objective[]);
+    } catch (e) {
+      console.error("Load objectives error:", getErrorMessage(e));
     }
   };
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 5000); // Refresh every 5 seconds
+    const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -53,10 +61,10 @@ export const ObjectivePanel = () => {
 
       setText("");
       load();
-    } catch (e: any) {
+    } catch (e) {
       toast({
         title: "Error Processing Objective",
-        description: e.message,
+        description: getErrorMessage(e),
         variant: "destructive",
       });
     } finally {
@@ -79,10 +87,10 @@ export const ObjectivePanel = () => {
       });
 
       load();
-    } catch (e: any) {
+    } catch (e) {
       toast({
         title: "Execution Error",
-        description: e.message,
+        description: getErrorMessage(e),
         variant: "destructive",
       });
     } finally {
@@ -93,24 +101,19 @@ export const ObjectivePanel = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-success" />;
       case "failed":
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-destructive" />;
       case "executing":
-        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <RefreshCw className="h-4 w-4 text-primary animate-spin" />;
       default:
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-warning" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
-      pending: "outline",
-      executing: "default",
-      completed: "default",
-      failed: "destructive",
-    };
-    return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
+    const variant = statusVariants[status] || "outline";
+    return <Badge variant={variant}>{status}</Badge>;
   };
 
   return (

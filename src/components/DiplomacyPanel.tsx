@@ -7,6 +7,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Globe, RefreshCw } from "lucide-react";
+import { getErrorMessage } from "@/types/aicis";
+
+interface DiploSignal {
+  id: string;
+  country: string;
+  sentiment: number;
+  risk_index: number;
+  summary_md: string | null;
+  updated_at: string;
+}
 
 export const DiplomacyPanel = () => {
   const { toast } = useToast();
@@ -21,7 +31,7 @@ export const DiplomacyPanel = () => {
         .order('updated_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as DiploSignal[];
     },
   });
 
@@ -40,10 +50,10 @@ export const DiplomacyPanel = () => {
       });
 
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Scan Failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {

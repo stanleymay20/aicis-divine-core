@@ -9,6 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Store, TrendingUp, Users, BarChart3, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  type GovernanceAsset, 
+  type GovernancePartner, 
+  type GovernanceTrade,
+  type GovernanceAssetsResponse,
+  getErrorMessage 
+} from "@/types/aicis";
 
 export const GovernanceMarketPanel = () => {
   const { toast } = useToast();
@@ -20,24 +27,17 @@ export const GovernanceMarketPanel = () => {
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("gov-get-assets");
       if (error) throw error;
-      return data;
+      return data as GovernanceAssetsResponse;
     },
   });
 
   const { data: tradesData, refetch: refetchTrades } = useQuery({
     queryKey: ["governance-trades"],
-    queryFn: async () => {
+    queryFn: async (): Promise<GovernanceTrade[]> => {
+      // Fetch trades via the gov-get-assets function which includes recent trades
       const { data, error } = await supabase.functions.invoke("gov-get-assets");
-      if (error) throw error;
-      
-      // Get trades from the governance_trades table via RPC
-      const { data: trades } = await supabase
-        .from("governance_trades" as any)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      
-      return trades || [];
+      if (error) return [];
+      return (data?.trades || []) as GovernanceTrade[];
     },
   });
 
@@ -64,10 +64,10 @@ export const GovernanceMarketPanel = () => {
       
       setTradeAmount("");
       refetchTrades();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Trade Failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     }
@@ -84,10 +84,10 @@ export const GovernanceMarketPanel = () => {
       });
       
       refetchAssets();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Sync Failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     }

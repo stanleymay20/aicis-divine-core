@@ -5,16 +5,33 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { Radio, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { 
+  IntelEvent, 
+  SeverityLevel, 
+  DivisionKey, 
+  BadgeVariant,
+  SEVERITY_BADGE_VARIANTS,
+  DIVISION_COLORS 
+} from "@/types/aicis";
 
-interface IntelEvent {
-  id: string;
-  division: string;
-  event_type: string;
-  severity: string;
-  title: string;
-  description: string | null;
-  published_at: string;
-}
+const severityVariants: Record<SeverityLevel, BadgeVariant> = {
+  info: "outline",
+  warning: "secondary",
+  critical: "destructive",
+  emergency: "destructive",
+};
+
+const divisionColors: Record<DivisionKey, string> = {
+  finance: "text-success",
+  energy: "text-warning",
+  health: "text-destructive",
+  food: "text-warning",
+  governance: "text-primary",
+  defense: "text-secondary",
+  diplomacy: "text-accent-foreground",
+  crisis: "text-destructive",
+  system: "text-muted-foreground",
+};
 
 export const EventBusMonitor = () => {
   const { toast } = useToast();
@@ -22,7 +39,6 @@ export const EventBusMonitor = () => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Load initial events
     const loadEvents = async () => {
       const { data } = await supabase
         .from('intel_events')
@@ -31,13 +47,12 @@ export const EventBusMonitor = () => {
         .limit(20);
       
       if (data) {
-        setEvents(data);
+        setEvents(data as IntelEvent[]);
       }
     };
 
     loadEvents();
 
-    // Subscribe to realtime events
     const channel = supabase
       .channel('intel-events-realtime')
       .on(
@@ -48,12 +63,10 @@ export const EventBusMonitor = () => {
           table: 'intel_events'
         },
         (payload) => {
-          console.log('New intel event:', payload);
           const newEvent = payload.new as IntelEvent;
           
           setEvents((prev) => [newEvent, ...prev].slice(0, 20));
           
-          // Show toast for critical/emergency events
           if (newEvent.severity === 'critical' || newEvent.severity === 'emergency') {
             toast({
               title: `${newEvent.severity.toUpperCase()}: ${newEvent.division}`,
@@ -64,7 +77,6 @@ export const EventBusMonitor = () => {
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
       });
 
@@ -74,28 +86,12 @@ export const EventBusMonitor = () => {
   }, [toast]);
 
   const getSeverityBadge = (severity: string) => {
-    const variants: Record<string, any> = {
-      info: "outline",
-      warning: "secondary",
-      critical: "destructive",
-      emergency: "destructive",
-    };
-    return <Badge variant={variants[severity] || "outline"}>{severity}</Badge>;
+    const variant = severityVariants[severity as SeverityLevel] || "outline";
+    return <Badge variant={variant}>{severity}</Badge>;
   };
 
   const getDivisionColor = (division: string) => {
-    const colors: Record<string, string> = {
-      finance: "text-green-500",
-      energy: "text-yellow-500",
-      health: "text-red-500",
-      food: "text-orange-500",
-      governance: "text-blue-500",
-      defense: "text-purple-500",
-      diplomacy: "text-cyan-500",
-      crisis: "text-pink-500",
-      system: "text-gray-500",
-    };
-    return colors[division] || "text-gray-500";
+    return divisionColors[division as DivisionKey] || "text-muted-foreground";
   };
 
   return (
