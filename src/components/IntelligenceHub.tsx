@@ -7,6 +7,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Brain, TrendingUp, AlertTriangle, Target, RefreshCw } from "lucide-react";
+import { 
+  type IntelligenceIndex, 
+  type RiskPrediction, 
+  type AnomalyDetection,
+  type BadgeVariant,
+  type RiskLevel,
+  getErrorMessage 
+} from "@/types/aicis";
+
+const indexTypeVariants: Record<string, BadgeVariant> = {
+  global_status: "default",
+  risk_assessment: "destructive",
+  opportunity: "default",
+  threat: "destructive",
+  anomaly: "secondary",
+};
+
+const riskVariants: Record<RiskLevel, BadgeVariant> = {
+  low: "outline",
+  medium: "secondary",
+  high: "destructive",
+  critical: "destructive",
+};
 
 export const IntelligenceHub = () => {
   const { toast } = useToast();
@@ -23,7 +46,7 @@ export const IntelligenceHub = () => {
         .limit(10);
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as IntelligenceIndex[];
     },
   });
 
@@ -37,7 +60,7 @@ export const IntelligenceHub = () => {
         .limit(5);
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as RiskPrediction[];
     },
   });
 
@@ -52,7 +75,7 @@ export const IntelligenceHub = () => {
         .order('detected_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as AnomalyDetection[];
     },
   });
 
@@ -71,10 +94,10 @@ export const IntelligenceHub = () => {
       });
 
       refetchIntelligence();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Analysis Failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -96,10 +119,10 @@ export const IntelligenceHub = () => {
       });
 
       refetchRisks();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Prediction Failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     }
@@ -119,34 +142,23 @@ export const IntelligenceHub = () => {
       });
 
       refetchAnomalies();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Detection Failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     }
   };
 
   const getIndexTypeBadge = (type: string) => {
-    const variants: Record<string, any> = {
-      global_status: "default",
-      risk_assessment: "destructive",
-      opportunity: "default",
-      threat: "destructive",
-      anomaly: "secondary",
-    };
-    return <Badge variant={variants[type] || "outline"}>{type.replace('_', ' ')}</Badge>;
+    const variant = indexTypeVariants[type] || "outline";
+    return <Badge variant={variant}>{type.replace('_', ' ')}</Badge>;
   };
 
   const getRiskBadge = (level: string) => {
-    const variants: Record<string, any> = {
-      low: "outline",
-      medium: "secondary",
-      high: "destructive",
-      critical: "destructive",
-    };
-    return <Badge variant={variants[level] || "outline"}>{level}</Badge>;
+    const variant = riskVariants[level as RiskLevel] || "outline";
+    return <Badge variant={variant}>{level}</Badge>;
   };
 
   return (

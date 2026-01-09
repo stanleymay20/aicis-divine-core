@@ -7,15 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Activity, AlertTriangle, CheckCircle, RefreshCw, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface DiagnosticResult {
-  status: string;
-  missing_env: string[];
-  failed_apis: any[];
-  failed_tables: string[];
-  latency_ms: number;
-  timestamp?: string;
-}
+import { type DiagnosticResult, type FailedApi, getErrorMessage } from '@/types/aicis';
 
 export default function SystemHealth() {
   const { session, loading: authLoading } = useAuth();
@@ -45,13 +37,28 @@ export default function SystemHealth() {
         .maybeSingle();
       
       if (data) {
+        const failedApis: FailedApi[] = Array.isArray(data.failed_apis) 
+          ? (data.failed_apis as unknown[]).map((api) => {
+              const obj = api as Record<string, unknown>;
+              return {
+                name: String(obj.name || 'Unknown'),
+                error: String(obj.error || 'Unknown error'),
+                status: typeof obj.status === 'number' ? obj.status : undefined,
+              };
+            })
+          : [];
+        
         setDiagnostics({
-          ...data,
-          failed_apis: Array.isArray(data.failed_apis) ? data.failed_apis : [],
+          status: data.status as DiagnosticResult['status'],
+          missing_env: data.missing_env || [],
+          failed_apis: failedApis,
+          failed_tables: data.failed_tables || [],
+          latency_ms: data.latency_ms || 0,
+          timestamp: data.created_at,
         });
       }
     } catch (error) {
-      console.error('Failed to load diagnostics:', error);
+      // Silent fail for initial load
     }
   };
 

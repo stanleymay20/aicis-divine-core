@@ -1,10 +1,33 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Activity, Cpu, Database, Globe, TrendingUp } from "lucide-react";
+import { Activity, Cpu, Database, Globe, TrendingUp, LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface StatusItem {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  status: 'optimal' | 'active' | 'excellent' | 'degraded';
+  detail: string;
+}
+
+interface DivisionData {
+  status: string;
+  uptime_percentage: number;
+}
+
+interface CrisisData {
+  id: string;
+  region: string;
+}
+
+interface RevenueData {
+  amount_usd: number;
+  timestamp?: string;
+}
+
 export const SystemStatus = () => {
-  const [statusItems, setStatusItems] = useState<any[]>([]);
+  const [statusItems, setStatusItems] = useState<StatusItem[]>([]);
 
   useEffect(() => {
     const loadStatus = async () => {
@@ -28,14 +51,19 @@ export const SystemStatus = () => {
           .gte('timestamp', new Date(Date.now() - 60 * 24 * 3600e3).toISOString())
           .lt('timestamp', new Date(Date.now() - 30 * 24 * 3600e3).toISOString());
 
-        const activeCount = (divisions || []).filter((d: any) => d.status === 'operational' || d.status === 'active').length;
-        const totalCount = (divisions || []).length;
-        const avgUptime = (divisions || []).reduce((a: number, b: any) => a + Number(b.uptime_percentage || 0), 0) / Math.max(1, totalCount);
+        const typedDivisions = (divisions || []) as DivisionData[];
+        const typedCrises = (crises || []) as CrisisData[];
+        const typedRevenue = (revenue || []) as RevenueData[];
+        const typedOldRevenue = (revenue30DaysAgo || []) as RevenueData[];
+
+        const activeCount = typedDivisions.filter(d => d.status === 'operational' || d.status === 'active').length;
+        const totalCount = typedDivisions.length;
+        const avgUptime = typedDivisions.reduce((a, b) => a + Number(b.uptime_percentage || 0), 0) / Math.max(1, totalCount);
         
-        const uniqueRegions = new Set((crises || []).map((c: any) => c.region));
+        const uniqueRegions = new Set(typedCrises.map(c => c.region));
         
-        const recentRev = (revenue || []).reduce((a: number, b: any) => a + Number(b.amount_usd || 0), 0);
-        const oldRev = (revenue30DaysAgo || []).reduce((a: number, b: any) => a + Number(b.amount_usd || 0), 0);
+        const recentRev = typedRevenue.reduce((a, b) => a + Number(b.amount_usd || 0), 0);
+        const oldRev = typedOldRevenue.reduce((a, b) => a + Number(b.amount_usd || 0), 0);
         const revGrowth = oldRev > 0 ? ((recentRev - oldRev) / oldRev * 100) : 0;
 
         setStatusItems([
@@ -75,8 +103,8 @@ export const SystemStatus = () => {
             detail: "Last 30 days"
           },
         ]);
-      } catch (e) {
-        console.error('Error loading system status:', e);
+      } catch {
+        // Silent fail - status will show empty
       }
     };
 
