@@ -400,3 +400,12 @@ verify_jwt = false
 
 [functions.diagnose-auth]
 verify_jwt = false
+
+[functions.seed-live-data]
+verify_jwt = false
+
+[functions.cron-seed-live-data]
+verify_jwt = false
+
+[functions.aicis-intelligence]
+verify_jwt = false
