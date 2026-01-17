@@ -352,12 +352,27 @@ export const CommandInterface = () => {
         if (error) throw error;
         response = data.message || `✅ Executed ${data.count ?? 0} tasks`;
       } else {
-        // Default to general JARVIS command
-        const { data, error } = await supabase.functions.invoke('jarvis-command', {
-          body: { command: originalCommand }
+        // Default to AI-powered intelligent query
+        const { data, error } = await supabase.functions.invoke('aicis-intelligence', {
+          body: { 
+            query: originalCommand,
+            conversationHistory: messages.slice(-10).map(m => ({
+              role: m.type === 'user' ? 'user' : 'assistant',
+              content: m.content
+            }))
+          }
         });
         if (error) throw error;
-        response = data.response;
+        
+        if (data.error) {
+          response = `⚠️ ${data.error}\n\n${data.response || ''}`;
+        } else {
+          const meta = data.metadata;
+          const sourceInfo = meta?.data_sources 
+            ? `\n\n📊 Analysis based on: ${meta.data_sources.alerts || 0} alerts, ${meta.data_sources.crises || 0} crises, ${meta.data_sources.incidents || 0} incidents, ${meta.data_sources.intel_events || 0} intel events`
+            : '';
+          response = `${data.response}${sourceInfo}`;
+        }
       }
 
       const aiResponse = {
