@@ -21,6 +21,7 @@ export const CommandCenter = () => {
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [mainMap, setMainMap] = useState<maplibregl.Map | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string;
     iso3: string;
@@ -36,6 +37,47 @@ export const CommandCenter = () => {
     }, 500);
     return () => clearInterval(interval);
   }, [mainMap]);
+
+  // Check if data exists and seed if necessary
+  useEffect(() => {
+    const checkAndSeedData = async () => {
+      try {
+        // Check if we have any real-time data
+        const [alertsResult, crisesResult, intelResult] = await Promise.all([
+          supabase.from("alerts").select("*", { count: "exact", head: true }),
+          supabase.from("crisis_events").select("*", { count: "exact", head: true }),
+          supabase.from("intel_events").select("*", { count: "exact", head: true }),
+        ]);
+
+        const totalRecords = (alertsResult.count || 0) + (crisesResult.count || 0) + (intelResult.count || 0);
+
+        // If no data exists, trigger live data seeding
+        if (totalRecords === 0) {
+          setIsLoadingData(true);
+          toast.info("Loading live global data...", { duration: 5000 });
+          
+          const { data, error } = await supabase.functions.invoke("seed-live-data");
+          
+          if (error) {
+            console.error("Error seeding live data:", error);
+            toast.error("Failed to load live data. Some features may be limited.");
+          } else {
+            const results = data?.results || {};
+            toast.success(
+              `Live data loaded: ${results.crises || 0} crises, ${results.alerts || 0} alerts, ${results.intel_events || 0} intel events`,
+              { duration: 5000 }
+            );
+          }
+          setIsLoadingData(false);
+        }
+      } catch (error) {
+        console.error("Error checking data:", error);
+        setIsLoadingData(false);
+      }
+    };
+
+    checkAndSeedData();
+  }, []);
 
   // Fetch unread alerts count
   useEffect(() => {
@@ -63,7 +105,6 @@ export const CommandCenter = () => {
       supabase.removeChannel(channel);
     };
   }, []);
-
   const handleCountrySelect = useCallback((country: Country) => {
     const coords = getCountryCoordinates(country.iso2);
     mapRef.current?.flyToCountry(country);
