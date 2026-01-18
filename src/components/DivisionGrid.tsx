@@ -70,7 +70,7 @@ export const DivisionGrid = () => {
           'Energy & Infrastructure': Zap,
           'Governance & Policy': Globe,
           'Cybersecurity Intelligence': Database,
-          'J.A.R.V.I.S. Interface': Brain,
+          'AICIS Interface': Brain,
         };
 
         // Get historical data for trend calculations

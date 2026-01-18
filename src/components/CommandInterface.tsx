@@ -11,7 +11,7 @@ export const CommandInterface = () => {
   const [messages, setMessages] = useState([
     {
       type: "system",
-      content: "J.A.R.V.I.S. online. All systems operational. How may I assist you today?",
+      content: "AICIS Core online. All systems operational. How may I assist you today?",
       timestamp: new Date().toLocaleTimeString(),
     },
   ]);
@@ -412,7 +412,7 @@ export const CommandInterface = () => {
           <Terminal className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-orbitron font-bold text-primary">J.A.R.V.I.S. Command Interface</h2>
+          <h2 className="text-xl font-orbitron font-bold text-primary">AICIS Command Interface</h2>
           <p className="text-sm text-muted-foreground">Natural language system control and oversight</p>
         </div>
       </div>
