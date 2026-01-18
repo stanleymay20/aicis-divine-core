@@ -3,6 +3,7 @@ import maplibregl from "maplibre-gl";
 import { Header } from "./Header";
 import { CommandBar } from "./CommandBar";
 import { AlertsPanel } from "./AlertsPanel";
+import { AlertDetailSheet } from "./AlertDetailSheet";
 import { AnalyticsOverlay } from "./AnalyticsOverlay";
 import { GlobalMap, GlobalMapRef } from "./GlobalMap";
 import { CountryPanel } from "./CountryPanel";
@@ -10,18 +11,36 @@ import { IntelligenceHUD } from "./IntelligenceHUD";
 import { DataStreamPanel } from "./DataStreamPanel";
 import { GlobalStatsBar } from "./GlobalStatsBar";
 import { MiniMap } from "./MiniMap";
+import { MobileNav } from "./MobileNav";
+import { LocationSearch } from "./LocationSearch";
 import { KeyboardShortcutsModal, useKeyboardShortcuts } from "./KeyboardShortcuts";
-import { type Country, getCountryCoordinates } from "@/lib/geo/all-countries";
+import { type Country, getCountryCoordinates, searchCountries } from "@/lib/geo/all-countries";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+interface Alert {
+  id: string;
+  title: string;
+  message: string;
+  severity: "critical" | "high" | "medium" | "low";
+  division: string;
+  country?: string;
+  created_at: string;
+  acknowledged: boolean;
+}
 
 export const CommandCenter = () => {
+  const isMobile = useIsMobile();
   const mapRef = useRef<GlobalMapRef>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [dataStreamOpen, setDataStreamOpen] = useState(!isMobile);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [mainMap, setMainMap] = useState<maplibregl.Map | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [systemStatus, setSystemStatus] = useState<"operational" | "degraded" | "offline">("operational");
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string;
     iso3: string;
@@ -38,11 +57,32 @@ export const CommandCenter = () => {
     return () => clearInterval(interval);
   }, [mainMap]);
 
+  // Check system status
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const { data, error } = await supabase.from("ai_divisions").select("status").limit(10);
+        if (error) {
+          setSystemStatus("degraded");
+        } else {
+          const activeCount = data?.filter(d => 
+            d.status === "operational" || d.status === "active" || d.status === "optimal"
+          ).length || 0;
+          setSystemStatus(activeCount >= 6 ? "operational" : activeCount >= 3 ? "degraded" : "offline");
+        }
+      } catch {
+        setSystemStatus("offline");
+      }
+    };
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Check if data exists and seed if necessary
   useEffect(() => {
     const checkAndSeedData = async () => {
       try {
-        // Check if we have any real-time data
         const [alertsResult, crisesResult, intelResult] = await Promise.all([
           supabase.from("alerts").select("*", { count: "exact", head: true }),
           supabase.from("crisis_events").select("*", { count: "exact", head: true }),
@@ -51,7 +91,6 @@ export const CommandCenter = () => {
 
         const totalRecords = (alertsResult.count || 0) + (crisesResult.count || 0) + (intelResult.count || 0);
 
-        // If no data exists, trigger live data seeding
         if (totalRecords === 0) {
           setIsLoadingData(true);
           toast.info("Loading live global data...", { duration: 5000 });
@@ -91,7 +130,6 @@ export const CommandCenter = () => {
 
     fetchUnreadCount();
 
-    // Real-time subscription
     const channel = supabase
       .channel("alerts-count")
       .on(
@@ -105,6 +143,7 @@ export const CommandCenter = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
   const handleCountrySelect = useCallback((country: Country) => {
     const coords = getCountryCoordinates(country.iso2);
     mapRef.current?.flyToCountry(country);
@@ -135,9 +174,28 @@ export const CommandCenter = () => {
     }
   }, []);
 
-  const handleAlertClick = useCallback((alert: { country?: string }) => {
-    if (alert.country) {
-      toast.info(`Alert from ${alert.country}`);
+  const handleAlertClick = useCallback((alert: Alert) => {
+    setSelectedAlert(alert);
+    setAlertsOpen(false);
+  }, []);
+
+  const handleNavigateToLocation = useCallback((country: string) => {
+    const countries = searchCountries(country);
+    if (countries.length > 0) {
+      handleCountrySelect(countries[0]);
+    }
+    setSelectedAlert(null);
+  }, [handleCountrySelect]);
+
+  const handleLocationSelect = useCallback((location: { lat: number; lng: number; name: string; zoom?: number }) => {
+    const map = mapRef.current?.getMap();
+    if (map) {
+      map.flyTo({
+        center: [location.lng, location.lat],
+        zoom: location.zoom || 12,
+        duration: 2000,
+      });
+      toast.success(`Navigating to ${location.name.split(",")[0]}`);
     }
   }, []);
 
@@ -149,6 +207,7 @@ export const CommandCenter = () => {
       setAlertsOpen(false);
       setAnalyticsOpen(false);
       setSelectedCountry(null);
+      setSelectedAlert(null);
     },
     g: () => mapRef.current?.spinGlobe(),
     r: () => mapRef.current?.resetView(),
@@ -171,26 +230,46 @@ export const CommandCenter = () => {
         unreadAlerts={unreadAlerts}
       />
 
+      {/* Mobile Navigation */}
+      {isMobile && (
+        <div className="fixed top-2 left-2 z-50">
+          <MobileNav
+            onToggleAlerts={() => setAlertsOpen(!alertsOpen)}
+            onToggleAnalytics={() => setAnalyticsOpen(!analyticsOpen)}
+            onToggleData={() => setDataStreamOpen(!dataStreamOpen)}
+            onToggleSatellite={() => {}}
+            unreadAlerts={unreadAlerts}
+            systemStatus={systemStatus}
+          />
+        </div>
+      )}
+
       {/* Main map area */}
-      <div className="pt-[88px] pb-24 h-full">
+      <div className="pt-[88px] pb-20 md:pb-24 h-full">
         <GlobalMap
           ref={mapRef}
           onCountrySelect={handleMapCountrySelect}
           className="w-full h-full"
+          isMobile={isMobile}
         />
       </div>
 
-      {/* Global stats bar - centered top */}
-      <GlobalStatsBar />
+      {/* Global stats bar - hidden on mobile */}
+      {!isMobile && <GlobalStatsBar />}
 
-      {/* Intelligence HUD - top right */}
-      <IntelligenceHUD />
+      {/* Intelligence HUD - hidden on mobile */}
+      {!isMobile && <IntelligenceHUD />}
 
-      {/* Data stream panel - bottom right */}
-      <DataStreamPanel />
+      {/* Data stream panel - collapsible on mobile */}
+      {(!isMobile || dataStreamOpen) && <DataStreamPanel />}
 
-      {/* MiniMap - bottom left */}
-      <MiniMap mainMap={mainMap} />
+      {/* Location search button */}
+      <div className="fixed bottom-24 md:bottom-28 left-4 z-20">
+        <LocationSearch onLocationSelect={handleLocationSelect} />
+      </div>
+
+      {/* MiniMap - hidden on mobile */}
+      {!isMobile && <MiniMap mainMap={mainMap} />}
 
       {/* Country detail panel */}
       <CountryPanel
@@ -203,6 +282,13 @@ export const CommandCenter = () => {
         isOpen={alertsOpen}
         onClose={() => setAlertsOpen(false)}
         onAlertClick={handleAlertClick}
+      />
+
+      {/* Alert detail sheet for probing */}
+      <AlertDetailSheet
+        alert={selectedAlert}
+        onClose={() => setSelectedAlert(null)}
+        onNavigateToLocation={handleNavigateToLocation}
       />
 
       <AnalyticsOverlay
