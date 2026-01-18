@@ -68,7 +68,7 @@ export default function DaoPanel() {
         
         <TabsContent value="create">
           <div className="text-sm text-muted-foreground p-4 text-center">
-            Use J.A.R.V.I.S. command: "create proposal [title]" to submit proposals
+            Use AICIS command: "create proposal [title]" to submit proposals
           </div>
         </TabsContent>
       </Tabs>

@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are J.A.R.V.I.S., an executive AI generating comprehensive daily reports on global health and food security. Format in clean markdown with clear sections and actionable insights.'
+            content: 'You are AICIS Core, an executive AI generating comprehensive daily reports on global health and food security. Format in clean markdown with clear sections and actionable insights.'
           },
           {
             role: 'user',

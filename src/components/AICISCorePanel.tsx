@@ -157,7 +157,7 @@ export function AICISCorePanel() {
       }
 
       // Call edge function with context
-      const { data, error } = await supabase.functions.invoke('jarvis-query', {
+      const { data, error } = await supabase.functions.invoke('aicis-query', {
         body: { 
           query: input,
           context: context.map(m => ({ role: m.role, content: m.content })),
