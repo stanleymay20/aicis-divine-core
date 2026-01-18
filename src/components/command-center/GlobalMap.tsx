@@ -28,10 +28,11 @@ export interface GlobalMapRef {
 interface GlobalMapProps {
   onCountrySelect?: (country: CountryData) => void;
   className?: string;
+  isMobile?: boolean;
 }
 
 export const GlobalMap = forwardRef<GlobalMapRef, GlobalMapProps>(
-  ({ onCountrySelect, className }, ref) => {
+  ({ onCountrySelect, className, isMobile }, ref) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<maplibregl.Map | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
@@ -270,8 +271,11 @@ export const GlobalMap = forwardRef<GlobalMapRef, GlobalMapProps>(
           </div>
         )}
 
-        {/* Map controls */}
-        <div className="absolute bottom-28 left-4 flex flex-col gap-1 z-20">
+        {/* Map controls - repositioned for mobile */}
+        <div className={cn(
+          "absolute flex flex-col gap-1 z-20",
+          isMobile ? "bottom-24 right-2" : "bottom-28 left-4"
+        )}>
           <Button
             variant="secondary"
             size="icon"
@@ -296,58 +300,66 @@ export const GlobalMap = forwardRef<GlobalMapRef, GlobalMapProps>(
           >
             <RotateCcw className="h-4 w-4" />
           </Button>
-          <div className="w-full h-px bg-border my-1" />
-          <Button
-            variant={showSatellite ? "default" : "secondary"}
-            size="icon"
-            className="h-9 w-9 bg-card/90 backdrop-blur-sm border border-primary/20"
-            onClick={() => setShowSatellite(!showSatellite)}
-          >
-            <Satellite className="h-4 w-4" />
-          </Button>
+          {!isMobile && (
+            <>
+              <div className="w-full h-px bg-border my-1" />
+              <Button
+                variant={showSatellite ? "default" : "secondary"}
+                size="icon"
+                className="h-9 w-9 bg-card/90 backdrop-blur-sm border border-primary/20"
+                onClick={() => setShowSatellite(!showSatellite)}
+              >
+                <Satellite className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
 
-        {/* Quick actions */}
-        <div className="absolute top-20 left-4 z-20 bg-card/90 backdrop-blur-sm rounded-lg border border-primary/20 p-2">
-          <QuickActions
-            activeLayer={activeLayer}
-            onAction={(action) => {
-              if (action.startsWith("layer:")) {
-                setActiveLayer(action.replace("layer:", ""));
-              } else if (action === "global-scan") {
-                spinGlobe();
-              }
-            }}
-          />
-        </div>
-
-        {/* Legend */}
-        <div className="absolute bottom-28 right-4 p-3 bg-card/90 backdrop-blur-sm rounded-lg border border-primary/20 z-20">
-          <div className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-            <Layers className="h-3 w-3 text-primary" />
-            Data Layers
+        {/* Quick actions - hidden on mobile */}
+        {!isMobile && (
+          <div className="absolute top-20 left-4 z-20 bg-card/90 backdrop-blur-sm rounded-lg border border-primary/20 p-2">
+            <QuickActions
+              activeLayer={activeLayer}
+              onAction={(action) => {
+                if (action.startsWith("layer:")) {
+                  setActiveLayer(action.replace("layer:", ""));
+                } else if (action === "global-scan") {
+                  spinGlobe();
+                }
+              }}
+            />
           </div>
-          <div className="space-y-1.5">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Risk Level</div>
-            {[
-              { color: "hsl(142 76% 45%)", label: "Low (0-30)" },
-              { color: "hsl(45 93% 58%)", label: "Medium (31-50)" },
-              { color: "hsl(38 92% 50%)", label: "High (51-70)" },
-              { color: "hsl(0 84% 60%)", label: "Critical (71+)" },
-            ].map(({ color, label }) => (
-              <div key={label} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ background: color }} />
-                <span className="text-[10px] text-muted-foreground">{label}</span>
+        )}
+
+        {/* Legend - hidden on mobile */}
+        {!isMobile && (
+          <div className="absolute bottom-28 right-4 p-3 bg-card/90 backdrop-blur-sm rounded-lg border border-primary/20 z-20">
+            <div className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+              <Layers className="h-3 w-3 text-primary" />
+              Data Layers
+            </div>
+            <div className="space-y-1.5">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Risk Level</div>
+              {[
+                { color: "hsl(142 76% 45%)", label: "Low (0-30)" },
+                { color: "hsl(45 93% 58%)", label: "Medium (31-50)" },
+                { color: "hsl(38 92% 50%)", label: "High (51-70)" },
+                { color: "hsl(0 84% 60%)", label: "Critical (71+)" },
+              ].map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ background: color }} />
+                  <span className="text-[10px] text-muted-foreground">{label}</span>
+                </div>
+              ))}
+              <div className="w-full h-px bg-border my-2" />
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Incidents</div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
+                <span className="text-[10px] text-muted-foreground">Live ({incidentCount})</span>
               </div>
-            ))}
-            <div className="w-full h-px bg-border my-2" />
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Incidents</div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
-              <span className="text-[10px] text-muted-foreground">Live ({incidentCount})</span>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Selected country popup */}
         {selectedCountry && !isSpinning && (
@@ -383,18 +395,20 @@ export const GlobalMap = forwardRef<GlobalMapRef, GlobalMapProps>(
           </div>
         )}
 
-        {/* Stats badge - moved to avoid overlap with quick actions */}
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20">
-          <Badge variant="secondary" className="bg-card/90 backdrop-blur-sm border-primary/20 py-1.5 px-3">
-            <Globe className="h-3 w-3 mr-1.5" />
-            <span className="font-orbitron">{ALL_COUNTRIES.length}</span>
-            <span className="text-muted-foreground mx-1">countries</span>
-            <span className="w-px h-3 bg-border mx-2" />
-            <Crosshair className="h-3 w-3 mr-1.5 text-success" />
-            <span className="font-orbitron">{countryData.length}</span>
-            <span className="text-muted-foreground ml-1">monitored</span>
-          </Badge>
-        </div>
+        {/* Stats badge - hidden on mobile */}
+        {!isMobile && (
+          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20">
+            <Badge variant="secondary" className="bg-card/90 backdrop-blur-sm border-primary/20 py-1.5 px-3">
+              <Globe className="h-3 w-3 mr-1.5" />
+              <span className="font-orbitron">{ALL_COUNTRIES.length}</span>
+              <span className="text-muted-foreground mx-1">countries</span>
+              <span className="w-px h-3 bg-border mx-2" />
+              <Crosshair className="h-3 w-3 mr-1.5 text-success" />
+              <span className="font-orbitron">{countryData.length}</span>
+              <span className="text-muted-foreground ml-1">monitored</span>
+            </Badge>
+          </div>
+        )}
       </div>
     );
   }
