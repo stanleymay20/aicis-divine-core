@@ -941,6 +941,162 @@ export type Database = {
           },
         ]
       }
+      dao_proposals: {
+        Row: {
+          created_at: string
+          description: string | null
+          executed_at: string | null
+          id: string
+          proposal_type: string | null
+          proposer_id: string | null
+          space_id: string | null
+          status: string
+          title: string
+          votes_abstain: number | null
+          votes_against: number | null
+          votes_for: number | null
+          voting_ends_at: string
+          voting_starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          proposal_type?: string | null
+          proposer_id?: string | null
+          space_id?: string | null
+          status?: string
+          title: string
+          votes_abstain?: number | null
+          votes_against?: number | null
+          votes_for?: number | null
+          voting_ends_at?: string
+          voting_starts_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          proposal_type?: string | null
+          proposer_id?: string | null
+          space_id?: string | null
+          status?: string
+          title?: string
+          votes_abstain?: number | null
+          votes_against?: number | null
+          votes_for?: number | null
+          voting_ends_at?: string
+          voting_starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dao_proposals_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "dao_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dao_spaces: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          quorum_percentage: number | null
+          voting_delay_hours: number | null
+          voting_period_hours: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          quorum_percentage?: number | null
+          voting_delay_hours?: number | null
+          voting_period_hours?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          quorum_percentage?: number | null
+          voting_delay_hours?: number | null
+          voting_period_hours?: number | null
+        }
+        Relationships: []
+      }
+      dao_stake_snapshots: {
+        Row: {
+          id: string
+          snapshot_at: string
+          space_id: string | null
+          stake_amount: number
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          snapshot_at?: string
+          space_id?: string | null
+          stake_amount?: number
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          snapshot_at?: string
+          space_id?: string | null
+          stake_amount?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dao_stake_snapshots_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "dao_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dao_votes: {
+        Row: {
+          created_at: string
+          id: string
+          proposal_id: string | null
+          vote_type: string
+          voter_id: string | null
+          voting_power: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proposal_id?: string | null
+          vote_type: string
+          voter_id?: string | null
+          voting_power?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proposal_id?: string | null
+          vote_type?: string
+          voter_id?: string | null
+          voting_power?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dao_votes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "dao_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_access_control: {
         Row: {
           access_tier: Database["public"]["Enums"]["access_tier"]
@@ -2129,6 +2285,45 @@ export type Database = {
           updated_at?: string | null
           value?: number | null
           year?: number
+        }
+        Relationships: []
+      }
+      governance_trades: {
+        Row: {
+          asset_amount: number
+          asset_symbol: string
+          created_at: string
+          executed_at: string | null
+          id: string
+          price: number
+          sc_amount: number
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          asset_amount: number
+          asset_symbol: string
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          price?: number
+          sc_amount: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          asset_amount?: number
+          asset_symbol?: string
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          price?: number
+          sc_amount?: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
