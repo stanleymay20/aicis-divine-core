@@ -13,6 +13,11 @@ import CountryDeepDivePage from "./pages/CountryDeepDivePage";
 import AICISCommandCenter from "./pages/AICISCommandCenter";
 import Debug from "./pages/Debug";
 import SystemHealth from "./pages/SystemHealth";
+import AdminDashboard from "./pages/AdminDashboard";
+import GovernanceHub from "./pages/GovernanceHub";
+import PredictionsCenter from "./pages/PredictionsCenter";
+import CompliancePortal from "./pages/CompliancePortal";
+import FederationHub from "./pages/FederationHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +39,11 @@ const App = () => (
           <Route path="/health" element={<SystemHealth />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/governance" element={<GovernanceHub />} />
+          <Route path="/predictions" element={<PredictionsCenter />} />
+          <Route path="/compliance" element={<CompliancePortal />} />
+          <Route path="/federation" element={<FederationHub />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
