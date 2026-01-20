@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Bell, BarChart3, LogOut, Activity, Settings, HelpCircle
+  Bell, BarChart3, LogOut, Activity, Settings, HelpCircle,
+  Shield, Vote, TrendingUp, FileCheck, Network, ChevronDown
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { LiveTicker } from "./LiveTicker";
@@ -14,6 +16,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   onToggleAlerts: () => void;
@@ -31,6 +40,7 @@ export const Header = ({
   unreadAlerts,
 }: HeaderProps) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [systemStatus, setSystemStatus] = useState<"operational" | "degraded" | "offline">("operational");
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -70,20 +80,31 @@ export const Header = ({
     });
   };
 
+  const navLinks = [
+    { label: "Governance", icon: Vote, path: "/governance", color: "text-primary" },
+    { label: "Predictions", icon: TrendingUp, path: "/predictions", color: "text-success" },
+    { label: "Federation", icon: Network, path: "/federation", color: "text-secondary" },
+    { label: "Compliance", icon: FileCheck, path: "/compliance", color: "text-warning" },
+    { label: "Admin", icon: Shield, path: "/admin", color: "text-destructive" },
+  ];
+
   return (
     <TooltipProvider>
       <header className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-b border-primary/20">
         <div className="flex items-center justify-between px-4 py-2.5">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative cursor-pointer" onClick={() => navigate("/")}>
               <div className="absolute inset-0 bg-primary rounded-lg blur-lg opacity-40 animate-pulse" />
               <div className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center border border-primary/50">
                 <span className="text-xl font-orbitron font-bold text-primary-foreground">A</span>
               </div>
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg font-orbitron font-bold tracking-wider bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h1 
+                className="text-lg font-orbitron font-bold tracking-wider bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent cursor-pointer"
+                onClick={() => navigate("/")}
+              >
                 AICIS
               </h1>
               <p className="text-[10px] text-muted-foreground -mt-0.5 tracking-wide">
@@ -100,6 +121,56 @@ export const Header = ({
                 systemStatus === "offline" && "bg-destructive"
               )} />
               <span className="text-xs text-muted-foreground capitalize">{systemStatus}</span>
+            </div>
+
+            {/* Navigation Links - Desktop */}
+            <div className="hidden xl:flex items-center gap-1 ml-4">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Tooltip key={link.path}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs"
+                        onClick={() => navigate(link.path)}
+                      >
+                        <Icon className={cn("h-3.5 w-3.5", link.color)} />
+                        <span>{link.label}</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{link.label}</TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+
+            {/* Navigation dropdown - Tablet */}
+            <div className="hidden md:flex xl:hidden items-center ml-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                    <span>Modules</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  {navLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={link.path}
+                        className="gap-2 cursor-pointer"
+                        onClick={() => navigate(link.path)}
+                      >
+                        <Icon className={cn("h-4 w-4", link.color)} />
+                        <span>{link.label}</span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 

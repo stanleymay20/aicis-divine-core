@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,7 +9,8 @@ import {
 } from "@/components/ui/sheet";
 import {
   Bell, BarChart3, Globe, Menu, Satellite, Radio,
-  Brain, Activity, Cpu, Zap, X, MapPin
+  Brain, Activity, Cpu, Zap, X, MapPin,
+  Vote, TrendingUp, Network, FileCheck, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +32,7 @@ export const MobileNav = ({
   systemStatus,
 }: MobileNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const menuItems = [
     {
@@ -69,6 +72,14 @@ export const MobileNav = ({
       },
       color: "text-secondary",
     },
+  ];
+
+  const navLinks = [
+    { label: "Governance Hub", icon: Vote, path: "/governance", color: "text-primary" },
+    { label: "Predictions", icon: TrendingUp, path: "/predictions", color: "text-success" },
+    { label: "Federation", icon: Network, path: "/federation", color: "text-secondary" },
+    { label: "Compliance", icon: FileCheck, path: "/compliance", color: "text-warning" },
+    { label: "Admin Dashboard", icon: Shield, path: "/admin", color: "text-destructive" },
   ];
 
   return (
@@ -112,8 +123,9 @@ export const MobileNav = ({
           </div>
         </div>
 
-        {/* Menu items */}
-        <div className="p-2">
+        {/* Panel toggles */}
+        <div className="p-2 border-b border-border/50">
+          <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">Panels</p>
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -131,6 +143,29 @@ export const MobileNav = ({
                     {item.badge}
                   </Badge>
                 )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Navigation links */}
+        <div className="p-2">
+          <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">Modules</p>
+          {navLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <button
+                key={link.path}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                onClick={() => {
+                  navigate(link.path);
+                  setIsOpen(false);
+                }}
+              >
+                <div className={cn("p-2 rounded-lg bg-muted", link.color)}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <span className="flex-1 font-medium">{link.label}</span>
               </button>
             );
           })}
