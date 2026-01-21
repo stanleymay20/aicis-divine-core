@@ -13,6 +13,7 @@ import {
   Vote, TrendingUp, Network, FileCheck, Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import aicisLogo from "@/assets/aicis-logo.png";
 
 interface MobileNavProps {
   onToggleAlerts: () => void;
@@ -103,10 +104,12 @@ export const MobileNav = ({
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-primary rounded-lg blur-lg opacity-40" />
-              <div className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                <span className="text-xl font-orbitron font-bold text-primary-foreground">A</span>
-              </div>
+              <div className="absolute inset-0 bg-primary rounded-full blur-lg opacity-40" />
+              <img 
+                src={aicisLogo} 
+                alt="AICIS" 
+                className="relative w-10 h-10 object-contain drop-shadow-[0_0_12px_hsl(var(--primary))]"
+              />
             </div>
             <div>
               <h1 className="font-orbitron font-bold">AICIS</h1>

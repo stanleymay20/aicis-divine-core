@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Bell, BarChart3, LogOut, Activity, Settings, HelpCircle,
-  Shield, Vote, TrendingUp, FileCheck, Network, ChevronDown
+  Vote, TrendingUp, FileCheck, Network, Shield, ChevronDown
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { LiveTicker } from "./LiveTicker";
+import aicisLogo from "@/assets/aicis-logo.png";
 import {
   Tooltip,
   TooltipContent,
@@ -95,10 +96,12 @@ export const Header = ({
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="relative cursor-pointer" onClick={() => navigate("/")}>
-              <div className="absolute inset-0 bg-primary rounded-lg blur-lg opacity-40 animate-pulse" />
-              <div className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center border border-primary/50">
-                <span className="text-xl font-orbitron font-bold text-primary-foreground">A</span>
-              </div>
+              <div className="absolute inset-0 bg-primary rounded-full blur-lg opacity-40 animate-pulse" />
+              <img 
+                src={aicisLogo} 
+                alt="AICIS" 
+                className="relative w-10 h-10 object-contain drop-shadow-[0_0_12px_hsl(var(--primary))]"
+              />
             </div>
             <div className="hidden sm:block">
               <h1 
