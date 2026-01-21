@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,8 +12,9 @@ import { LiveCriticalAlerts } from "./LiveCriticalAlerts";
 import { GlobalMap, GlobalMapRef } from "@/components/command-center/GlobalMap";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { 
-  LayoutDashboard, Globe, Swords, Bell, Map 
+  LayoutDashboard, Globe, Swords, Bell, Map, Shield 
 } from "lucide-react";
 
 export const AICISMainView = () => {
@@ -27,6 +28,57 @@ export const AICISMainView = () => {
     lat?: number;
     lng?: number;
   } | null>(null);
+  
+  // Live status indicators from database
+  const [dataFeedStatus, setDataFeedStatus] = useState<"online" | "partial" | "offline">("online");
+  const [criticalAlertCount, setCriticalAlertCount] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Fetch live status from database
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        // Check data feed status
+        const { data: logs, error: logsError } = await supabase
+          .from("data_source_log")
+          .select("status")
+          .order("created_at", { ascending: false })
+          .limit(10);
+        
+        if (!logsError && logs) {
+          const failedCount = logs.filter(l => l.status === "error" || l.status === "failed").length;
+          if (failedCount === 0) setDataFeedStatus("online");
+          else if (failedCount < 5) setDataFeedStatus("partial");
+          else setDataFeedStatus("offline");
+        }
+
+        // Get critical alert count
+        const { count } = await supabase
+          .from("critical_alerts")
+          .select("*", { count: "exact", head: true })
+          .eq("acknowledged", false);
+        
+        setCriticalAlertCount(count || 0);
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error("Status fetch error:", error);
+      }
+    };
+
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 30000);
+    
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel("status-updates")
+      .on("postgres_changes", { event: "*", schema: "public", table: "critical_alerts" }, fetchStatus)
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleQueryResult = useCallback((result: IntelligenceResult) => {
     setQueryResult(result);
@@ -65,24 +117,49 @@ export const AICISMainView = () => {
     setActiveTab("map");
   }, []);
 
+  const formatLastUpdated = (date: Date) => {
+    const diff = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (diff < 1) return "Just now";
+    if (diff < 60) return `${diff} minutes ago`;
+    return `${Math.floor(diff / 60)} hours ago`;
+  };
+
   return (
     <div className="h-full flex flex-col p-4 md:p-6 space-y-4">
-      {/* Status Bar */}
+      {/* Status Bar - LIVE from database */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="bg-success/10 text-success border-success/30">
-            <div className="w-1.5 h-1.5 rounded-full bg-success mr-1.5 animate-pulse" />
-            Data Feeds Online
+          <Badge variant="outline" className={cn(
+            "border",
+            dataFeedStatus === "online" && "bg-success/10 text-success border-success/30",
+            dataFeedStatus === "partial" && "bg-warning/10 text-warning border-warning/30",
+            dataFeedStatus === "offline" && "bg-destructive/10 text-destructive border-destructive/30"
+          )}>
+            <div className={cn(
+              "w-1.5 h-1.5 rounded-full mr-1.5",
+              dataFeedStatus === "online" && "bg-success animate-pulse",
+              dataFeedStatus === "partial" && "bg-warning animate-pulse",
+              dataFeedStatus === "offline" && "bg-destructive"
+            )} />
+            {dataFeedStatus === "online" ? "Data Feeds Online" : 
+             dataFeedStatus === "partial" ? "Partial Coverage" : "Feeds Offline"}
           </Badge>
           
-          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-            <Bell className="h-3 w-3 mr-1" />
-            4 Critical Alerts Active
+          {criticalAlertCount > 0 && (
+            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 animate-pulse">
+              <Bell className="h-3 w-3 mr-1" />
+              {criticalAlertCount} Critical Alert{criticalAlertCount !== 1 ? 's' : ''} Active
+            </Badge>
+          )}
+
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+            <Shield className="h-3 w-3 mr-1" />
+            AICIS Active
           </Badge>
         </div>
         
         <Badge variant="secondary" className="text-xs">
-          Last updated: 5 minutes ago
+          Last updated: {formatLastUpdated(lastUpdated)}
         </Badge>
       </div>
 
