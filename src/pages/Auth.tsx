@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import aicisLogo from "@/assets/aicis-logo.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -118,11 +119,15 @@ const Auth = () => {
 
       <Card className="w-full max-w-md p-8 bg-card/50 backdrop-blur-sm border-primary/20 relative z-10">
         <div className="flex flex-col items-center mb-6">
-          <Shield className="h-16 w-16 text-primary mb-4 glow-cyber" />
+          <img 
+            src={aicisLogo} 
+            alt="AICIS" 
+            className="h-20 w-20 object-contain mb-4 drop-shadow-[0_0_20px_hsl(var(--primary))]"
+          />
           <h1 className="text-3xl font-orbitron font-bold text-primary text-glow-cyber">
             AICIS
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-2 text-center">
             Autonomous Intelligent Cybernetic Intervention System
           </p>
         </div>

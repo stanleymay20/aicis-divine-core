@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Activity, User, LogOut, Shield } from "lucide-react";
+import { Bell, Activity, User, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import aicisLogo from "@/assets/aicis-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,10 +109,12 @@ export const AICISTopBar = () => {
             className="relative cursor-pointer group"
             onClick={() => navigate("/")}
           >
-            <div className="absolute inset-0 bg-primary rounded-lg blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
-            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center border border-primary/50">
-              <Shield className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <div className="absolute inset-0 bg-primary rounded-full blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
+            <img 
+              src={aicisLogo} 
+              alt="AICIS" 
+              className="relative w-8 h-8 object-contain drop-shadow-[0_0_8px_hsl(var(--primary))]"
+            />
           </div>
           
           <div className="hidden sm:flex flex-col">
