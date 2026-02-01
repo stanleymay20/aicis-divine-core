@@ -154,6 +154,12 @@ serve(async (req) => {
     // Compile sources
     const sources = compileSources(context, topics);
 
+    // Generate actionable guidance for the queried region/country
+    const guidance = generateActionableGuidance(context, locations, topics);
+    
+    // Calculate data completeness for transparency
+    const dataCompleteness = calculateDataCompleteness(context);
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -166,6 +172,8 @@ serve(async (req) => {
         dashboards,
         sources,
         location,
+        guidance,
+        dataCompleteness,
         metadata: {
           locations_analyzed: locations,
           topics: topics,
@@ -1001,4 +1009,168 @@ Start with a brief executive summary (2-3 sentences) followed by:
   prompt += `\nProvide a comprehensive, professional intelligence briefing. Be specific with data points when available. Include confidence ranges for any forecasts or assessments.`;
 
   return prompt;
+}
+
+// Calculate data completeness for transparency
+function calculateDataCompleteness(context: QueryContext): number {
+  const sources = [
+    context.alerts.length > 0,
+    context.crises.length > 0,
+    context.incidents.length > 0,
+    context.intel.length > 0,
+    context.countryData.length > 0,
+    context.vulnerabilities.length > 0,
+    context.healthData.length > 0,
+    context.foodData.length > 0,
+    context.energyData.length > 0,
+    context.economicData.length > 0,
+    context.governanceData.length > 0,
+  ];
+  
+  const availableSources = sources.filter(Boolean).length;
+  return Math.round((availableSources / sources.length) * 100) / 100;
+}
+
+// Generate actionable guidance based on context
+interface GuidanceItem {
+  priority: "critical" | "high" | "medium" | "low";
+  domain: string;
+  title: string;
+  description: string;
+  actionable: string;
+  sdgAlignment?: number[];
+}
+
+function generateActionableGuidance(
+  context: QueryContext,
+  locations: string[],
+  topics: string[]
+): GuidanceItem[] {
+  const guidance: GuidanceItem[] = [];
+  
+  const locationName = locations.length > 0 && locations[0] !== "Global" 
+    ? locations[0] 
+    : "the region";
+
+  // Critical: Active conflicts
+  const activeCrises = context.crises.filter((c: any) => 
+    c.status !== "resolved" && (c.severity || 0) >= 7
+  );
+  if (activeCrises.length > 0) {
+    guidance.push({
+      priority: "critical",
+      domain: "Security",
+      title: "Active Crisis Response Required",
+      description: `${activeCrises.length} high-severity crisis event(s) affecting ${locationName}.`,
+      actionable: "Activate emergency protocols, coordinate with humanitarian partners, and establish secure communication channels.",
+      sdgAlignment: [16]
+    });
+  }
+
+  // Critical: Mass casualty incidents
+  const totalKilled = context.incidents.reduce((sum: number, i: any) => sum + (i.killed || 0), 0);
+  if (totalKilled > 100) {
+    guidance.push({
+      priority: "critical",
+      domain: "Humanitarian",
+      title: "Mass Casualty Event",
+      description: `${totalKilled.toLocaleString()} fatalities recorded in recent incidents.`,
+      actionable: "Deploy medical surge capacity, coordinate victim identification, and engage international support mechanisms.",
+      sdgAlignment: [3, 16]
+    });
+  }
+
+  // High: Vulnerability indicators
+  for (const vuln of context.vulnerabilities as any[]) {
+    if (vuln.overall_score > 60) {
+      guidance.push({
+        priority: "high",
+        domain: "Resilience",
+        title: `Elevated Systemic Vulnerability: ${vuln.country || locationName}`,
+        description: `Overall vulnerability score of ${vuln.overall_score}/100 indicates fragility across multiple domains.`,
+        actionable: "Prioritize capacity building in weakest sectors, establish early warning systems, and diversify resource dependencies.",
+        sdgAlignment: [1, 10, 16]
+      });
+    }
+  }
+
+  // High: Health emergencies
+  const healthAlerts = context.alerts.filter((a: any) => 
+    a.division === "health" && (a.severity === "critical" || a.severity === "high")
+  );
+  if (healthAlerts.length > 0) {
+    guidance.push({
+      priority: "high",
+      domain: "Health",
+      title: "Health System Alert",
+      description: `${healthAlerts.length} active health concern(s) requiring attention.`,
+      actionable: "Strengthen surveillance, ensure medical supply continuity, and coordinate with WHO regional office.",
+      sdgAlignment: [3]
+    });
+  }
+
+  // Medium: Food security
+  const foodCritical = context.foodData.filter((f: any) => 
+    f.alert_level === "critical" || f.alert_level === "emergency"
+  );
+  if (foodCritical.length > 0 || topics.includes("food")) {
+    guidance.push({
+      priority: foodCritical.length > 2 ? "critical" : "medium",
+      domain: "Food Security",
+      title: "Food Supply Monitoring",
+      description: "Agricultural or supply indicators suggest potential food stress.",
+      actionable: "Activate strategic reserves, coordinate with WFP for early intervention, and support agricultural inputs for next planting season.",
+      sdgAlignment: [2]
+    });
+  }
+
+  // Medium: Energy infrastructure
+  const energyIssues = context.energyData.filter((e: any) => 
+    (e.stability_index || 1) < 0.7
+  );
+  if (energyIssues.length > 0 || topics.includes("energy")) {
+    guidance.push({
+      priority: "medium",
+      domain: "Energy",
+      title: "Energy Grid Resilience",
+      description: "Energy infrastructure indicators suggest potential reliability concerns.",
+      actionable: "Assess grid redundancy, develop backup power protocols for critical facilities, and accelerate renewable integration.",
+      sdgAlignment: [7, 9]
+    });
+  }
+
+  // Medium: Governance capacity
+  if (context.countryData.length > 0) {
+    for (const profile of context.countryData as any[]) {
+      const kpis = profile.kpis || {};
+      if (kpis.governance?.completeness < 0.5) {
+        guidance.push({
+          priority: "medium",
+          domain: "Governance",
+          title: "Institutional Capacity Development",
+          description: `Limited governance data for ${profile.country_name || locationName} suggests opportunities for capacity building.`,
+          actionable: "Engage technical assistance programs, strengthen statistical capacity, and implement transparency initiatives.",
+          sdgAlignment: [16, 17]
+        });
+      }
+    }
+  }
+
+  // Low: General monitoring (if no other guidance)
+  if (guidance.length === 0) {
+    guidance.push({
+      priority: "low",
+      domain: "Strategic",
+      title: "Routine Monitoring Active",
+      description: `No critical alerts for ${locationName}. Continue standard monitoring protocols.`,
+      actionable: "Maintain data reporting, strengthen regional partnerships, and invest in human capital development.",
+      sdgAlignment: [17]
+    });
+  }
+
+  // Sort by priority
+  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  guidance.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  return guidance.slice(0, 6); // Limit to top 6 recommendations
 }
