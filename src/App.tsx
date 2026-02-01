@@ -1,6 +1,9 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { lazy, Suspense } from "react";
+
+const EnterpriseGovernance = lazy(() => import("./pages/EnterpriseGovernance"));
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
@@ -45,6 +48,7 @@ const App = () => (
           <Route path="/predictions" element={<PredictionsCenter />} />
           <Route path="/compliance" element={<CompliancePortal />} />
           <Route path="/federation" element={<FederationHub />} />
+          <Route path="/enterprise-governance" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><EnterpriseGovernance /></Suspense>} />
           <Route path="/ethics" element={<Ethics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
