@@ -1,10 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Shield, ShieldCheck, ShieldAlert, ShieldOff, Info } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, ShieldOff } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -139,66 +138,64 @@ export const VerificationScore = ({
   }, {} as Record<string, SourceInfo[]>);
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className={cn("inline-flex items-center gap-2", className)}>
-            <Badge 
-              variant="outline" 
-              className={cn(config.color, "gap-1.5")}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              <span className="text-[10px] font-medium">{config.label}</span>
-            </Badge>
-            
-            {showDetails && (
-              <span className="text-xs text-muted-foreground font-mono">
-                {score}/100
-              </span>
-            )}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
-          <div className="space-y-2">
-            <p className="font-medium flex items-center gap-1.5">
-              <Icon className="h-3.5 w-3.5" />
-              {config.description}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className={cn("inline-flex items-center gap-2 cursor-help", className)}>
+          <Badge 
+            variant="outline" 
+            className={cn(config.color, "gap-1.5")}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span className="text-[10px] font-medium">{config.label}</span>
+          </Badge>
+          
+          {showDetails && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {score}/100
+            </span>
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <div className="space-y-2">
+          <p className="font-medium flex items-center gap-1.5">
+            <Icon className="h-3.5 w-3.5" />
+            {config.description}
+          </p>
+          
+          <div className="text-xs space-y-1">
+            <p className="text-muted-foreground">
+              Verification Score: <span className="font-mono text-foreground">{score}/100</span>
             </p>
-            
-            <div className="text-xs space-y-1">
-              <p className="text-muted-foreground">
-                Verification Score: <span className="font-mono text-foreground">{score}/100</span>
-              </p>
-              <p className="text-muted-foreground">
-                Sources: <span className="font-mono text-foreground">{sources.length}</span>
-              </p>
-              <p className="text-muted-foreground">
-                Type Diversity: <span className="font-mono text-foreground">{Object.keys(sourcesByType).length} types</span>
-              </p>
-            </div>
-            
-            {sources.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-1 border-t border-border/50">
-                {sources.slice(0, 6).map((source, i) => (
-                  <Badge 
-                    key={i} 
-                    variant="outline" 
-                    className={cn("text-[9px]", getSourceTypeColor(source.type))}
-                  >
-                    {source.name}
-                  </Badge>
-                ))}
-                {sources.length > 6 && (
-                  <Badge variant="outline" className="text-[9px]">
-                    +{sources.length - 6} more
-                  </Badge>
-                )}
-              </div>
-            )}
+            <p className="text-muted-foreground">
+              Sources: <span className="font-mono text-foreground">{sources.length}</span>
+            </p>
+            <p className="text-muted-foreground">
+              Type Diversity: <span className="font-mono text-foreground">{Object.keys(sourcesByType).length} types</span>
+            </p>
           </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          
+          {sources.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1 border-t border-border/50">
+              {sources.slice(0, 6).map((source, i) => (
+                <Badge 
+                  key={i} 
+                  variant="outline" 
+                  className={cn("text-[9px]", getSourceTypeColor(source.type))}
+                >
+                  {source.name}
+                </Badge>
+              ))}
+              {sources.length > 6 && (
+                <Badge variant="outline" className="text-[9px]">
+                  +{sources.length - 6} more
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 
@@ -213,15 +210,13 @@ export const VerificationDot = ({ score, className }: { score: number; className
   };
   
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className={cn("w-2 h-2 rounded-full", colors[level], className)} />
-        </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">
-          Verification: {score}/100
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className={cn("w-2 h-2 rounded-full cursor-help", colors[level], className)} />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">
+        Verification: {score}/100
+      </TooltipContent>
+    </Tooltip>
   );
 };

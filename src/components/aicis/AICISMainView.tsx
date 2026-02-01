@@ -12,12 +12,14 @@ import { SecurityConflictView } from "./SecurityConflictView";
 import { LiveCriticalAlerts } from "./LiveCriticalAlerts";
 import { ExecutiveIntelligenceMode } from "./ExecutiveIntelligenceMode";
 import { AnomalyDetection } from "./AnomalyDetection";
+import { SmallNationGuidance, generateNationGuidance } from "./SmallNationGuidance";
+import { CountryQuickAccess } from "./CountryQuickAccess";
 import { GlobalMap, GlobalMapRef } from "@/components/command-center/GlobalMap";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Zap, Activity 
+  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Zap, Activity, Lightbulb 
 } from "lucide-react";
 
 export const AICISMainView = () => {
@@ -162,6 +164,7 @@ export const AICISMainView = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          <CountryQuickAccess triggerClassName="h-7 text-xs" />
           <Button
             variant={executiveMode ? "default" : "outline"}
             size="sm"
@@ -207,6 +210,10 @@ export const AICISMainView = () => {
           <TabsTrigger value="anomalies" className="gap-2 data-[state=active]:bg-primary/20">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Anomalies</span>
+          </TabsTrigger>
+          <TabsTrigger value="guidance" className="gap-2 data-[state=active]:bg-success/20">
+            <Lightbulb className="h-4 w-4" />
+            <span className="hidden sm:inline">Guidance</span>
           </TabsTrigger>
           <TabsTrigger value="alerts" className="gap-2 data-[state=active]:bg-warning/20">
             <Bell className="h-4 w-4" />
@@ -271,6 +278,34 @@ export const AICISMainView = () => {
         {/* Anomalies Tab */}
         <TabsContent value="anomalies" className="flex-1 mt-4 overflow-auto">
           <AnomalyDetection />
+        </TabsContent>
+
+        {/* Guidance Tab */}
+        <TabsContent value="guidance" className="flex-1 mt-4 overflow-auto">
+          {queryResult?.location ? (
+            <SmallNationGuidance
+              countryName={queryResult.location.name}
+              iso3={queryResult.location.iso3}
+              dataCompleteness={(queryResult as any).dataCompleteness || 0.5}
+              vulnerabilityScore={
+                queryResult.dashboards.find(d => d.title.includes("Vulnerability"))
+                  ? parseInt(queryResult.dashboards.find(d => d.title.includes("Vulnerability"))?.value?.toString() || "0")
+                  : undefined
+              }
+              guidance={(queryResult as any).guidance || generateNationGuidance({}, {}, [], [])}
+              sources={queryResult.sources}
+              lastUpdated={queryResult.lastUpdated}
+            />
+          ) : (
+            <Card className="p-8 text-center border-dashed">
+              <Lightbulb className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Strategic Guidance</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Query a specific country or region above to receive tailored 
+                strategic guidance and actionable recommendations.
+              </p>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Alerts Tab */}
