@@ -1,8 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, TrendingUp, TrendingDown, Minus, Clock, Shield, MapPin } from "lucide-react";
+import { AlertTriangle, TrendingUp, TrendingDown, Minus, Clock, Shield, MapPin, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { IntelligenceResult, DashboardCard } from "./IntelligenceQueryBar";
+import { DataFreshnessBadge, getFreshnessLevel, getFreshnessConfig } from "./DataFreshnessBadge";
+import { VerificationScore, calculateVerificationScore, type SourceInfo } from "./VerificationScore";
+import { InlineConfidence } from "./ConfidenceBand";
+import { AuditTrailExport } from "./AuditTrailExport";
 
 interface IntelligenceAssessmentProps {
   result: IntelligenceResult;
@@ -49,6 +54,8 @@ const DashboardCardComponent = ({ card }: { card: DashboardCard }) => {
     critical: "border-destructive/30",
   };
 
+  const freshnessLevel = getFreshnessLevel(card.source ? new Date().toISOString() : null);
+
   return (
     <Card className={cn(
       "bg-muted/30",
@@ -57,15 +64,21 @@ const DashboardCardComponent = ({ card }: { card: DashboardCard }) => {
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <span className="text-xs text-muted-foreground uppercase tracking-wide">{card.title}</span>
-          {card.riskLevel && (
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              card.riskLevel === "low" && "bg-success",
-              card.riskLevel === "medium" && "bg-warning",
-              card.riskLevel === "high" && "bg-orange-500",
-              card.riskLevel === "critical" && "bg-destructive animate-pulse"
-            )} />
-          )}
+          <div className="flex items-center gap-1">
+            <DataFreshnessBadge 
+              lastUpdated={new Date().toISOString()} 
+              showLabel={false}
+            />
+            {card.riskLevel && (
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                card.riskLevel === "low" && "bg-success",
+                card.riskLevel === "medium" && "bg-warning",
+                card.riskLevel === "high" && "bg-orange-500",
+                card.riskLevel === "critical" && "bg-destructive animate-pulse"
+              )} />
+            )}
+          </div>
         </div>
         
         <div className="flex items-end justify-between">
@@ -92,6 +105,19 @@ export const IntelligenceAssessment = ({ result, onLocationClick }: Intelligence
     return `${Math.floor(diff / 60)} hours ago`;
   };
 
+  // Calculate verification score from sources
+  const sourceInfos: SourceInfo[] = result.sources.map(s => ({
+    name: s,
+    type: s.toLowerCase().includes("gdelt") ? "aggregator" :
+          s.toLowerCase().includes("world bank") ? "government" :
+          s.toLowerCase().includes("who") ? "government" :
+          s.toLowerCase().includes("fao") ? "government" :
+          s.toLowerCase().includes("satellite") ? "satellite" :
+          s.toLowerCase().includes("news") ? "media" : "aggregator"
+  }));
+  
+  const verificationScore = calculateVerificationScore(sourceInfos);
+
   // Group dashboards by division
   const dashboardsByDivision = result.dashboards.reduce((acc, card) => {
     const div = card.division || "General";
@@ -116,16 +142,19 @@ export const IntelligenceAssessment = ({ result, onLocationClick }: Intelligence
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                Updated {formatTime(result.lastUpdated)}
-              </span>
+              <DataFreshnessBadge lastUpdated={result.lastUpdated} />
+              <AuditTrailExport 
+                queryText={result.query}
+                sources={result.sources}
+                confidence={result.confidence}
+                division={result.divisions[0] || "system"}
+              />
             </div>
           </div>
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Severity & Confidence Row */}
+          {/* Severity, Confidence, Verification Row */}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Severity:</span>
@@ -134,15 +163,10 @@ export const IntelligenceAssessment = ({ result, onLocationClick }: Intelligence
             
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Confidence:</span>
-              <Badge variant="outline" className={cn(
-                "font-mono",
-                result.confidence >= 80 ? "text-success border-success/30" :
-                result.confidence >= 50 ? "text-warning border-warning/30" :
-                "text-destructive border-destructive/30"
-              )}>
-                {result.confidence}%
-              </Badge>
+              <InlineConfidence low={result.confidence - 10} high={Math.min(result.confidence + 5, 95)} />
             </div>
+            
+            <VerificationScore score={verificationScore} sources={sourceInfos} showDetails />
 
             {result.location && (
               <div 
@@ -192,15 +216,18 @@ export const IntelligenceAssessment = ({ result, onLocationClick }: Intelligence
         </div>
       )}
 
-      {/* Sources */}
+      {/* Sources with verification info */}
       {result.sources.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>Sources:</span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
+          <span className="font-medium">Data Sources:</span>
           {result.sources.map((source, i) => (
             <Badge key={i} variant="outline" className="text-[10px]">
               {source}
             </Badge>
           ))}
+          <span className="ml-auto">
+            Verification: {verificationScore}/100
+          </span>
         </div>
       )}
     </div>
