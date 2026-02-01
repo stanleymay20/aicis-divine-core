@@ -7,9 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { 
   Swords, AlertTriangle, MapPin, Clock, RefreshCw, 
-  Users, Skull, Target, Shield, TrendingUp 
+  Users, Skull, Target, Shield, TrendingUp, TrendingDown 
 } from "lucide-react";
 import { toast } from "sonner";
+import { DataFreshnessBadge } from "./DataFreshnessBadge";
+import { VerificationScore, calculateVerificationScore, type SourceInfo } from "./VerificationScore";
+import { InlineConfidence } from "./ConfidenceBand";
 
 interface SecurityIncident {
   id: string;
@@ -28,18 +31,28 @@ interface TerroristIndex {
   activity_level: number;
   trend: "up" | "down" | "stable";
   region: string;
+  incidentCount: number;
 }
+
+// Verification sources for security data
+const securitySources: SourceInfo[] = [
+  { name: "GDELT", type: "aggregator" },
+  { name: "ACLED", type: "academic" },
+  { name: "News APIs", type: "media" },
+  { name: "Satellite", type: "satellite" },
+];
 
 export const SecurityConflictView = () => {
   const [incidents, setIncidents] = useState<SecurityIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [terroristIndex, setTerroristIndex] = useState<TerroristIndex[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [globalStats, setGlobalStats] = useState({
     totalIncidents: 0,
     criticalAlerts: 0,
     activeConflicts: 0,
-    casualtyEstimate: "N/A"
+    trend: "stable" as "up" | "down" | "stable"
   });
 
   const fetchSecurityData = async () => {
@@ -55,12 +68,14 @@ export const SecurityConflictView = () => {
         setIncidents(alerts as SecurityIncident[]);
         
         const critical = alerts.filter(a => a.severity && a.severity >= 8).length;
+        const prevCount = globalStats.totalIncidents;
         setGlobalStats({
           totalIncidents: alerts.length,
           criticalAlerts: critical,
           activeConflicts: Math.min(alerts.length, 12),
-          casualtyEstimate: "Ongoing"
+          trend: alerts.length > prevCount ? "up" : alerts.length < prevCount ? "down" : "stable"
         });
+        setLastUpdated(new Date());
       }
 
       // Fetch security incidents for terrorist index
@@ -87,8 +102,9 @@ export const SecurityConflictView = () => {
           .map(([group, stats]) => ({
             group,
             activity_level: Math.round(stats.severity / Math.max(stats.count, 1)),
-            trend: stats.severity > 5 ? "up" : stats.severity > 3 ? "stable" : "down",
-            region: "Global"
+            trend: (stats.severity > 5 ? "up" : stats.severity > 3 ? "stable" : "down") as "up" | "down" | "stable",
+            region: "Global",
+            incidentCount: stats.count
           }));
 
         setTerroristIndex(terroristData);
@@ -141,6 +157,8 @@ export const SecurityConflictView = () => {
     return "text-muted-foreground border-border bg-muted/10";
   };
 
+  const verificationScore = calculateVerificationScore(securitySources);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -155,24 +173,31 @@ export const SecurityConflictView = () => {
           </div>
         </div>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <DataFreshnessBadge lastUpdated={lastUpdated.toISOString()} />
+          <VerificationScore score={verificationScore} sources={securitySources} />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Global Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-destructive/30">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-destructive mb-1">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-xs uppercase">Critical Alerts</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-xs uppercase">Critical Alerts</span>
+              </div>
+              <DataFreshnessBadge lastUpdated={lastUpdated.toISOString()} showLabel={false} />
             </div>
             <div className="text-3xl font-orbitron font-bold">{globalStats.criticalAlerts}</div>
           </CardContent>
@@ -180,9 +205,13 @@ export const SecurityConflictView = () => {
 
         <Card className="border-warning/30">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-warning mb-1">
-              <Target className="h-4 w-4" />
-              <span className="text-xs uppercase">Active Conflicts</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-warning">
+                <Target className="h-4 w-4" />
+                <span className="text-xs uppercase">Active Conflicts</span>
+              </div>
+              {globalStats.trend === "up" && <TrendingUp className="h-4 w-4 text-destructive" />}
+              {globalStats.trend === "down" && <TrendingDown className="h-4 w-4 text-success" />}
             </div>
             <div className="text-3xl font-orbitron font-bold">{globalStats.activeConflicts}</div>
           </CardContent>
@@ -190,9 +219,12 @@ export const SecurityConflictView = () => {
 
         <Card className="border-orange-500/30">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-orange-500 mb-1">
-              <Skull className="h-4 w-4" />
-              <span className="text-xs uppercase">Total Incidents</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-orange-500">
+                <Skull className="h-4 w-4" />
+                <span className="text-xs uppercase">Total Incidents</span>
+              </div>
+              <InlineConfidence low={65} high={80} />
             </div>
             <div className="text-3xl font-orbitron font-bold">{globalStats.totalIncidents}</div>
           </CardContent>
@@ -200,11 +232,20 @@ export const SecurityConflictView = () => {
 
         <Card className="border-primary/30">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-primary mb-1">
-              <Shield className="h-4 w-4" />
-              <span className="text-xs uppercase">Status</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-primary">
+                <Shield className="h-4 w-4" />
+                <span className="text-xs uppercase">Status</span>
+              </div>
             </div>
-            <div className="text-xl font-orbitron font-bold text-destructive">HIGH ALERT</div>
+            <div className={cn(
+              "text-xl font-orbitron font-bold",
+              globalStats.criticalAlerts > 3 ? "text-destructive" :
+              globalStats.criticalAlerts > 0 ? "text-warning" : "text-success"
+            )}>
+              {globalStats.criticalAlerts > 3 ? "HIGH ALERT" :
+               globalStats.criticalAlerts > 0 ? "ELEVATED" : "NORMAL"}
+            </div>
           </CardContent>
         </Card>
       </div>

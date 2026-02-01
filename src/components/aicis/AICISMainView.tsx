@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   IntelligenceQueryBar, 
@@ -9,18 +10,21 @@ import {
 import { IntelligenceAssessment } from "./IntelligenceAssessment";
 import { SecurityConflictView } from "./SecurityConflictView";
 import { LiveCriticalAlerts } from "./LiveCriticalAlerts";
+import { ExecutiveIntelligenceMode } from "./ExecutiveIntelligenceMode";
+import { AnomalyDetection } from "./AnomalyDetection";
 import { GlobalMap, GlobalMapRef } from "@/components/command-center/GlobalMap";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  LayoutDashboard, Globe, Swords, Bell, Map, Shield 
+  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Zap, Activity 
 } from "lucide-react";
 
 export const AICISMainView = () => {
   const isMobile = useIsMobile();
   const mapRef = useRef<GlobalMapRef>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [executiveMode, setExecutiveMode] = useState(false);
   const [queryResult, setQueryResult] = useState<IntelligenceResult | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string;
@@ -33,7 +37,6 @@ export const AICISMainView = () => {
   const [dataFeedStatus, setDataFeedStatus] = useState<"online" | "partial" | "offline">("online");
   const [criticalAlertCount, setCriticalAlertCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-
   // Fetch live status from database
   useEffect(() => {
     const fetchStatus = async () => {
@@ -158,10 +161,26 @@ export const AICISMainView = () => {
           </Badge>
         </div>
         
-        <Badge variant="secondary" className="text-xs">
-          Last updated: {formatLastUpdated(lastUpdated)}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={executiveMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setExecutiveMode(!executiveMode)}
+            className="h-7 text-xs gap-1"
+          >
+            <Zap className="h-3 w-3" />
+            {executiveMode ? "Exit Executive" : "Executive Mode"}
+          </Button>
+          <Badge variant="secondary" className="text-xs">
+            {formatLastUpdated(lastUpdated)}
+          </Badge>
+        </div>
       </div>
+
+      {/* Executive Mode Toggle */}
+      {executiveMode && (
+        <ExecutiveIntelligenceMode />
+      )}
 
       {/* Intelligence Query Bar */}
       <IntelligenceQueryBar 
@@ -169,7 +188,8 @@ export const AICISMainView = () => {
         className="mb-2"
       />
 
-      {/* Main Content Tabs */}
+      {/* Main Content Tabs (hidden when in Executive Mode) */}
+      {!executiveMode && (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="w-full justify-start bg-muted/30 p-1 h-auto flex-wrap">
           <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-primary/20">
@@ -183,6 +203,10 @@ export const AICISMainView = () => {
           <TabsTrigger value="security" className="gap-2 data-[state=active]:bg-destructive/20">
             <Swords className="h-4 w-4" />
             <span className="hidden sm:inline">Security & Conflict</span>
+          </TabsTrigger>
+          <TabsTrigger value="anomalies" className="gap-2 data-[state=active]:bg-primary/20">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Anomalies</span>
           </TabsTrigger>
           <TabsTrigger value="alerts" className="gap-2 data-[state=active]:bg-warning/20">
             <Bell className="h-4 w-4" />
@@ -244,11 +268,17 @@ export const AICISMainView = () => {
           <SecurityConflictView />
         </TabsContent>
 
+        {/* Anomalies Tab */}
+        <TabsContent value="anomalies" className="flex-1 mt-4 overflow-auto">
+          <AnomalyDetection />
+        </TabsContent>
+
         {/* Alerts Tab */}
         <TabsContent value="alerts" className="flex-1 mt-4 overflow-auto">
           <LiveCriticalAlerts maxHeight="600px" />
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 };

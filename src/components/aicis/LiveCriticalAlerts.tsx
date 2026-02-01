@@ -10,6 +10,7 @@ import {
   Eye, EyeOff, Filter, RefreshCw 
 } from "lucide-react";
 import { toast } from "sonner";
+import { DataFreshnessBadge } from "./DataFreshnessBadge";
 
 interface CriticalAlert {
   id: string;
@@ -33,6 +34,7 @@ export const LiveCriticalAlerts = ({ onAlertClick, maxHeight = "400px" }: LiveCr
   const [alerts, setAlerts] = useState<CriticalAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "critical" | "high">("all");
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   
   const fetchAlerts = async () => {
     try {
@@ -47,6 +49,7 @@ export const LiveCriticalAlerts = ({ onAlertClick, maxHeight = "400px" }: LiveCr
       if (error) throw error;
       
       setAlerts((data || []) as CriticalAlert[]);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching critical alerts:", error);
     } finally {
@@ -111,6 +114,7 @@ export const LiveCriticalAlerts = ({ onAlertClick, maxHeight = "400px" }: LiveCr
                 {unacknowledgedCount} new
               </Badge>
             )}
+            <DataFreshnessBadge lastUpdated={lastUpdated.toISOString()} showLabel={false} />
           </CardTitle>
           
           <div className="flex items-center gap-2">
