@@ -14,19 +14,22 @@ import { ExecutiveIntelligenceMode } from "./ExecutiveIntelligenceMode";
 import { AnomalyDetection } from "./AnomalyDetection";
 import { SmallNationGuidance, generateNationGuidance } from "./SmallNationGuidance";
 import { CountryQuickAccess } from "./CountryQuickAccess";
+import { ThreeLayerStack, type LayerStatus } from "./ThreeLayerStack";
+import { ModeToggle, type ViewMode } from "./AnalystMode";
+import { NonSurveillanceBanner } from "./NonSurveillanceBanner";
 import { GlobalMap, GlobalMapRef } from "@/components/command-center/GlobalMap";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Zap, Activity, Lightbulb 
+  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Activity, Lightbulb, Layers 
 } from "lucide-react";
 
 export const AICISMainView = () => {
   const isMobile = useIsMobile();
   const mapRef = useRef<GlobalMapRef>(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [executiveMode, setExecutiveMode] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("executive");
   const [queryResult, setQueryResult] = useState<IntelligenceResult | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string;
@@ -165,23 +168,15 @@ export const AICISMainView = () => {
         
         <div className="flex items-center gap-2">
           <CountryQuickAccess triggerClassName="h-7 text-xs" />
-          <Button
-            variant={executiveMode ? "default" : "outline"}
-            size="sm"
-            onClick={() => setExecutiveMode(!executiveMode)}
-            className="h-7 text-xs gap-1"
-          >
-            <Zap className="h-3 w-3" />
-            {executiveMode ? "Exit Executive" : "Executive Mode"}
-          </Button>
+          <ModeToggle mode={viewMode} onModeChange={setViewMode} />
           <Badge variant="secondary" className="text-xs">
             {formatLastUpdated(lastUpdated)}
           </Badge>
         </div>
       </div>
 
-      {/* Executive Mode Toggle */}
-      {executiveMode && (
+      {/* Executive Mode Content */}
+      {viewMode === "executive" && (
         <ExecutiveIntelligenceMode />
       )}
 
@@ -191,13 +186,17 @@ export const AICISMainView = () => {
         className="mb-2"
       />
 
-      {/* Main Content Tabs (hidden when in Executive Mode) */}
-      {!executiveMode && (
+      {/* Main Content Tabs (shown in Analyst Mode or when Executive has closed summary) */}
+      {viewMode === "analyst" && (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="w-full justify-start bg-muted/30 p-1 h-auto flex-wrap">
           <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-primary/20">
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="layers" className="gap-2 data-[state=active]:bg-primary/20">
+            <Layers className="h-4 w-4" />
+            <span className="hidden sm:inline">Intelligence Layers</span>
           </TabsTrigger>
           <TabsTrigger value="map" className="gap-2 data-[state=active]:bg-primary/20">
             <Globe className="h-4 w-4" />
@@ -255,6 +254,14 @@ export const AICISMainView = () => {
                 </Card>
               )}
             </div>
+          </div>
+        </TabsContent>
+
+        {/* Intelligence Layers Tab (Analyst Mode) */}
+        <TabsContent value="layers" className="flex-1 mt-4 overflow-auto">
+          <div className="space-y-6">
+            <ThreeLayerStack />
+            <NonSurveillanceBanner variant="banner" />
           </div>
         </TabsContent>
 
