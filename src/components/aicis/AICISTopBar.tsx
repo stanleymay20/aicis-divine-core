@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Activity, User, LogOut } from "lucide-react";
+import { Bell, Activity, User, LogOut, ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import aicisLogo from "@/assets/aicis-logo.png";
+import { ThreeLayerStack } from "./ThreeLayerStack";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,8 +131,30 @@ export const AICISTopBar = () => {
           </div>
         </div>
 
-        {/* Center: Status Indicators */}
+        {/* Center: Three-Layer Stack + Status Indicators */}
         <div className="flex items-center gap-4">
+          {/* Three-Layer Stack (compact) */}
+          <ThreeLayerStack compact className="hidden lg:flex" />
+
+          {/* Non-Surveillance Badge */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div 
+                className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-success/10 border border-success/30 cursor-pointer hover:bg-success/20 transition-colors"
+                onClick={() => navigate("/ethics")}
+              >
+                <ShieldOff className="h-3 w-3 text-success" />
+                <span className="text-[10px] font-medium text-success hidden sm:inline">
+                  Non-Surveillance
+                </span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              <p className="font-medium">Non-Surveillance Guarantee</p>
+              <p className="text-muted-foreground">No individuals tracked — aggregate intelligence only</p>
+            </TooltipContent>
+          </Tooltip>
+
           {/* Data Feeds */}
           <Tooltip>
             <TooltipTrigger asChild>
