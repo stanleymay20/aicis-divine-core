@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import aicisLogo from "@/assets/aicis-logo.png";
 import { ThreeLayerStack } from "./ThreeLayerStack";
+import { AtlasStatusBadge } from "./AtlasStatusBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -131,8 +132,11 @@ export const AICISTopBar = () => {
           </div>
         </div>
 
-        {/* Center: Three-Layer Stack + Status Indicators */}
+        {/* Center: Atlas + Three-Layer Stack + Status Indicators */}
         <div className="flex items-center gap-4">
+          {/* Atlas Research Engine Badge */}
+          <AtlasStatusBadge className="hidden md:flex" />
+
           {/* Three-Layer Stack (compact) */}
           <ThreeLayerStack compact className="hidden lg:flex" />
 

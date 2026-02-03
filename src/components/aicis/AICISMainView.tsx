@@ -15,21 +15,25 @@ import { AnomalyDetection } from "./AnomalyDetection";
 import { SmallNationGuidance, generateNationGuidance } from "./SmallNationGuidance";
 import { CountryQuickAccess } from "./CountryQuickAccess";
 import { ThreeLayerStack, type LayerStatus } from "./ThreeLayerStack";
-import { ModeToggle, type ViewMode } from "./AnalystMode";
+import { ModeToggle } from "./AnalystMode";
 import { NonSurveillanceBanner } from "./NonSurveillanceBanner";
+import { AtlasStatusBadge } from "./AtlasStatusBadge";
+import { TieredAlertSystem } from "./TieredAlertSystem";
 import { GlobalMap, GlobalMapRef } from "@/components/command-center/GlobalMap";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useViewModePersistence } from "@/hooks/useViewModePersistence";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Activity, Lightbulb, Layers 
+  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Activity, Lightbulb, Layers, AlertTriangle 
 } from "lucide-react";
 
 export const AICISMainView = () => {
   const isMobile = useIsMobile();
   const mapRef = useRef<GlobalMapRef>(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [viewMode, setViewMode] = useState<ViewMode>("executive");
+  // View mode now persists via localStorage
+  const { mode: viewMode, setMode: setViewMode } = useViewModePersistence("executive");
   const [queryResult, setQueryResult] = useState<IntelligenceResult | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string;
@@ -167,6 +171,9 @@ export const AICISMainView = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Atlas Research Engine Status */}
+          <AtlasStatusBadge compact />
+          
           <CountryQuickAccess triggerClassName="h-7 text-xs" />
           <ModeToggle mode={viewMode} onModeChange={setViewMode} />
           <Badge variant="secondary" className="text-xs">
@@ -217,6 +224,10 @@ export const AICISMainView = () => {
           <TabsTrigger value="alerts" className="gap-2 data-[state=active]:bg-warning/20">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Alerts</span>
+          </TabsTrigger>
+          <TabsTrigger value="tiered-alerts" className="gap-2 data-[state=active]:bg-destructive/20">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="hidden sm:inline">Tiered Routing</span>
           </TabsTrigger>
         </TabsList>
 
@@ -318,6 +329,30 @@ export const AICISMainView = () => {
         {/* Alerts Tab */}
         <TabsContent value="alerts" className="flex-1 mt-4 overflow-auto">
           <LiveCriticalAlerts maxHeight="600px" />
+        </TabsContent>
+
+        {/* Tiered Alert System Tab */}
+        <TabsContent value="tiered-alerts" className="flex-1 mt-4 overflow-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TieredAlertSystem />
+            <div className="space-y-4">
+              <Card className="p-4 border-primary/30">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Alert Routing Rules
+                </h4>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p><strong className="text-muted-foreground">Low:</strong> System monitors automatically</p>
+                  <p><strong className="text-warning">Medium:</strong> Analyst attention required</p>
+                  <p><strong className="text-destructive">High:</strong> Executive attention required</p>
+                  <p><strong className="text-destructive font-bold">Critical:</strong> Human approval required before action</p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 pt-2 border-t border-border/50">
+                  No automated action is ever allowed. AI advises, humans decide.
+                </p>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
       )}

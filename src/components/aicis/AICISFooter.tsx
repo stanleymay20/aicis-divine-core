@@ -14,7 +14,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronUp, Database, Shield, Clock, AlertCircle } from "lucide-react";
+import { ChevronUp, Database, Shield, Clock, AlertCircle, ShieldOff } from "lucide-react";
+import { EthicsFooterStatement } from "./GlobalEthicsGuarantee";
 
 interface DataSource {
   name: string;
@@ -206,6 +207,9 @@ export const AICISFooter = () => {
           </div>
         </CollapsibleContent>
       </Collapsible>
+      
+      {/* Global Ethics Statement - Always Visible */}
+      <EthicsFooterStatement className="border-t border-border/50" />
     </TooltipProvider>
   );
 };
