@@ -23,6 +23,8 @@ import CompliancePortal from "./pages/CompliancePortal";
 import FederationHub from "./pages/FederationHub";
 import Ethics from "./pages/Ethics";
 import NotFound from "./pages/NotFound";
+import SecurityDashboard from "./pages/SecurityDashboard";
+import HealthDashboard from "./pages/HealthDashboard";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +42,9 @@ const App = () => (
           <Route path="/deepdive/:iso3" element={<CountryDeepDivePage />} />
           <Route path="/command" element={<AICISCommandCenter />} />
           <Route path="/debug" element={<Debug />} />
-          <Route path="/health" element={<SystemHealth />} />
+          <Route path="/system-health" element={<SystemHealth />} />
+          <Route path="/health" element={<HealthDashboard />} />
+          <Route path="/security" element={<SecurityDashboard />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin" element={<AdminDashboard />} />
