@@ -35,16 +35,15 @@ interface SidebarProps {
 
 const navigationItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/" },
-  { id: "map", label: "Global Map", icon: Globe, path: "/" },
+  { id: "command", label: "Command Center", icon: Globe, path: "/command" },
   { id: "governance", label: "Governance", icon: Landmark, path: "/governance" },
   { id: "security", label: "Security & Conflict", icon: Swords, path: "/security" },
-  { id: "health", label: "Health", icon: HeartPulse, path: "/" },
-  { id: "food", label: "Food & Agriculture", icon: Wheat, path: "/" },
-  { id: "energy", label: "Energy & Infrastructure", icon: Zap, path: "/" },
-  { id: "economy", label: "Economy & Finance", icon: TrendingUp, path: "/" },
-  { id: "education", label: "Education & Development", icon: GraduationCap, path: "/" },
-  { id: "climate", label: "Climate & Environment", icon: CloudSun, path: "/" },
-  { id: "ethics", label: "AI Ethics & SDGs", icon: Scale, path: "/" },
+  { id: "health", label: "Health", icon: HeartPulse, path: "/health" },
+  { id: "predictions", label: "Predictions", icon: TrendingUp, path: "/predictions" },
+  { id: "federation", label: "Federation", icon: Zap, path: "/federation" },
+  { id: "compliance", label: "Compliance", icon: GraduationCap, path: "/compliance" },
+  { id: "admin", label: "Admin", icon: CloudSun, path: "/admin" },
+  { id: "ethics", label: "AI Ethics & SDGs", icon: Scale, path: "/ethics" },
   { id: "system", label: "System Health", icon: Activity, path: "/system-health" },
 ];
 

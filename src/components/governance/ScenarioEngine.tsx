@@ -100,7 +100,7 @@ export const ScenarioEngine = () => {
                   scaledImpact < -10 ? "negative" as const : "neutral" as const,
           magnitude: scaledImpact,
           description: generateImpactDescription(domain, scaledImpact, scenarioText),
-          confidence: 60 + Math.random() * 30,
+          confidence: Math.min(95, 60 + (domain.charCodeAt(0) % 30)),
           timeframe: timeHorizon === "3m" ? "1-3 months" : 
                      timeHorizon === "6m" ? "3-6 months" : "6-12 months"
         };
@@ -392,7 +392,7 @@ function calculateBaseImpact(scenario: string, domain: string): number {
     }
   };
 
-  return impactMatrix[scenario]?.[domain] || (Math.random() - 0.5) * 40;
+  return impactMatrix[scenario]?.[domain] || ((domain.charCodeAt(0) + scenario.charCodeAt(0)) % 40 - 20);
 }
 
 function generateImpactDescription(domain: string, impact: number, scenario: string): string {
