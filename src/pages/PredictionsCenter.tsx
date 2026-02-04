@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,9 +11,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   TrendingUp, TrendingDown, Activity, ArrowLeft,
   RefreshCw, Brain, Target, AlertTriangle, Zap,
-  Heart, Utensils, Factory, Shield, DollarSign, Globe
+  Heart, Utensils, Factory, Shield, DollarSign, Globe, GitCompareArrows
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { ALL_COUNTRIES } from "@/lib/geo/all-countries";
+import { getCountryFlag } from "@/lib/geo/country-flags";
 
 const DIVISION_ICONS: Record<string, any> = {
   health: Heart,
@@ -133,13 +135,19 @@ const PredictionsCenter = () => {
               </div>
             </div>
           </div>
-          <Button
-            onClick={() => generatePredictions.mutate()}
-            disabled={generatePredictions.isPending}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${generatePredictions.isPending ? 'animate-spin' : ''}`} />
-            Generate New Predictions
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => generatePredictions.mutate()}
+              disabled={generatePredictions.isPending}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${generatePredictions.isPending ? 'animate-spin' : ''}`} />
+              Generate New Predictions
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/compare")}>
+              <GitCompareArrows className="w-4 h-4 mr-2" />
+              Compare Countries
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -214,12 +222,20 @@ const PredictionsCenter = () => {
                     const Icon = DIVISION_ICONS[prediction.division] || Activity;
                     const color = DIVISION_COLORS[prediction.division] || "#888";
                     const forecast = prediction.forecast || {};
+                    
+                    // Get flag for country
+                    const countryInfo = ALL_COUNTRIES.find(c => 
+                      c.name.toLowerCase() === prediction.country?.toLowerCase() ||
+                      c.iso3.toLowerCase() === prediction.country?.toLowerCase()
+                    );
+                    const flag = getCountryFlag(countryInfo?.iso2 || "");
 
                     return (
                       <Card key={prediction.id} className="overflow-hidden">
                         <CardContent className="pt-4">
                           <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{flag}</span>
                               <div 
                                 className="p-2 rounded-lg" 
                                 style={{ backgroundColor: `${color}20` }}

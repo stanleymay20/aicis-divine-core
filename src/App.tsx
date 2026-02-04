@@ -25,6 +25,7 @@ import Ethics from "./pages/Ethics";
 import NotFound from "./pages/NotFound";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import HealthDashboard from "./pages/HealthDashboard";
+import ComparePage from "./pages/ComparePage";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
           <Route path="/predictions" element={<PredictionsCenter />} />
           <Route path="/compliance" element={<CompliancePortal />} />
           <Route path="/federation" element={<FederationHub />} />
+          <Route path="/compare" element={<ComparePage />} />
           <Route path="/enterprise-governance" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><EnterpriseGovernance /></Suspense>} />
           <Route path="/ethics" element={<Ethics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
