@@ -92,32 +92,47 @@ serve(async (req) => {
         return acc;
       }, {});
 
-      // Generate predictions for each country (lowered threshold to 1)
-      for (const [country, data] of Object.entries(byCountry)) {
+      // Generate predictions for each country (cap at 2 to prevent timeout)
+      const countryEntries = Object.entries(byCountry).slice(0, 2);
+      for (const [country, data] of countryEntries) {
         const dataArray = data as any[];
         if (dataArray.length < 1) continue;
 
+        // Calculate future dates for 90-day forecast
+        const today = new Date();
+        const futureDate1 = new Date(today);
+        futureDate1.setDate(today.getDate() + 30);
+        const futureDate2 = new Date(today);
+        futureDate2.setDate(today.getDate() + 60);
+        const futureDate3 = new Date(today);
+        futureDate3.setDate(today.getDate() + 90);
+
+        const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
         // Generate AI-powered forecast
-        const prompt = `Analyze this ${division} data for ${country} and provide a 90-day forecast.
+        const prompt = `Analyze this ${division} data for ${country} and provide a 90-day FUTURE forecast starting from today (${formatDate(today)}).
 
 Historical Data:
 ${JSON.stringify(dataArray.slice(0, 5), null, 2)}
 
 Provide a JSON response with these exact fields:
 {
-  "summary": "Brief 1-2 sentence forecast summary",
+  "summary": "Brief 1-2 sentence forecast summary for the next 90 days",
   "trend": "increasing" | "stable" | "decreasing",
   "risk_level": "low" | "medium" | "high" | "critical",
-  "confidence": 0.0-1.0,
+  "confidence": 0.0-0.95,
   "key_factors": ["factor1", "factor2"],
   "timeline": [
-    {"date": "2026-01-20", "value": 100, "event": "optional note"},
-    {"date": "2026-02-20", "value": 105},
-    {"date": "2026-03-20", "value": 110}
+    {"date": "${formatDate(futureDate1)}", "value": 100, "event": "optional note"},
+    {"date": "${formatDate(futureDate2)}", "value": 105},
+    {"date": "${formatDate(futureDate3)}", "value": 110}
   ]
 }
 
-Return ONLY the JSON object, no markdown.`;
+IMPORTANT: 
+- All dates in timeline MUST be in the future (after ${formatDate(today)})
+- Confidence MUST NOT exceed 0.95 (95% cap enforced)
+- Return ONLY the JSON object, no markdown.`;
 
         try {
           const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -127,12 +142,13 @@ Return ONLY the JSON object, no markdown.`;
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: 'google/gemini-3-flash-preview',
+              model: 'google/gemini-2.5-flash-lite',
               messages: [
                 { role: 'system', content: 'You are AICIS predictive analytics AI. Provide forecasts in valid JSON format only. No markdown.' },
                 { role: 'user', content: prompt }
               ],
-              temperature: 0.3
+              temperature: 0.2,
+              max_tokens: 500
             })
           });
 
@@ -162,11 +178,14 @@ Return ONLY the JSON object, no markdown.`;
             }
           }
 
+          // Enforce 95% confidence cap
+          const cappedConfidence = Math.min(forecast.confidence || 0.7, 0.95);
+
           predictions.push({
             division,
             country,
             forecast,
-            confidence: forecast.confidence || 0.7,
+            confidence: cappedConfidence,
             volatility_index: forecast.risk_level === 'critical' ? 0.8 : 
                              forecast.risk_level === 'high' ? 0.6 : 
                              forecast.risk_level === 'medium' ? 0.4 : 0.2,
@@ -177,9 +196,6 @@ Return ONLY the JSON object, no markdown.`;
         } catch (err) {
           console.error(`Error generating prediction for ${country} ${division}:`, err);
         }
-
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 

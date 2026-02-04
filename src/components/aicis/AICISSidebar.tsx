@@ -33,9 +33,12 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
+import { GitCompareArrows } from "lucide-react";
+
 const navigationItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/" },
   { id: "command", label: "Command Center", icon: Globe, path: "/command" },
+  { id: "compare", label: "Compare Countries", icon: GitCompareArrows, path: "/compare" },
   { id: "governance", label: "Governance", icon: Landmark, path: "/governance" },
   { id: "security", label: "Security & Conflict", icon: Swords, path: "/security" },
   { id: "health", label: "Health", icon: HeartPulse, path: "/health" },

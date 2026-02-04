@@ -1,8 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, Globe, GraduationCap, Heart, Zap, DollarSign, CloudRain, Wheat, Shield } from "lucide-react";
+import { Activity, Globe, GraduationCap, Heart, Zap, DollarSign, CloudRain, Wheat, Shield, ArrowLeft, GitCompareArrows } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { ALL_COUNTRIES } from "@/lib/geo/all-countries";
+import { getCountryFlag } from "@/lib/geo/country-flags";
 
 interface DivisionData {
   metrics: Array<{
@@ -57,7 +61,12 @@ const getCompletenessColor = (score: number) => {
 };
 
 export default function CountryDeepDive({ location, profile, completeness_overall, notes }: CountryDeepDiveProps) {
+  const navigate = useNavigate();
   const divisions = Object.entries(profile || {}).filter(([_, data]) => data && data.metrics && data.metrics.length > 0);
+  
+  // Get country info for flag
+  const countryInfo = ALL_COUNTRIES.find(c => c.iso3 === location.iso3);
+  const flag = getCountryFlag(countryInfo?.iso2 || "");
 
   const getLatestValue = (metrics: any[], metricName: string) => {
     if (!metrics || metrics.length === 0) return null;
@@ -85,15 +94,32 @@ export default function CountryDeepDive({ location, profile, completeness_overal
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground">
-            {location.name} ({location.iso3})
-          </h1>
-          <p className="text-muted-foreground mt-2">Comprehensive Country Deep-Dive Analysis</p>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-5xl">{flag}</span>
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">
+                {location.name} ({location.iso3})
+              </h1>
+              <p className="text-muted-foreground mt-1">Comprehensive Country Deep-Dive Analysis</p>
+            </div>
+          </div>
         </div>
-        <Badge variant={getCompletenessColor(completeness_overall)} className="text-lg px-4 py-2">
-          {Math.round(completeness_overall * 100)}% Data Complete
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(`/compare?countries=${location.iso3}`)}
+          >
+            <GitCompareArrows className="h-4 w-4 mr-2" />
+            Compare
+          </Button>
+          <Badge variant={getCompletenessColor(completeness_overall)} className="text-lg px-4 py-2">
+            {Math.round(completeness_overall * 100)}% Data Complete
+          </Badge>
+        </div>
       </div>
 
       {/* KPI Strip */}

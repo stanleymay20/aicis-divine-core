@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Activity, User, LogOut, ShieldOff } from "lucide-react";
+import { Bell, Activity, User, LogOut, ShieldOff, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,9 @@ import {
 
 export const AICISTopBar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
+  const isHome = location.pathname === "/";
   const [currentTime, setCurrentTime] = useState(new Date());
   const [dataFeedStatus, setDataFeedStatus] = useState<"online" | "partial" | "offline">("online");
   const [criticalAlerts, setCriticalAlerts] = useState(0);
@@ -105,8 +107,26 @@ export const AICISTopBar = () => {
   return (
     <TooltipProvider>
       <header className="h-12 bg-card/95 backdrop-blur-xl border-b border-primary/20 flex items-center justify-between px-4 z-50 shrink-0">
-        {/* Left: Logo & Title */}
+        {/* Left: Back Button + Logo & Title */}
         <div className="flex items-center gap-3">
+          {/* Universal Back Button */}
+          {!isHome && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Go Back</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Logo - always navigates to dashboard */}
           <div 
             className="relative cursor-pointer group"
             onClick={() => navigate("/")}
