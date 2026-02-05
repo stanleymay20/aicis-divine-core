@@ -7,13 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Plus, X, Globe, Search } from "lucide-react";
+import { ArrowLeft, Plus, X, Globe, Search, Eye, EyeOff } from "lucide-react";
 import { ALL_COUNTRIES } from "@/lib/geo/all-countries";
 import { getCountryFlag } from "@/lib/geo/country-flags";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from "recharts";
+import { QuadrantPlot } from "@/components/visualizations/QuadrantPlot";
+import { ComparativeMatrix } from "@/components/visualizations/ComparativeMatrix";
+import { NarrativeSynthesis } from "@/components/visualizations/NarrativeSynthesis";
+import { useViewModePersistence } from "@/hooks/useViewModePersistence";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -23,6 +27,8 @@ const ComparePage = () => {
   const initialCountries = searchParams.get("countries")?.split(",").filter(Boolean) || [];
   const [selectedCountries, setSelectedCountries] = useState<string[]>(initialCountries);
   const [searchQuery, setSearchQuery] = useState("");
+  const { mode } = useViewModePersistence();
+  const isExecutiveMode = mode === "executive";
 
   // Fetch country profiles for selected countries
   const { data: profiles, isLoading } = useQuery({

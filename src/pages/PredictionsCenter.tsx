@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -11,11 +10,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   TrendingUp, TrendingDown, Activity, ArrowLeft,
   RefreshCw, Brain, Target, AlertTriangle, Zap,
-  Heart, Utensils, Factory, Shield, DollarSign, Globe, GitCompareArrows
+  Heart, Utensils, Shield, DollarSign, Globe, GitCompareArrows,
+  Eye, EyeOff, HelpCircle, Lightbulb
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { ALL_COUNTRIES } from "@/lib/geo/all-countries";
 import { getCountryFlag } from "@/lib/geo/country-flags";
+import { ForecastFanChart } from "@/components/visualizations/ForecastFanChart";
+import { ExecutiveScorecard } from "@/components/visualizations/ExecutiveScorecard";
+import { NarrativeSynthesis } from "@/components/visualizations/NarrativeSynthesis";
+import { useViewModePersistence } from "@/hooks/useViewModePersistence";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const DIVISION_ICONS: Record<string, any> = {
   health: Heart,
@@ -40,6 +44,8 @@ const PredictionsCenter = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedDivision, setSelectedDivision] = useState("all");
+  const { mode } = useViewModePersistence();
+  const isExecutiveMode = mode === "executive";
 
   // Fetch all predictions
   const { data: predictions, isLoading } = useQuery({
