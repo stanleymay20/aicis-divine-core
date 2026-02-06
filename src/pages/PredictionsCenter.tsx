@@ -1,23 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   TrendingUp, TrendingDown, Activity, ArrowLeft,
-  RefreshCw, Brain, Target, AlertTriangle, Zap,
+  RefreshCw, Brain, Target, Zap,
   Heart, Utensils, Shield, DollarSign, Globe, GitCompareArrows,
-  Eye, EyeOff, HelpCircle, Lightbulb
+  Loader2
 } from "lucide-react";
 import { ALL_COUNTRIES } from "@/lib/geo/all-countries";
 import { getCountryFlag } from "@/lib/geo/country-flags";
-import { ForecastFanChart } from "@/components/visualizations/ForecastFanChart";
-import { ExecutiveScorecard } from "@/components/visualizations/ExecutiveScorecard";
-import { NarrativeSynthesis } from "@/components/visualizations/NarrativeSynthesis";
 import { useViewModePersistence } from "@/hooks/useViewModePersistence";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -31,21 +31,29 @@ const DIVISION_ICONS: Record<string, any> = {
 };
 
 const DIVISION_COLORS: Record<string, string> = {
-  health: "#10b981",
-  food: "#f59e0b",
-  energy: "#3b82f6",
-  governance: "#8b5cf6",
-  finance: "#06b6d4",
-  security: "#ef4444",
+  health: "hsl(var(--success))",
+  food: "hsl(var(--warning))",
+  energy: "hsl(var(--primary))",
+  governance: "hsl(var(--secondary))",
+  finance: "hsl(var(--accent))",
+  security: "hsl(var(--destructive))",
 };
 
 const PredictionsCenter = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedDivision, setSelectedDivision] = useState("all");
   const { mode } = useViewModePersistence();
   const isExecutiveMode = mode === "executive";
+
+  // Auth redirect
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   // Fetch all predictions
   const { data: predictions, isLoading } = useQuery({
@@ -59,6 +67,7 @@ const PredictionsCenter = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 
   // Generate predictions mutation
@@ -102,16 +111,18 @@ const PredictionsCenter = () => {
     return acc;
   }, {});
 
-  Object.keys(divisionStats || {}).forEach(key => {
-    if (divisionStats[key].count > 0) {
-      divisionStats[key].avgConfidence /= divisionStats[key].count;
-    }
-  });
+  if (divisionStats) {
+    Object.keys(divisionStats).forEach(key => {
+      if (divisionStats[key].count > 0) {
+        divisionStats[key].avgConfidence /= divisionStats[key].count;
+      }
+    });
+  }
 
   const getTrendIcon = (trend: string) => {
-    if (trend === "increasing") return <TrendingUp className="h-4 w-4 text-green-500" />;
-    if (trend === "decreasing") return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Activity className="h-4 w-4 text-yellow-500" />;
+    if (trend === "increasing") return <TrendingUp className="h-4 w-4 text-success" />;
+    if (trend === "decreasing") return <TrendingDown className="h-4 w-4 text-destructive" />;
+    return <Activity className="h-4 w-4 text-warning" />;
   };
 
   const getRiskBadge = (risk: string) => {
@@ -124,20 +135,30 @@ const PredictionsCenter = () => {
     return <Badge variant={variants[risk] || "outline"}>{risk}</Badge>;
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <AICISLayout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2">
               <Brain className="h-8 w-8 text-primary" />
               <div>
                 <h1 className="text-xl font-orbitron font-bold">Predictions Center</h1>
-                <p className="text-xs text-muted-foreground">AI-Powered Global Forecasting</p>
+                <p className="text-xs text-muted-foreground">AI-Powered Global Forecasting • 95% Confidence Cap</p>
               </div>
             </div>
           </div>
@@ -155,9 +176,7 @@ const PredictionsCenter = () => {
             </Button>
           </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Division Stats */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           {Object.entries(DIVISION_ICONS).map(([division, Icon]) => {
@@ -174,7 +193,7 @@ const PredictionsCenter = () => {
               >
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className="h-5 w-5" style={{ color: DIVISION_COLORS[division] }} />
+                    <Icon className="h-5 w-5 text-primary" />
                     <span className="font-semibold capitalize">{division}</span>
                   </div>
                   <div className="text-2xl font-bold">{stats.count}</div>
@@ -210,13 +229,16 @@ const PredictionsCenter = () => {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-32 w-full" />
+                ))}
               </div>
             ) : filteredPredictions?.length === 0 ? (
               <div className="text-center py-12">
                 <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No predictions available</p>
+                <p className="text-xs text-muted-foreground mt-1">Generate predictions to see AI-powered forecasts</p>
                 <Button className="mt-4" onClick={() => generatePredictions.mutate()}>
                   Generate Predictions
                 </Button>
@@ -226,15 +248,16 @@ const PredictionsCenter = () => {
                 <div className="space-y-4">
                   {filteredPredictions?.map((prediction: any) => {
                     const Icon = DIVISION_ICONS[prediction.division] || Activity;
-                    const color = DIVISION_COLORS[prediction.division] || "#888";
                     const forecast = prediction.forecast || {};
                     
-                    // Get flag for country
                     const countryInfo = ALL_COUNTRIES.find(c => 
                       c.name.toLowerCase() === prediction.country?.toLowerCase() ||
                       c.iso3.toLowerCase() === prediction.country?.toLowerCase()
                     );
                     const flag = getCountryFlag(countryInfo?.iso2 || "");
+
+                    // Enforce confidence cap in display
+                    const displayConfidence = Math.min((prediction.confidence || 0) * 100, 95);
 
                     return (
                       <Card key={prediction.id} className="overflow-hidden">
@@ -242,11 +265,8 @@ const PredictionsCenter = () => {
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <span className="text-2xl">{flag}</span>
-                              <div 
-                                className="p-2 rounded-lg" 
-                                style={{ backgroundColor: `${color}20` }}
-                              >
-                                <Icon className="h-5 w-5" style={{ color }} />
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <Icon className="h-5 w-5 text-primary" />
                               </div>
                               <div>
                                 <p className="font-semibold">{prediction.country}</p>
@@ -284,11 +304,9 @@ const PredictionsCenter = () => {
                                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                   <XAxis 
                                     dataKey="date" 
-                                    className="text-xs"
                                     tick={{ fill: 'currentColor', fontSize: 10 }}
                                   />
                                   <YAxis 
-                                    className="text-xs"
                                     tick={{ fill: 'currentColor', fontSize: 10 }}
                                   />
                                   <Tooltip 
@@ -300,8 +318,8 @@ const PredictionsCenter = () => {
                                   <Area 
                                     type="monotone" 
                                     dataKey="value" 
-                                    stroke={color}
-                                    fill={`${color}30`}
+                                    stroke="hsl(var(--primary))"
+                                    fill="hsl(var(--primary) / 0.2)"
                                   />
                                 </AreaChart>
                               </ResponsiveContainer>
@@ -310,7 +328,7 @@ const PredictionsCenter = () => {
 
                           <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
                             <div className="flex items-center gap-4">
-                              <span>Confidence: {((prediction.confidence || 0) * 100).toFixed(0)}%</span>
+                              <span>Confidence: {displayConfidence.toFixed(0)}%</span>
                               <span>Volatility: {((prediction.volatility_index || 0) * 100).toFixed(0)}%</span>
                             </div>
                             <span>{new Date(prediction.predicted_at).toLocaleString()}</span>
@@ -324,8 +342,8 @@ const PredictionsCenter = () => {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AICISLayout>
   );
 };
 
