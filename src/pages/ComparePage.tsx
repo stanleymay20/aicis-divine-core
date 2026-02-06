@@ -1,34 +1,43 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Plus, X, Globe, Search, Eye, EyeOff } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Plus, X, Globe, Search, Loader2 } from "lucide-react";
 import { ALL_COUNTRIES } from "@/lib/geo/all-countries";
 import { getCountryFlag } from "@/lib/geo/country-flags";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from "recharts";
-import { QuadrantPlot } from "@/components/visualizations/QuadrantPlot";
-import { ComparativeMatrix } from "@/components/visualizations/ComparativeMatrix";
-import { NarrativeSynthesis } from "@/components/visualizations/NarrativeSynthesis";
 import { useViewModePersistence } from "@/hooks/useViewModePersistence";
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--destructive))", "hsl(var(--secondary))"];
+const COLOR_HEX = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]; // For recharts which needs hex
 
 const ComparePage = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCountries = searchParams.get("countries")?.split(",").filter(Boolean) || [];
   const [selectedCountries, setSelectedCountries] = useState<string[]>(initialCountries);
   const [searchQuery, setSearchQuery] = useState("");
   const { mode } = useViewModePersistence();
   const isExecutiveMode = mode === "executive";
+
+  // Auth redirect
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   // Fetch country profiles for selected countries
   const { data: profiles, isLoading } = useQuery({
@@ -45,7 +54,7 @@ const ComparePage = () => {
       );
       return results.filter((r) => r.ok);
     },
-    enabled: selectedCountries.length > 0,
+    enabled: selectedCountries.length > 0 && !!user,
   });
 
   // Fetch predictions for selected countries
@@ -63,7 +72,7 @@ const ComparePage = () => {
         .limit(50);
       return data || [];
     },
-    enabled: selectedCountries.length > 0,
+    enabled: selectedCountries.length > 0 && !!user,
   });
 
   const filteredCountries = useMemo(() => {
@@ -96,7 +105,7 @@ const ComparePage = () => {
     const divisions = ["governance", "health", "energy", "finance", "food", "security"];
     return divisions.map((div) => {
       const entry: any = { division: div.charAt(0).toUpperCase() + div.slice(1) };
-      profiles.forEach((p: any, idx: number) => {
+      profiles.forEach((p: any) => {
         const completeness = p.profile?.[div]?.completeness || 0;
         entry[p.iso3] = Math.round(completeness * 100);
       });
@@ -111,7 +120,7 @@ const ComparePage = () => {
     predictions.forEach((p: any) => {
       const key = p.country;
       if (!byCountry[key]) byCountry[key] = { confidence: 0, count: 0 };
-      byCountry[key].confidence += p.confidence || 0;
+      byCountry[key].confidence += Math.min(p.confidence || 0, 0.95); // Enforce 95% cap
       byCountry[key].count++;
     });
     return Object.entries(byCountry).map(([country, stats]) => ({
@@ -120,28 +129,35 @@ const ComparePage = () => {
     }));
   }, [predictions]);
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Globe className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-orbitron font-bold">Compare Countries</h1>
-                <p className="text-xs text-muted-foreground">
-                  Multi-country intelligence comparison
-                </p>
-              </div>
+    <AICISLayout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <Globe className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-xl font-orbitron font-bold">Compare Countries</h1>
+              <p className="text-xs text-muted-foreground">
+                Multi-country intelligence comparison • Max 5 countries
+              </p>
             </div>
           </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Country Selection */}
         <Card>
           <CardHeader>
@@ -160,7 +176,6 @@ const ComparePage = () => {
                     key={iso3}
                     variant="secondary"
                     className="flex items-center gap-2 px-3 py-1.5 text-sm"
-                    style={{ borderColor: COLORS[idx] }}
                   >
                     <span className="text-lg">{getCountryFlag(country?.iso2 || "")}</span>
                     {country?.name || iso3}
@@ -216,8 +231,9 @@ const ComparePage = () => {
 
         {/* Comparison Charts */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card><CardContent className="pt-6"><Skeleton className="h-[350px] w-full" /></CardContent></Card>
+            <Card><CardContent className="pt-6"><Skeleton className="h-[350px] w-full" /></CardContent></Card>
           </div>
         ) : profiles && profiles.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2">
@@ -237,8 +253,8 @@ const ComparePage = () => {
                         key={iso3}
                         name={ALL_COUNTRIES.find((c) => c.iso3 === iso3)?.name || iso3}
                         dataKey={iso3}
-                        stroke={COLORS[idx]}
-                        fill={COLORS[idx]}
+                        stroke={COLOR_HEX[idx]}
+                        fill={COLOR_HEX[idx]}
                         fillOpacity={0.2}
                       />
                     ))}
@@ -290,7 +306,7 @@ const ComparePage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {profiles.map((p: any, idx: number) => {
+                      {profiles.map((p: any) => {
                         const country = ALL_COUNTRIES.find((c) => c.iso3 === p.iso3);
                         return (
                           <tr key={p.iso3} className="border-b hover:bg-muted/50">
@@ -326,11 +342,12 @@ const ComparePage = () => {
           </div>
         ) : selectedCountries.length > 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            Loading country data...
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            Loading country intelligence data...
           </div>
         ) : null}
-      </main>
-    </div>
+      </div>
+    </AICISLayout>
   );
 };
 
