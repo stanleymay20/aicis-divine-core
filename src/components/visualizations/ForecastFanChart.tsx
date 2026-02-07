@@ -133,13 +133,13 @@
                fill="url(#fanGradient)"
                fillOpacity={0.4}
              />
-             <Area
-               type="monotone"
-               dataKey="lower"
-               stroke="none"
-               fill="white"
-               fillOpacity={1}
-             />
+              <Area
+                type="monotone"
+                dataKey="lower"
+                stroke="none"
+                fill="hsl(var(--background))"
+                fillOpacity={1}
+              />
              
              {/* Main trend line */}
              <Line

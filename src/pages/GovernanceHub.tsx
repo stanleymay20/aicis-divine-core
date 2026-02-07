@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,12 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
-import {
-  Vote, Scale, ArrowLeft, Plus,
-  ThumbsUp, ThumbsDown, Minus, Clock, CheckCircle,
-  Building2, TrendingUp
-} from "lucide-react";
+import { Loader2, Vote, Scale, ArrowLeft, Plus, ThumbsUp, ThumbsDown, Minus, Clock, CheckCircle, Building2, TrendingUp } from "lucide-react";
 
 const GovernanceHub = () => {
   const { user, loading: authLoading } = useAuth();
@@ -30,19 +25,12 @@ const GovernanceHub = () => {
   const [newProposalDescription, setNewProposalDescription] = useState("");
   const [selectedSpace, setSelectedSpace] = useState<string>("");
 
-  // Auth guard
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
+  // Auth redirect
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   // Fetch DAO spaces
   const { data: spaces } = useQuery({
@@ -55,6 +43,7 @@ const GovernanceHub = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 
   // Fetch proposals
@@ -68,6 +57,7 @@ const GovernanceHub = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 
   // Fetch user's votes
@@ -97,6 +87,7 @@ const GovernanceHub = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 
   // Create proposal mutation
@@ -155,6 +146,16 @@ const GovernanceHub = () => {
   const hasVoted = (proposalId: string) => {
     return userVotes?.some((v: any) => v.proposal_id === proposalId);
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <AICISLayout>
