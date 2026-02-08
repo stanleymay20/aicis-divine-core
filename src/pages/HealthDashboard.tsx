@@ -53,7 +53,7 @@ export default function HealthDashboard() {
       const { data: healthTable } = await supabase
         .from('health_metrics')
         .select('*')
-        .order('year', { ascending: false })
+        .order('date', { ascending: false })
         .limit(200);
       
       const combinedData = [

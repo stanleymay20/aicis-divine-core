@@ -36,9 +36,9 @@ export const AnomalyDetection = () => {
       // Fetch recent data for pattern analysis
       const [alertsRes, incidentsRes, crisesRes, healthRes] = await Promise.all([
         supabase.from("critical_alerts").select("*").order("triggered_at", { ascending: false }).limit(50),
-        supabase.from("security_incidents").select("*").order("reported_at", { ascending: false }).limit(50),
+        supabase.from("security_incidents").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("crisis_events").select("*").order("opened_at", { ascending: false }).limit(20),
-        supabase.from("health_data").select("*").order("collected_at", { ascending: false }).limit(20),
+        supabase.from("health_data").select("*").order("updated_at", { ascending: false }).limit(20),
       ]);
 
       const alerts = alertsRes.data || [];

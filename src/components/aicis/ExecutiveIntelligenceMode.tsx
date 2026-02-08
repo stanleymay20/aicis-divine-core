@@ -65,7 +65,7 @@ export const ExecutiveIntelligenceMode = () => {
         .from("critical_alerts")
         .select("*")
         .eq("acknowledged", false)
-        .order("created_at", { ascending: false })
+        .order("triggered_at", { ascending: false })
         .limit(5);
 
       // Fetch recent data for executive cards
@@ -85,7 +85,7 @@ export const ExecutiveIntelligenceMode = () => {
       const { data: healthData } = await supabase
         .from("health_data")
         .select("*")
-        .order("collected_at", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(5);
 
       // Build executive cards
