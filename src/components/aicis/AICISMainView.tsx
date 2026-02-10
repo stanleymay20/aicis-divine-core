@@ -19,6 +19,10 @@ import { ModeToggle } from "./AnalystMode";
 import { NonSurveillanceBanner } from "./NonSurveillanceBanner";
 import { AtlasStatusBadge } from "./AtlasStatusBadge";
 import { TieredAlertSystem } from "./TieredAlertSystem";
+import { EscalationBanner } from "@/components/intelligence/EscalationBanner";
+import { SignalBadge } from "@/components/intelligence/SignalBadge";
+import { useCrossDomainDetection } from "@/hooks/useCrossDomainDetection";
+import { useIntelligenceMemory } from "@/contexts/IntelligenceMemoryContext";
 import { GlobalMap, GlobalMapRef } from "@/components/command-center/GlobalMap";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useViewModePersistence } from "@/hooks/useViewModePersistence";
@@ -32,8 +36,10 @@ export const AICISMainView = () => {
   const isMobile = useIsMobile();
   const mapRef = useRef<GlobalMapRef>(null);
   const [activeTab, setActiveTab] = useState("overview");
-  // View mode now persists via localStorage
   const { mode: viewMode, setMode: setViewMode } = useViewModePersistence("executive");
+  const { unacknowledgedCount } = useIntelligenceMemory();
+  // Activate cross-domain detection engine
+  useCrossDomainDetection();
   const [queryResult, setQueryResult] = useState<IntelligenceResult | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<{
     name: string;
@@ -184,7 +190,11 @@ export const AICISMainView = () => {
 
       {/* Executive Mode Content */}
       {viewMode === "executive" && (
-        <ExecutiveIntelligenceMode />
+        <>
+          <EscalationBanner />
+          <ExecutiveIntelligenceMode />
+          <SignalBadge page="dashboard" />
+        </>
       )}
 
       {/* Intelligence Query Bar */}

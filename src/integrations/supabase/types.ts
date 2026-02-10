@@ -2510,6 +2510,66 @@ export type Database = {
         }
         Relationships: []
       }
+      intelligence_signals: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          confidence: number | null
+          countries: string[] | null
+          created_at: string
+          description: string
+          domains: string[]
+          escalation_reason: string | null
+          evidence: Json | null
+          expires_at: string | null
+          id: string
+          severity: string
+          signal_type: string
+          source_pages: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          confidence?: number | null
+          countries?: string[] | null
+          created_at?: string
+          description: string
+          domains?: string[]
+          escalation_reason?: string | null
+          evidence?: Json | null
+          expires_at?: string | null
+          id?: string
+          severity?: string
+          signal_type: string
+          source_pages?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          confidence?: number | null
+          countries?: string[] | null
+          created_at?: string
+          description?: string
+          domains?: string[]
+          escalation_reason?: string | null
+          evidence?: Json | null
+          expires_at?: string | null
+          id?: string
+          severity?: string
+          signal_type?: string
+          source_pages?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ip_access_control: {
         Row: {
           access_type: string

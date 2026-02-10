@@ -14,7 +14,7 @@ import { NarrativeSynthesis } from '@/components/visualizations/NarrativeSynthes
 import { ForecastFanChart } from '@/components/visualizations/ForecastFanChart';
 import { ExecutiveBrief, ModeAwareSection } from '@/components/intelligence/ModeAwareSection';
 import { WhyPanel } from '@/components/intelligence/WhyPanel';
-
+import { SignalBadge } from '@/components/intelligence/SignalBadge';
 export default function SecurityDashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -103,6 +103,8 @@ export default function SecurityDashboard() {
           </div>
           <Badge variant="outline" className="text-xs">Last updated: {new Date().toLocaleTimeString()}</Badge>
         </div>
+
+        <SignalBadge domain="security" />
 
         <ModeAwareSection onlyIn="executive">
           <ExecutiveBrief
