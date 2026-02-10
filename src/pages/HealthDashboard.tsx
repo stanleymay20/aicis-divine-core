@@ -15,6 +15,7 @@ import { ExecutiveScorecard } from '@/components/visualizations/ExecutiveScoreca
 import { ExecutiveBrief, ModeAwareSection } from '@/components/intelligence/ModeAwareSection';
 import { WhyPanel } from '@/components/intelligence/WhyPanel';
 import { TrendDecomposition } from '@/components/intelligence/TrendDecomposition';
+import { SignalBadge } from '@/components/intelligence/SignalBadge';
 
 export default function HealthDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -99,6 +100,8 @@ export default function HealthDashboard() {
           </div>
           <Badge variant="outline" className="text-xs">{summaryStats.dataPoints} data points</Badge>
         </div>
+
+        <SignalBadge domain="health" />
 
         <ModeAwareSection onlyIn="executive">
           <ExecutiveBrief

@@ -17,6 +17,7 @@ import { Loader2, Vote, Scale, ArrowLeft, Plus, ThumbsUp, ThumbsDown, Minus, Clo
 import { useViewModePersistence } from "@/hooks/useViewModePersistence";
 import { NarrativeSynthesis } from "@/components/visualizations/NarrativeSynthesis";
 import { ExecutiveBrief, ModeAwareSection } from "@/components/intelligence/ModeAwareSection";
+import { SignalBadge } from "@/components/intelligence/SignalBadge";
 import { ScenarioEngine } from "@/components/governance/ScenarioEngine";
 
 const GovernanceHub = () => {
@@ -68,6 +69,8 @@ const GovernanceHub = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
           <div className="flex items-center gap-2"><Scale className="h-8 w-8 text-primary" /><div><h1 className="text-xl font-orbitron font-bold">Governance Hub</h1><p className="text-xs text-muted-foreground">DAO & Policy Management</p></div></div>
         </div>
+
+        <SignalBadge domain="governance" />
 
         <ModeAwareSection onlyIn="executive">
           <ExecutiveBrief
