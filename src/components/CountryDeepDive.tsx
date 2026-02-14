@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Activity, Globe, GraduationCap, Heart, Zap, DollarSign, 
   CloudRain, Wheat, Shield, ArrowLeft, GitCompareArrows,
-  Eye, EyeOff
+  Eye, EyeOff, TrendingUp, TrendingDown, Minus
 } from "lucide-react";
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
@@ -26,6 +26,11 @@ import { TrendDecomposition } from "@/components/intelligence/TrendDecomposition
 import { TemporalLayer } from "@/components/intelligence/TemporalLayer";
 import { ScenarioEngine } from "@/components/governance/ScenarioEngine";
 import { useViewModePersistence } from "@/hooks/useViewModePersistence";
+import { 
+  computeNationalPerformance, getMomentumArrow, getMomentumColor,
+  getRiskLabel, getRiskBadgeVariant, getPerformanceLabel, getVolatilityLabel,
+  type NationalPerformanceIndex
+} from "@/lib/performance-engine";
 
 interface DivisionData {
   metrics: Array<{
@@ -73,18 +78,10 @@ const divisionIcons = {
   security: Shield
 };
 
-const getCompletenessColor = (score: number) => {
-  if (score >= 0.8) return "default";
-  if (score >= 0.6) return "secondary";
-  return "destructive";
-};
-
-const getRiskLevel = (completeness: number, volatility: number = 0.3) => {
-  const score = (1 - completeness) * 0.6 + volatility * 0.4;
-  if (score >= 0.7) return "critical";
-  if (score >= 0.5) return "high";
-  if (score >= 0.3) return "medium";
-  return "low";
+const MomentumIcon = ({ value }: { value: number }) => {
+  if (value > 3) return <TrendingUp className="h-4 w-4 text-success" />;
+  if (value < -3) return <TrendingDown className="h-4 w-4 text-destructive" />;
+  return <Minus className="h-4 w-4 text-muted-foreground" />;
 };
 
 export default function CountryDeepDive({ location, profile, completeness_overall, notes }: CountryDeepDiveProps) {
@@ -97,58 +94,54 @@ export default function CountryDeepDive({ location, profile, completeness_overal
   const countryInfo = ALL_COUNTRIES.find(c => c.iso3 === location.iso3);
   const flag = getCountryFlag(countryInfo?.iso2 || "");
 
-  // Prepare Executive Scorecard data
+  // Compute NPI via Performance Engine
+  const npi: NationalPerformanceIndex = useMemo(() => {
+    return computeNationalPerformance(location.iso3, location.name, profile as any);
+  }, [location, profile]);
+
+  // Executive Scorecard — now performance-based
   const scorecardMetrics = useMemo(() => {
-    return divisions.slice(0, 8).map(([division, data]) => {
-      const latestMetric = data.metrics[0];
-      const historicalValues = data.metrics
-        .sort((a: any, b: any) => a.period.localeCompare(b.period))
-        .slice(-10)
-        .map((m: any) => ({ value: m.value }));
-      
-      const values = data.metrics.map((m: any) => m.value);
-      const avg = values.reduce((a: number, b: number) => a + b, 0) / values.length;
-      const delta = latestMetric ? ((latestMetric.value - avg) / avg) * 100 : 0;
-      
-      return {
-        label: division.charAt(0).toUpperCase() + division.slice(1),
-        value: latestMetric?.value || 0,
-        unit: latestMetric?.unit || "",
-        delta: delta,
-        riskLevel: getRiskLevel(data.completeness, Math.abs(delta) / 100) as any,
-        confidence: Math.min(data.completeness * 0.95 + 0.05, 0.95),
-        sparklineData: historicalValues,
-        domain: division
-      };
-    });
-  }, [divisions]);
-
-  // Prepare Risk Heatmap data
-  const riskHeatmapData = useMemo(() => {
-    return divisions.map(([division, data]) => {
-      const volatility = data.metrics.length > 1 
-        ? Math.min(Math.abs(data.metrics[0]?.value - data.metrics[1]?.value) / (data.metrics[0]?.value || 1), 1)
-        : 0.3;
-      return {
-        domain: division.charAt(0).toUpperCase() + division.slice(1),
-        severity: Math.round(1 + (1 - data.completeness) * 4),
-        likelihood: Math.round(1 + volatility * 4),
-        trend: volatility > 0.2 ? "up" as const : volatility < -0.1 ? "down" as const : "stable" as const,
-        confidence: data.completeness
-      };
-    });
-  }, [divisions]);
-
-  // Prepare Causal Flow data
-  const causalData = useMemo(() => {
-    const nodes = divisions.map(([division, data]) => ({
-      id: division,
-      label: division.charAt(0).toUpperCase() + division.slice(1),
-      domain: division,
-      riskLevel: getRiskLevel(data.completeness) as any,
-      value: data.completeness * 100
+    return npi.domains.slice(0, 8).map(dp => ({
+      label: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+      value: dp.performanceIndex,
+      unit: "/ 100",
+      delta: dp.momentumScore,
+      riskLevel: dp.riskPressureScore >= 60 ? 'high' as const : dp.riskPressureScore >= 30 ? 'medium' as const : 'low' as const,
+      confidence: dp.confidenceScore / 100,
+      sparklineData: [],
+      domain: dp.domain,
     }));
+  }, [npi]);
 
+  // Performance Radar
+  const radarData = useMemo(() => {
+    return npi.domains.map(dp => ({
+      division: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+      performance: dp.performanceIndex,
+      baseline: 50,
+    }));
+  }, [npi]);
+
+  // Risk Heatmap — now volatility × risk pressure
+  const riskHeatmapData = useMemo(() => {
+    return npi.domains.map(dp => ({
+      domain: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+      severity: Math.round(dp.riskPressureScore / 20),
+      likelihood: Math.round(dp.volatilityIndex / 20),
+      trend: dp.forecastDirection === 'down' ? "up" as const : dp.forecastDirection === 'up' ? "down" as const : "stable" as const,
+      confidence: dp.confidenceScore / 100,
+    }));
+  }, [npi]);
+
+  // Causal Flow
+  const causalData = useMemo(() => {
+    const nodes = npi.domains.map(dp => ({
+      id: dp.domain,
+      label: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+      domain: dp.domain,
+      riskLevel: dp.riskPressureScore >= 60 ? 'high' as const : dp.riskPressureScore >= 30 ? 'medium' as const : 'low' as const,
+      value: dp.performanceIndex,
+    }));
     const links = [
       { source: "energy", target: "finance", strength: 0.8, direction: "positive" as const },
       { source: "governance", target: "security", strength: 0.7, direction: "positive" as const },
@@ -157,170 +150,154 @@ export default function CountryDeepDive({ location, profile, completeness_overal
       { source: "climate", target: "food", strength: 0.8, direction: "negative" as const },
       { source: "finance", target: "governance", strength: 0.5, direction: "positive" as const },
     ].filter(l => nodes.find(n => n.id === l.source) && nodes.find(n => n.id === l.target));
-
     return { nodes, links };
-  }, [divisions]);
+  }, [npi]);
 
-  // Prepare Forecast data
+  // Forecast Fan Chart data
   const forecastData = useMemo(() => {
     const now = new Date();
     const data = [];
-    
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now);
       date.setMonth(date.getMonth() - i);
       data.push({
         date: date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-        value: completeness_overall * 100 + (Math.sin(i) * 5),
-        isForecast: false
+        value: npi.overallIndex - (i * 0.8) + Math.sin(i) * 2,
+        isForecast: false,
       });
     }
-    
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 4; i++) {
       const date = new Date(now);
       date.setMonth(date.getMonth() + i);
-      const trend = completeness_overall > 0.6 ? 0.02 : -0.01;
+      const trend = npi.momentum / 100;
+      const val = npi.overallIndex + (trend * i * 5);
       data.push({
         date: date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-        value: completeness_overall * 100 * (1 + trend * i),
-        isForecast: true
+        value: Math.max(0, Math.min(100, val)),
+        isForecast: true,
+        upper: Math.min(100, val + npi.volatility * 0.3 * i),
+        lower: Math.max(0, val - npi.volatility * 0.3 * i),
       });
     }
-    
     return data;
-  }, [completeness_overall]);
+  }, [npi]);
 
-  // Prepare Radar data with baseline
-  const radarData = useMemo(() => {
-    return divisions.map(([division, data]) => ({
-      division: division.charAt(0).toUpperCase() + division.slice(1),
-      completeness: Math.round((data?.completeness || 0) * 100),
-      baseline: 60
-    }));
-  }, [divisions]);
-
-  // Trend Decomposition data
+  // Trend Decomposition
   const decompositionData = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 12 }, (_, i) => {
       const date = new Date(now);
       date.setMonth(date.getMonth() - (11 - i));
-      const baseline = completeness_overall * 100 + i * 0.5;
+      const baseline = npi.overallIndex - 5 + i * 0.5;
       const seasonal = Math.sin((i / 12) * Math.PI * 2) * 3;
-      const shock = i === 8 ? -5 : i === 9 ? -2 : 0;
+      const shock = i === 8 ? -(npi.volatility * 0.1) : 0;
       return {
         date: date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
-        baseline: parseFloat(baseline.toFixed(2)),
-        seasonal: parseFloat(seasonal.toFixed(2)),
-        shock: parseFloat(shock.toFixed(2)),
-        total: parseFloat((baseline + seasonal + shock).toFixed(2)),
+        baseline: parseFloat(baseline.toFixed(1)),
+        seasonal: parseFloat(seasonal.toFixed(1)),
+        shock: parseFloat(shock.toFixed(1)),
+        total: parseFloat((baseline + seasonal + shock).toFixed(1)),
       };
     });
-  }, [completeness_overall]);
+  }, [npi]);
 
-  // Temporal phases
+  // Temporal phases — now performance-driven
   const temporalPhases = useMemo(() => {
-    const topDivisions = divisions.slice(0, 3);
+    const top = npi.domains.slice(0, 3);
     return [
       {
         label: "Historical Baseline",
-        period: "6-12 months ago",
+        period: "6–12 months ago",
         type: "past" as const,
-        metrics: topDivisions.map(([d, data]) => ({
-          name: d.charAt(0).toUpperCase() + d.slice(1),
-          value: `${Math.round(data.completeness * 90)}%`,
+        metrics: top.map(dp => ({
+          name: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+          value: `${Math.max(0, dp.performanceIndex - 5)}/100`,
           trend: "stable" as const,
         })),
       },
       {
-        label: "Current Assessment",
+        label: "Current Performance",
         period: "Now",
         type: "present" as const,
-        metrics: topDivisions.map(([d, data]) => ({
-          name: d.charAt(0).toUpperCase() + d.slice(1),
-          value: `${Math.round(data.completeness * 100)}%`,
-          trend: data.completeness > 0.6 ? "up" as const : "down" as const,
+        metrics: top.map(dp => ({
+          name: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+          value: `${dp.performanceIndex}/100`,
+          trend: dp.forecastDirection === 'up' ? "up" as const : dp.forecastDirection === 'down' ? "down" as const : "stable" as const,
         })),
       },
       {
         label: "90-Day Projection",
         period: "Next 3 months",
         type: "forecast" as const,
-        metrics: topDivisions.map(([d, data]) => ({
-          name: d.charAt(0).toUpperCase() + d.slice(1),
-          value: `${Math.min(Math.round(data.completeness * 105), 95)}%`,
-          trend: data.completeness > 0.5 ? "up" as const : "stable" as const,
+        metrics: top.map(dp => ({
+          name: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+          value: `${dp.forecast90d}/100`,
+          trend: dp.forecastDirection,
         })),
       },
     ];
-  }, [divisions]);
+  }, [npi]);
 
-  // Why Panel data
-  const whyPanelData = useMemo(() => {
-    const strongDivisions = divisions.filter(([_, d]) => d.completeness >= 0.7);
-    const weakDivisions = divisions.filter(([_, d]) => d.completeness < 0.5);
-    
-    return {
-      confidenceScore: Math.min(completeness_overall + 0.1, 0.95),
-      confidenceRationale: `Based on ${divisions.length} monitored domains with ${Math.round(completeness_overall * 100)}% average data coverage. ${weakDivisions.length} domain${weakDivisions.length !== 1 ? 's' : ''} below 50% coverage limit confidence ceiling. All values capped at 95%.`,
-      drivers: divisions.map(([d, data]) => ({
-        label: d.charAt(0).toUpperCase() + d.slice(1),
-        influence: Math.round(data.completeness * 100),
-        direction: data.completeness >= 0.7 ? "positive" as const : data.completeness < 0.4 ? "negative" as const : "neutral" as const,
-        description: `${data.metrics.length} metrics from ${[...new Set(data.metrics.map(m => m.source))].length} sources`,
-      })),
-      assumptions: [
-        "Data sources are publicly available institutional datasets",
-        "Missing data points interpolated using regional baselines",
-        `${8 - divisions.length} standard domains have no available data`,
-        "Seasonal patterns assumed consistent with 3-year historical averages",
-      ],
-      whatWouldChange: [
-        "Additional real-time data feeds for undermonitored domains",
-        "Regional conflict escalation/de-escalation events",
-        "Major policy shifts (trade, health, energy)",
-        "Natural disaster or climate events affecting data infrastructure",
-      ],
-    };
-  }, [divisions, completeness_overall]);
-
-  // Narrative Synthesis
+  // Narrative sections — performance framing
   const narrativeSections = useMemo(() => {
-    const highRiskDivisions = divisions.filter(([_, data]) => data.completeness < 0.5);
-    const strongDivisions = divisions.filter(([_, data]) => data.completeness >= 0.7);
-    
+    const highRisk = npi.domains.filter(dp => dp.riskPressureScore >= 60);
+    const strong = npi.domains.filter(dp => dp.performanceIndex >= 70);
     return [
       {
         type: "summary" as const,
-        content: `${location.name} demonstrates ${completeness_overall >= 0.7 ? "strong" : completeness_overall >= 0.5 ? "moderate" : "limited"} data coverage across ${divisions.length} tracked domains. Overall intelligence completeness stands at ${Math.round(completeness_overall * 100)}%, indicating ${completeness_overall >= 0.6 ? "reliable" : "partial"} assessment capability.`,
-        confidence: completeness_overall
+        content: `${location.name} National Performance Index: ${npi.overallIndex}/100 (${getPerformanceLabel(npi.overallIndex)}). Momentum: ${getMomentumArrow(npi.momentum)} ${npi.momentum > 0 ? '+' : ''}${npi.momentum}%. Volatility: ${getVolatilityLabel(npi.volatility)}. Risk Pressure: ${getRiskLabel(npi.riskPressure)}.`,
+        confidence: npi.confidence / 100,
       },
       {
         type: "drivers" as const,
-        content: strongDivisions.length > 0 
-          ? `Key strengths identified in ${strongDivisions.map(([d]) => d).join(", ")} sectors with above-average data quality. These domains provide reliable signals for trend analysis and cross-domain correlation.`
-          : "No domains currently exceed 70% data completeness threshold for reliable trend analysis.",
-        confidence: Math.max(...divisions.map(([_, d]) => d.completeness))
+        content: strong.length > 0 
+          ? `Strongest domains: ${strong.map(d => d.domain).join(", ")} (performance above 70). These provide structural resilience and cross-domain stability.`
+          : "No domains currently exceed the 70-point performance threshold. Broad-based improvement needed.",
+        confidence: 0.8,
       },
       {
         type: "risks" as const,
-        content: highRiskDivisions.length > 0
-          ? `Data gaps identified in ${highRiskDivisions.map(([d]) => d).join(", ")} sectors. Limited visibility may mask emerging risks or delay early warning signals.`
-          : "All monitored domains maintain acceptable data coverage levels.",
-        severity: highRiskDivisions.length >= 3 ? "high" as const : highRiskDivisions.length >= 1 ? "medium" as const : "low" as const
-      },
-      {
-        type: "uncertainty" as const,
-        content: `Assessment confidence is capped at 95% per institutional policy. Current analysis incorporates ${divisions.reduce((a, [_, d]) => a + d.metrics.length, 0)} data points across ${divisions.length} domains. Gaps exist in ${8 - divisions.length} standard monitoring categories.`,
-        confidence: 0.95
+        content: highRisk.length > 0
+          ? `Elevated risk pressure in ${highRisk.map(d => d.domain).join(", ")}. ${highRisk.length >= 3 ? "Compounding cross-domain pressure detected — systemic fragility risk." : "Monitor for acceleration."}`
+          : "Risk pressure within manageable bounds across all monitored domains.",
+        severity: highRisk.length >= 3 ? "high" as const : highRisk.length >= 1 ? "medium" as const : "low" as const,
       },
       {
         type: "outlook" as const,
-        content: `Near-term trajectory ${completeness_overall > 0.6 ? "suggests stable monitoring capability with potential for improved early warning" : "indicates need for enhanced data collection to support reliable forecasting"}. Recommended focus areas: ${highRiskDivisions.slice(0, 2).map(([d]) => d).join(", ") || "maintain current coverage"}.`,
-        confidence: Math.min(completeness_overall + 0.1, 0.95)
-      }
+        content: `90-day forecast: ${npi.forecast90d}/100 (${npi.forecastDirection}). 1-year projection: ${npi.forecast1y}/100. ${npi.momentum > 5 ? "Positive momentum supports improvement trajectory." : npi.momentum < -5 ? "Negative momentum indicates deteriorating conditions." : "Stable trajectory expected."}`,
+        confidence: npi.confidence / 100,
+      },
+      {
+        type: "uncertainty" as const,
+        content: `Confidence: ${npi.confidence}% (capped at 95%). ${npi.volatility >= 50 ? "High volatility reduces forecast reliability." : ""} Data coverage used as confidence modifier only.`,
+        confidence: 0.95,
+      },
     ];
-  }, [divisions, location.name, completeness_overall]);
+  }, [npi, location.name]);
+
+  // Why Panel
+  const whyPanelData = useMemo(() => ({
+    confidenceScore: npi.confidence / 100,
+    confidenceRationale: `Performance Index computed from ${npi.domains.length} domains using weighted composite scoring. Momentum derived from 3-period directional change. Volatility from recent standard deviation. Confidence modified by data availability (not displayed as headline).`,
+    drivers: npi.domains.map(dp => ({
+      label: dp.domain.charAt(0).toUpperCase() + dp.domain.slice(1),
+      influence: dp.performanceIndex,
+      direction: dp.momentumScore > 5 ? "positive" as const : dp.momentumScore < -5 ? "negative" as const : "neutral" as const,
+      description: `Performance: ${dp.performanceIndex}/100 | Momentum: ${dp.momentumScore > 0 ? '+' : ''}${dp.momentumScore}% | Risk: ${getRiskLabel(dp.riskPressureScore)}`,
+    })),
+    assumptions: [
+      "Metrics normalized against global ranges per domain",
+      "Domain weights reflect strategic importance hierarchy",
+      "Momentum uses 3-period rolling comparison",
+      "Volatility dampened in forecast projection",
+    ],
+    whatWouldChange: [
+      "Major policy reform or institutional shift",
+      "Conflict escalation/de-escalation",
+      "Natural disaster or climate event",
+      "Global economic shock propagation",
+    ],
+  }), [npi]);
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -336,7 +313,7 @@ export default function CountryDeepDive({ location, profile, completeness_overal
               <h1 className="text-4xl font-bold text-foreground">
                 {location.name} ({location.iso3})
               </h1>
-              <p className="text-muted-foreground mt-1">Comprehensive Country Deep-Dive Analysis</p>
+              <p className="text-muted-foreground mt-1">National Performance Intelligence</p>
             </div>
           </div>
         </div>
@@ -349,41 +326,85 @@ export default function CountryDeepDive({ location, profile, completeness_overal
             <GitCompareArrows className="h-4 w-4 mr-2" />
             Compare
           </Button>
-          <Badge variant={getCompletenessColor(completeness_overall)} className="text-lg px-4 py-2">
-            {Math.round(completeness_overall * 100)}% Data Complete
-          </Badge>
         </div>
       </div>
 
-      {/* Executive Brief (Executive mode only) */}
+      {/* NPI Summary Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <Card className="col-span-2 md:col-span-1">
+          <CardContent className="pt-4 pb-3 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Performance Index</p>
+            <p className="text-3xl font-bold">{npi.overallIndex}</p>
+            <p className="text-xs text-muted-foreground">{getPerformanceLabel(npi.overallIndex)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Momentum</p>
+            <div className="flex items-center justify-center gap-1">
+              <MomentumIcon value={npi.momentum} />
+              <span className={`text-xl font-bold ${getMomentumColor(npi.momentum)}`}>
+                {npi.momentum > 0 ? '+' : ''}{npi.momentum}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Volatility</p>
+            <p className="text-xl font-bold">{npi.volatility}</p>
+            <p className="text-xs text-muted-foreground">{getVolatilityLabel(npi.volatility)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Risk Pressure</p>
+            <Badge variant={getRiskBadgeVariant(npi.riskPressure)} className="text-sm">
+              {getRiskLabel(npi.riskPressure)}
+            </Badge>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Forecast (90d)</p>
+            <p className="text-xl font-bold">{npi.forecast90d}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Confidence</p>
+            <p className="text-xl font-bold">{npi.confidence}%</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Executive Brief */}
       <ModeAwareSection onlyIn="executive">
         <ExecutiveBrief
-          soWhat={`${location.name} shows ${completeness_overall >= 0.7 ? "strong" : completeness_overall >= 0.5 ? "moderate" : "limited"} intelligence coverage with ${divisions.filter(([_, d]) => d.completeness < 0.5).length} domains at risk. ${divisions.filter(([_, d]) => d.completeness >= 0.7).length > 0 ? `Strongest domains: ${divisions.filter(([_, d]) => d.completeness >= 0.7).map(([d]) => d).join(", ")}.` : "No domains above 70% reliability threshold."}`}
-          nowWhat={`${completeness_overall < 0.5 ? "Priority: Increase data coverage in undermonitored sectors before relying on forecasts." : completeness_overall < 0.7 ? "Focus on strengthening data pipelines in weak domains to improve forecast reliability." : "Maintain current monitoring and focus on trend analysis for early warning."}`}
+          soWhat={`${location.name} performance at ${npi.overallIndex}/100 (${getPerformanceLabel(npi.overallIndex)}). ${npi.momentum > 5 ? "Positive momentum." : npi.momentum < -5 ? "Declining trajectory." : "Stable."} ${npi.domains.filter(d => d.riskPressureScore >= 60).length} domains under elevated risk pressure.`}
+          nowWhat={npi.riskPressure >= 60 ? "Immediate review recommended. Cross-domain risk compounding detected." : npi.momentum < -5 ? "Monitor declining trajectory. Consider early intervention in weakest domains." : "Maintain monitoring cadence. No immediate action required."}
         />
       </ModeAwareSection>
 
       {/* Executive Scorecard */}
       <ExecutiveScorecard 
         metrics={scorecardMetrics}
-        title="Executive Dashboard"
+        title="Domain Performance Overview"
         columns={isExecutiveMode ? 4 : 5}
       />
 
-      {/* Temporal Layering (Past → Present → Forecast) */}
+      {/* Temporal Layering */}
       <TemporalLayer
         phases={temporalPhases}
-        title={`${location.name} — Temporal Trajectory`}
+        title={`${location.name} — Performance Trajectory`}
       />
 
-      {/* Two-column layout for main visualizations */}
+      {/* Visualizations */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Multi-Domain Coverage vs Baseline</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Comparison against regional average (60%)
-            </p>
+            <CardTitle className="text-base">Multi-Domain Performance Radar</CardTitle>
+            <p className="text-xs text-muted-foreground">Performance index per domain vs global baseline (50)</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -391,21 +412,8 @@ export default function CountryDeepDive({ location, profile, completeness_overal
                 <PolarGrid />
                 <PolarAngleAxis dataKey="division" tick={{ fontSize: 11 }} />
                 <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                <Radar 
-                  name={location.name} 
-                  dataKey="completeness" 
-                  stroke="hsl(var(--primary))" 
-                  fill="hsl(var(--primary))" 
-                  fillOpacity={0.5} 
-                />
-                <Radar 
-                  name="Regional Baseline" 
-                  dataKey="baseline" 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fill="hsl(var(--muted-foreground))" 
-                  fillOpacity={0.2} 
-                  strokeDasharray="5 5"
-                />
+                <Radar name={location.name} dataKey="performance" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.5} />
+                <Radar name="Global Baseline" dataKey="baseline" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground))" fillOpacity={0.2} strokeDasharray="5 5" />
                 <Tooltip />
                 <Legend />
               </RadarChart>
@@ -413,41 +421,30 @@ export default function CountryDeepDive({ location, profile, completeness_overal
           </CardContent>
         </Card>
 
-        <RiskHeatmap 
-          data={riskHeatmapData}
-          title="Risk Assessment Matrix"
-        />
+        <RiskHeatmap data={riskHeatmapData} title="Volatility × Risk Pressure Matrix" />
       </div>
 
-      {/* Causal Flow Diagram */}
+      {/* Causal Flow */}
       <ModeAwareSection onlyIn="analyst">
-        <CausalFlowDiagram 
-          nodes={causalData.nodes}
-          links={causalData.links}
-          title="Cross-Domain Causal Relationships"
-        />
+        <CausalFlowDiagram nodes={causalData.nodes} links={causalData.links} title="Cross-Domain Causal Relationships" />
       </ModeAwareSection>
 
       {/* Forecast Fan Chart */}
       <ForecastFanChart 
         data={forecastData}
-        title="Composite Index Forecast"
+        title="National Performance Index — Forecast"
         subtitle="90-day projection with uncertainty bands"
-        confidence={Math.min(completeness_overall * 0.95 + 0.1, 0.95)}
-        unit="%"
+        confidence={npi.confidence / 100}
+        unit="/ 100"
         height={isExecutiveMode ? 250 : 300}
       />
 
-      {/* Trend Decomposition (Analyst only) */}
+      {/* Trend Decomposition (Analyst) */}
       <ModeAwareSection onlyIn="analyst">
-        <TrendDecomposition
-          data={decompositionData}
-          title="Composite Index — Trend Decomposition"
-          unit="%"
-        />
+        <TrendDecomposition data={decompositionData} title="Performance Index — Trend Decomposition" unit="/ 100" />
       </ModeAwareSection>
 
-      {/* Why This Result? Panel */}
+      {/* Why Panel */}
       <WhyPanel
         title={`Why this assessment for ${location.name}?`}
         confidenceScore={whyPanelData.confidenceScore}
@@ -464,7 +461,7 @@ export default function CountryDeepDive({ location, profile, completeness_overal
         <ScenarioEngine />
       </ModeAwareSection>
 
-      {/* Division Tabs (Analyst only) */}
+      {/* Division Tabs (Analyst) */}
       <ModeAwareSection onlyIn="analyst">
         <Tabs defaultValue={divisions[0]?.[0] || 'governance'} className="w-full">
           <TabsList className="flex flex-wrap h-auto gap-1 p-1">
@@ -479,65 +476,64 @@ export default function CountryDeepDive({ location, profile, completeness_overal
             })}
           </TabsList>
 
-          {divisions.map(([division, data]) => (
-            <TabsContent key={division} value={division} className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>{division.charAt(0).toUpperCase() + division.slice(1)} Division</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={getCompletenessColor(data.completeness)}>
-                        {Math.round(data.completeness * 100)}% Complete
-                      </Badge>
-                      <Badge variant="outline">
-                        {data.metrics.length} metrics
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {data.metrics.slice(0, 9).map((metric, idx) => (
-                      <div key={idx} className="p-3 border rounded-lg">
-                        <div className="text-xs text-muted-foreground mb-1">
-                          {metric.metric.replace(/_/g, ' ')}
-                        </div>
-                        <div className="flex items-end justify-between">
-                          <span className="text-lg font-bold">
-                            {metric.value.toFixed(2)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {metric.unit || ''} • {metric.period}
-                          </span>
-                        </div>
+          {divisions.map(([division, data]) => {
+            const dp = npi.domains.find(d => d.domain === division);
+            return (
+              <TabsContent key={division} value={division} className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>{division.charAt(0).toUpperCase() + division.slice(1)} Division</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={dp && dp.performanceIndex >= 60 ? "default" : "secondary"}>
+                          Performance: {dp?.performanceIndex || 0}/100
+                        </Badge>
+                        <Badge variant="outline" className="gap-1">
+                          <MomentumIcon value={dp?.momentumScore || 0} />
+                          {dp?.momentumScore ? `${dp.momentumScore > 0 ? '+' : ''}${dp.momentumScore}%` : '0%'}
+                        </Badge>
+                        <Badge variant={getRiskBadgeVariant(dp?.riskPressureScore || 0)}>
+                          Risk: {getRiskLabel(dp?.riskPressureScore || 0)}
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          ))}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {data.metrics.slice(0, 9).map((metric: any, idx: number) => (
+                        <div key={idx} className="p-3 border rounded-lg">
+                          <div className="text-xs text-muted-foreground mb-1">{metric.metric.replace(/_/g, ' ')}</div>
+                          <div className="flex items-end justify-between">
+                            <span className="text-lg font-bold">{metric.value.toFixed(2)}</span>
+                            <span className="text-xs text-muted-foreground">{metric.unit || ''} • {metric.period}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </ModeAwareSection>
 
-      {/* Narrative Synthesis */}
+      {/* Narrative */}
       <NarrativeSynthesis 
-        title={`${location.name} Intelligence Assessment`}
+        title={`${location.name} Performance Intelligence Assessment`}
         sections={narrativeSections}
-        overallConfidence={Math.min(completeness_overall + 0.1, 0.95)}
+        overallConfidence={npi.confidence / 100}
         lastUpdated={new Date().toISOString()}
         sources={divisions.flatMap(([_, d]) => 
           [...new Set(d.metrics.map((m: any) => m.source))].filter(Boolean)
         ).slice(0, 6)}
       />
 
-      {/* Notes - Analyst mode */}
+      {/* Notes (Analyst) */}
       <ModeAwareSection onlyIn="analyst">
         {notes && notes.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Data Quality Notes</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Data Quality Notes</CardTitle></CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 {notes.map((note, idx) => (
