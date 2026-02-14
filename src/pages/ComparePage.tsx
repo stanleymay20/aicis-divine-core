@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, X, Globe, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, X, Globe, Search, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { ALL_COUNTRIES } from "@/lib/geo/all-countries";
 import { getCountryFlag } from "@/lib/geo/country-flags";
 import {
@@ -22,6 +22,11 @@ import { ComparativeMatrix } from "@/components/visualizations/ComparativeMatrix
 import { NarrativeSynthesis } from "@/components/visualizations/NarrativeSynthesis";
 import { ModeAwareSection, ExecutiveBrief } from "@/components/intelligence/ModeAwareSection";
 import { WhyPanel } from "@/components/intelligence/WhyPanel";
+import {
+  computeNationalPerformance, getMomentumArrow, getMomentumColor,
+  getPerformanceLabel, getRiskLabel, getRiskBadgeVariant,
+  type NationalPerformanceIndex,
+} from "@/lib/performance-engine";
 
 const COLOR_HEX = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -35,11 +40,7 @@ const ComparePage = () => {
   const { mode } = useViewModePersistence();
   const isExecutiveMode = mode === "executive";
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
+  useEffect(() => { if (!authLoading && !user) navigate('/auth'); }, [user, authLoading, navigate]);
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ["compare-profiles", selectedCountries],
@@ -47,9 +48,7 @@ const ComparePage = () => {
       if (selectedCountries.length === 0) return [];
       const results = await Promise.all(
         selectedCountries.map(async (iso3) => {
-          const { data } = await supabase.functions.invoke("country-profile", {
-            body: { query: iso3 },
-          });
+          const { data } = await supabase.functions.invoke("country-profile", { body: { query: iso3 } });
           return { iso3, ...data };
         })
       );
@@ -58,209 +57,160 @@ const ComparePage = () => {
     enabled: selectedCountries.length > 0 && !!user,
   });
 
-  const { data: predictions } = useQuery({
-    queryKey: ["compare-predictions", selectedCountries],
-    queryFn: async () => {
-      if (selectedCountries.length === 0) return [];
-      const { data } = await supabase
-        .from("predictions")
-        .select("*")
-        .in("country", selectedCountries.map(iso3 => 
-          ALL_COUNTRIES.find(c => c.iso3 === iso3)?.name || iso3
-        ))
-        .order("predicted_at", { ascending: false })
-        .limit(50);
-      return data || [];
-    },
-    enabled: selectedCountries.length > 0 && !!user,
-  });
-
   const filteredCountries = useMemo(() => {
     if (!searchQuery) return [];
     const q = searchQuery.toLowerCase();
     return ALL_COUNTRIES.filter(
-      (c) =>
-        (c.name.toLowerCase().includes(q) || c.iso3.toLowerCase().includes(q)) &&
-        !selectedCountries.includes(c.iso3)
+      (c) => (c.name.toLowerCase().includes(q) || c.iso3.toLowerCase().includes(q)) && !selectedCountries.includes(c.iso3)
     ).slice(0, 10);
   }, [searchQuery, selectedCountries]);
 
   const addCountry = (iso3: string) => {
     if (selectedCountries.length >= 5) return;
-    const newSelection = [...selectedCountries, iso3];
-    setSelectedCountries(newSelection);
-    setSearchParams({ countries: newSelection.join(",") });
+    const n = [...selectedCountries, iso3];
+    setSelectedCountries(n);
+    setSearchParams({ countries: n.join(",") });
     setSearchQuery("");
   };
 
   const removeCountry = (iso3: string) => {
-    const newSelection = selectedCountries.filter((c) => c !== iso3);
-    setSelectedCountries(newSelection);
-    setSearchParams({ countries: newSelection.join(",") });
+    const n = selectedCountries.filter((c) => c !== iso3);
+    setSelectedCountries(n);
+    setSearchParams({ countries: n.join(",") });
   };
 
-  // Radar data
-  const radarData = useMemo(() => {
-    if (!profiles || profiles.length === 0) return [];
-    const divisions = ["governance", "health", "energy", "finance", "food", "security"];
-    return divisions.map((div) => {
-      const entry: any = { division: div.charAt(0).toUpperCase() + div.slice(1) };
-      profiles.forEach((p: any) => {
-        const completeness = p.profile?.[div]?.completeness || 0;
-        entry[p.iso3] = Math.round(completeness * 100);
-      });
-      return entry;
-    });
-  }, [profiles]);
-
-  // Quadrant plot data
-  const quadrantData = useMemo(() => {
+  // Compute NPI for each country
+  const npiList: NationalPerformanceIndex[] = useMemo(() => {
     if (!profiles || profiles.length === 0) return [];
     return profiles.map((p: any) => {
       const country = ALL_COUNTRIES.find(c => c.iso3 === p.iso3);
-      const overallComp = p.completeness_overall || 0;
-      const securityComp = p.profile?.security?.completeness || 0;
-      return {
-        id: p.iso3,
-        label: country?.name || p.iso3,
-        x: Math.round(overallComp * 100),
-        y: Math.round((1 - securityComp) * 100),
-        size: overallComp * 40,
-        iso2: country?.iso2,
-        iso3: p.iso3,
-        category: country?.region,
-      };
+      return computeNationalPerformance(p.iso3, country?.name || p.iso3, p.profile || {});
     });
   }, [profiles]);
 
-  // Comparative matrix data
+  // Performance Radar
+  const radarData = useMemo(() => {
+    if (npiList.length === 0) return [];
+    const domains = ["governance", "health", "energy", "finance", "food", "security"];
+    return domains.map(div => {
+      const entry: any = { division: div.charAt(0).toUpperCase() + div.slice(1) };
+      npiList.forEach(npi => {
+        const dp = npi.domains.find(d => d.domain === div);
+        entry[npi.iso3] = dp?.performanceIndex || 0;
+      });
+      return entry;
+    });
+  }, [npiList]);
+
+  // Quadrant: X = Performance, Y = Stability (100 - volatility)
+  const quadrantData = useMemo(() => {
+    return npiList.map(npi => {
+      const country = ALL_COUNTRIES.find(c => c.iso3 === npi.iso3);
+      return {
+        id: npi.iso3,
+        label: npi.countryName,
+        x: npi.overallIndex,
+        y: Math.max(0, 100 - npi.volatility),
+        size: npi.riskPressure * 0.5,
+        iso2: country?.iso2,
+        iso3: npi.iso3,
+        category: country?.region,
+      };
+    });
+  }, [npiList]);
+
+  // Comparative Matrix — performance-based
   const matrixData = useMemo(() => {
-    if (!profiles || profiles.length === 0) return { rows: [], columns: [] };
+    if (npiList.length === 0) return { rows: [], columns: [] };
     const divisions = ["governance", "health", "energy", "finance", "food", "security"];
-    const rows = profiles.map((p: any) => {
-      const country = ALL_COUNTRIES.find(c => c.iso3 === p.iso3);
+    const rows = npiList.map(npi => {
       const metrics: Record<string, any> = {};
       divisions.forEach(div => {
-        const comp = p.profile?.[div]?.completeness || 0;
+        const dp = npi.domains.find(d => d.domain === div);
         metrics[div] = {
-          value: Math.round(comp * 100),
-          baseline: 60,
-          trend: comp > 0.6 ? "up" as const : comp < 0.4 ? "down" as const : "stable" as const,
-          status: comp >= 0.6 ? "above" as const : comp < 0.5 ? "below" as const : "at" as const,
-          confidence: Math.min(comp + 0.1, 0.95),
+          value: dp?.performanceIndex || 0,
+          baseline: 50,
+          trend: dp?.forecastDirection || "stable",
+          status: (dp?.performanceIndex || 0) >= 60 ? "above" as const : (dp?.performanceIndex || 0) < 40 ? "below" as const : "at" as const,
+          confidence: (dp?.confidenceScore || 30) / 100,
         };
       });
       return {
-        id: p.iso3,
-        label: country?.name || p.iso3,
-        iso2: country?.iso2,
-        iso3: p.iso3,
+        id: npi.iso3,
+        label: npi.countryName,
+        iso2: ALL_COUNTRIES.find(c => c.iso3 === npi.iso3)?.iso2,
+        iso3: npi.iso3,
         metrics,
       };
     });
     return { rows, columns: divisions };
-  }, [profiles]);
+  }, [npiList]);
 
-  // Narrative divergence analysis
+  // Narrative
   const narrativeSections = useMemo(() => {
-    if (!profiles || profiles.length < 2) return [];
-    const sorted = [...profiles].sort((a: any, b: any) => (b.completeness_overall || 0) - (a.completeness_overall || 0));
-    const strongest = ALL_COUNTRIES.find(c => c.iso3 === sorted[0]?.iso3)?.name || sorted[0]?.iso3;
-    const weakest = ALL_COUNTRIES.find(c => c.iso3 === sorted[sorted.length - 1]?.iso3)?.name || sorted[sorted.length - 1]?.iso3;
-    const avgComp = profiles.reduce((a: number, p: any) => a + (p.completeness_overall || 0), 0) / profiles.length;
-
+    if (npiList.length < 2) return [];
+    const sorted = [...npiList].sort((a, b) => b.overallIndex - a.overallIndex);
     return [
       {
         type: "summary" as const,
-        content: `Comparing ${profiles.length} countries. ${strongest} leads in overall data coverage, while ${weakest} has the most gaps. Average completeness: ${Math.round(avgComp * 100)}%.`,
-        confidence: avgComp,
+        content: `Comparing ${npiList.length} countries. Performance ranges from ${sorted[sorted.length - 1].overallIndex}/100 (${sorted[sorted.length - 1].countryName}) to ${sorted[0].overallIndex}/100 (${sorted[0].countryName}). Average momentum: ${(npiList.reduce((s, n) => s + n.momentum, 0) / npiList.length).toFixed(1)}%.`,
+        confidence: Math.min(0.95, npiList.reduce((s, n) => s + n.confidence, 0) / npiList.length / 100),
       },
       {
         type: "drivers" as const,
-        content: `Key divergence factors: governance quality, data infrastructure maturity, and institutional reporting consistency. Countries with higher governance scores tend to have better cross-domain coverage.`,
-        confidence: 0.7,
+        content: `Performance divergence driven by governance quality, economic resilience, and security stability. Countries with higher governance scores show stronger cross-domain performance.`,
+        confidence: 0.75,
       },
       {
         type: "risks" as const,
-        content: `Countries with completeness below 50% may have blind spots in early warning capability. Comparison reliability decreases for poorly-monitored nations.`,
-        severity: avgComp < 0.5 ? "high" as const : "medium" as const,
+        content: `${npiList.filter(n => n.riskPressure >= 60).length} countries show elevated risk pressure. ${npiList.filter(n => n.momentum < -5).length} countries on declining trajectory.`,
+        severity: npiList.filter(n => n.riskPressure >= 60).length >= 2 ? "high" as const : "medium" as const,
       },
     ];
-  }, [profiles]);
+  }, [npiList]);
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!user) return null;
 
   return (
     <AICISLayout>
       <div className="p-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
           <div className="flex items-center gap-2">
             <Globe className="h-8 w-8 text-primary" />
             <div>
               <h1 className="text-xl font-orbitron font-bold">Compare Countries</h1>
-              <p className="text-xs text-muted-foreground">
-                Multi-country intelligence comparison • Max 5 countries
-              </p>
+              <p className="text-xs text-muted-foreground">Performance & stability comparison • Max 5 countries</p>
             </div>
           </div>
         </div>
 
         {/* Country Selection */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Select Countries (up to 5)
-            </CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Select Countries (up to 5)</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              {selectedCountries.map((iso3, idx) => {
-                const country = ALL_COUNTRIES.find((c) => c.iso3 === iso3);
+              {selectedCountries.map((iso3) => {
+                const country = ALL_COUNTRIES.find(c => c.iso3 === iso3);
                 return (
                   <Badge key={iso3} variant="secondary" className="flex items-center gap-2 px-3 py-1.5 text-sm">
                     <span className="text-lg">{getCountryFlag(country?.iso2 || "")}</span>
                     {country?.name || iso3}
-                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-destructive/20"
-                      onClick={() => removeCountry(iso3)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-destructive/20" onClick={() => removeCountry(iso3)}><X className="h-3 w-3" /></Button>
                   </Badge>
                 );
               })}
-              {selectedCountries.length === 0 && (
-                <p className="text-muted-foreground text-sm">No countries selected. Search and add below.</p>
-              )}
+              {selectedCountries.length === 0 && <p className="text-muted-foreground text-sm">No countries selected.</p>}
             </div>
-
             {selectedCountries.length < 5 && (
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search countries..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Search countries..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
                 {filteredCountries.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-card border rounded-md shadow-lg z-10 max-h-60 overflow-auto">
-                    {filteredCountries.map((c) => (
-                      <button key={c.iso3} className="w-full px-4 py-2 text-left hover:bg-muted flex items-center gap-2"
-                        onClick={() => addCountry(c.iso3)}
-                      >
+                    {filteredCountries.map(c => (
+                      <button key={c.iso3} className="w-full px-4 py-2 text-left hover:bg-muted flex items-center gap-2" onClick={() => addCountry(c.iso3)}>
                         <span className="text-lg">{getCountryFlag(c.iso2)}</span>
                         <span>{c.name}</span>
                         <span className="text-xs text-muted-foreground ml-auto">{c.iso3}</span>
@@ -273,28 +223,25 @@ const ComparePage = () => {
           </CardContent>
         </Card>
 
-        {/* Comparison Visualizations */}
+        {/* Results */}
         {isLoading ? (
           <div className="grid gap-6 md:grid-cols-2">
             <Card><CardContent className="pt-6"><Skeleton className="h-[350px] w-full" /></CardContent></Card>
             <Card><CardContent className="pt-6"><Skeleton className="h-[350px] w-full" /></CardContent></Card>
           </div>
-        ) : profiles && profiles.length > 0 ? (
+        ) : npiList.length > 0 ? (
           <div className="space-y-6">
-            {/* Executive Brief */}
             <ModeAwareSection onlyIn="executive">
               <ExecutiveBrief
-                soWhat={`${profiles.length} countries compared. Data coverage ranges from ${Math.round(Math.min(...profiles.map((p: any) => p.completeness_overall || 0)) * 100)}% to ${Math.round(Math.max(...profiles.map((p: any) => p.completeness_overall || 0)) * 100)}%.`}
-                nowWhat="Review quadrant positioning and matrix gaps to identify priority areas for each nation."
+                soWhat={`${npiList.length} countries compared. Performance range: ${Math.min(...npiList.map(n => n.overallIndex))} – ${Math.max(...npiList.map(n => n.overallIndex))}/100. ${npiList.filter(n => n.momentum < -5).length} on declining trajectory.`}
+                nowWhat="Review quadrant positioning for strategic prioritization. Focus on countries with high risk pressure and negative momentum."
               />
             </ModeAwareSection>
 
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Radar Chart */}
+              {/* Performance Radar */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Data Completeness by Division</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Domain Performance Comparison</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={350}>
                     <RadarChart data={radarData}>
@@ -302,14 +249,7 @@ const ComparePage = () => {
                       <PolarAngleAxis dataKey="division" />
                       <PolarRadiusAxis angle={90} domain={[0, 100]} />
                       {selectedCountries.map((iso3, idx) => (
-                        <Radar
-                          key={iso3}
-                          name={ALL_COUNTRIES.find((c) => c.iso3 === iso3)?.name || iso3}
-                          dataKey={iso3}
-                          stroke={COLOR_HEX[idx]}
-                          fill={COLOR_HEX[idx]}
-                          fillOpacity={0.2}
-                        />
+                        <Radar key={iso3} name={ALL_COUNTRIES.find(c => c.iso3 === iso3)?.name || iso3} dataKey={iso3} stroke={COLOR_HEX[idx]} fill={COLOR_HEX[idx]} fillOpacity={0.2} />
                       ))}
                       <Tooltip />
                       <Legend />
@@ -318,18 +258,18 @@ const ComparePage = () => {
                 </CardContent>
               </Card>
 
-              {/* Quadrant Plot */}
+              {/* Quadrant: Performance vs Stability */}
               {quadrantData.length > 0 && (
                 <QuadrantPlot
                   data={quadrantData}
-                  title="Stability vs Coverage Analysis"
-                  xLabel="Overall Data Coverage (%)"
-                  yLabel="Security Risk Index (%)"
+                  title="Performance vs Stability"
+                  xLabel="Performance Index"
+                  yLabel="Stability (100 − Volatility)"
                   quadrantLabels={{
-                    topLeft: "High Risk, Low Coverage",
-                    topRight: "High Risk, High Coverage",
-                    bottomLeft: "Low Risk, Low Coverage",
-                    bottomRight: "Low Risk, High Coverage",
+                    topLeft: "Stable but Weak",
+                    topRight: "Strong & Stable",
+                    bottomLeft: "Weak & Fragile",
+                    bottomRight: "Strong but Volatile",
                   }}
                   showFlags
                   height={350}
@@ -339,86 +279,70 @@ const ComparePage = () => {
 
             {/* Comparative Matrix */}
             {matrixData.rows.length > 0 && (
-              <ComparativeMatrix
-                rows={matrixData.rows}
-                columns={matrixData.columns}
-                title="Cross-Sector Comparative Matrix"
-                baselineLabel="Global Average (60%)"
-              />
+              <ComparativeMatrix rows={matrixData.rows} columns={matrixData.columns} title="Cross-Sector Performance Matrix" baselineLabel="Global Baseline (50)" />
             )}
 
-            {/* Narrative Divergence Analysis */}
+            {/* Narrative */}
             {narrativeSections.length > 0 && (
-              <NarrativeSynthesis
-                title="Comparative Intelligence Brief"
-                sections={narrativeSections}
-                overallConfidence={0.7}
-                lastUpdated={new Date().toISOString()}
-              />
+              <NarrativeSynthesis title="Comparative Performance Brief" sections={narrativeSections} overallConfidence={0.75} lastUpdated={new Date().toISOString()} />
             )}
 
-            {/* Why Panel (Analyst) */}
             <ModeAwareSection onlyIn="analyst">
               <WhyPanel
                 title="Why these comparison results?"
-                confidenceScore={0.7}
-                confidenceRationale="Comparison reliability depends on data coverage symmetry across all selected countries. Countries with vastly different coverage levels produce less reliable relative rankings."
-                drivers={profiles.map((p: any) => ({
-                  label: ALL_COUNTRIES.find(c => c.iso3 === p.iso3)?.name || p.iso3,
-                  influence: Math.round((p.completeness_overall || 0) * 100),
-                  direction: (p.completeness_overall || 0) > 0.6 ? "positive" as const : "negative" as const,
+                confidenceScore={0.75}
+                confidenceRationale="Performance indices computed using weighted domain composites. Momentum from 3-period rolling comparison. Volatility from standard deviation of recent values."
+                drivers={npiList.map(n => ({
+                  label: n.countryName,
+                  influence: n.overallIndex,
+                  direction: n.momentum > 5 ? "positive" as const : n.momentum < -5 ? "negative" as const : "neutral" as const,
+                  description: `NPI: ${n.overallIndex} | Momentum: ${n.momentum > 0 ? '+' : ''}${n.momentum}% | Risk: ${getRiskLabel(n.riskPressure)}`,
                 }))}
-                assumptions={[
-                  "All countries measured against same baseline metrics",
-                  "Data freshness assumed comparable across sources",
-                  "Regional baselines set at global 60th percentile",
-                ]}
-                whatWouldChange={[
-                  "Adding more countries with similar data coverage",
-                  "Narrowing comparison to specific divisions",
-                  "Adjusting regional baseline to local context",
-                ]}
+                assumptions={["Domain weights reflect strategic importance", "Volatility computed from available time-series", "Global baseline set at 50th percentile"]}
+                whatWouldChange={["Adding more countries for broader context", "Narrowing to specific domains", "Changing assessment timeframe"]}
                 dataLabel="ai_inference"
               />
             </ModeAwareSection>
 
-            {/* Country Details Table */}
+            {/* Country Summary Table */}
             <Card>
-              <CardHeader>
-                <CardTitle>Country Intelligence Summary</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Country Performance Summary</CardTitle></CardHeader>
               <CardContent>
                 <ScrollArea className="w-full">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-2 px-4">Country</th>
-                        <th className="text-center py-2 px-4">Overall Completeness</th>
-                        <th className="text-center py-2 px-4">Region</th>
+                        <th className="text-center py-2 px-4">Performance</th>
+                        <th className="text-center py-2 px-4">Momentum</th>
+                        <th className="text-center py-2 px-4">Risk</th>
+                        <th className="text-center py-2 px-4">Forecast (90d)</th>
                         <th className="text-center py-2 px-4">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {profiles.map((p: any) => {
-                        const country = ALL_COUNTRIES.find((c) => c.iso3 === p.iso3);
+                      {npiList.map(n => {
+                        const country = ALL_COUNTRIES.find(c => c.iso3 === n.iso3);
                         return (
-                          <tr key={p.iso3} className="border-b hover:bg-muted/50">
+                          <tr key={n.iso3} className="border-b hover:bg-muted/50">
                             <td className="py-3 px-4 flex items-center gap-2">
                               <span className="text-xl">{getCountryFlag(country?.iso2 || "")}</span>
-                              <span className="font-medium">{p.location?.name || country?.name}</span>
+                              <span className="font-medium">{n.countryName}</span>
                             </td>
                             <td className="text-center py-3 px-4">
-                              <Badge variant={p.completeness_overall >= 0.6 ? "default" : "secondary"}>
-                                {Math.round((p.completeness_overall || 0) * 100)}%
-                              </Badge>
-                            </td>
-                            <td className="text-center py-3 px-4 text-muted-foreground">
-                              {country?.region}
+                              <Badge variant={n.overallIndex >= 60 ? "default" : "secondary"}>{n.overallIndex}/100</Badge>
                             </td>
                             <td className="text-center py-3 px-4">
-                              <Button variant="outline" size="sm" onClick={() => navigate(`/deepdive/${p.iso3}`)}>
-                                View Details
-                              </Button>
+                              <span className={getMomentumColor(n.momentum)}>
+                                {getMomentumArrow(n.momentum)} {n.momentum > 0 ? '+' : ''}{n.momentum}%
+                              </span>
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <Badge variant={getRiskBadgeVariant(n.riskPressure)}>{getRiskLabel(n.riskPressure)}</Badge>
+                            </td>
+                            <td className="text-center py-3 px-4">{n.forecast90d}/100</td>
+                            <td className="text-center py-3 px-4">
+                              <Button variant="outline" size="sm" onClick={() => navigate(`/deepdive/${n.iso3}`)}>Details</Button>
                             </td>
                           </tr>
                         );

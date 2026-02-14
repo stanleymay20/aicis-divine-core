@@ -748,6 +748,54 @@ export type Database = {
         }
         Relationships: []
       }
+      country_performance_snapshots: {
+        Row: {
+          confidence_score: number
+          created_at: string
+          domain: string
+          forecast_1y: number | null
+          forecast_90d: number | null
+          forecast_direction: string
+          id: string
+          iso3: string
+          momentum_score: number
+          performance_index: number
+          risk_pressure_score: number
+          snapshot_date: string
+          volatility_index: number
+        }
+        Insert: {
+          confidence_score?: number
+          created_at?: string
+          domain: string
+          forecast_1y?: number | null
+          forecast_90d?: number | null
+          forecast_direction?: string
+          id?: string
+          iso3: string
+          momentum_score?: number
+          performance_index?: number
+          risk_pressure_score?: number
+          snapshot_date?: string
+          volatility_index?: number
+        }
+        Update: {
+          confidence_score?: number
+          created_at?: string
+          domain?: string
+          forecast_1y?: number | null
+          forecast_90d?: number | null
+          forecast_direction?: string
+          id?: string
+          iso3?: string
+          momentum_score?: number
+          performance_index?: number
+          risk_pressure_score?: number
+          snapshot_date?: string
+          volatility_index?: number
+        }
+        Relationships: []
+      }
       country_profiles: {
         Row: {
           chartspec: Json | null

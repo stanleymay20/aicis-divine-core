@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,11 +53,32 @@ const GovernanceHub = () => {
   const getVotePercentage = (p: any) => { const t = (p.votes_for || 0) + (p.votes_against || 0) + (p.votes_abstain || 0); if (t === 0) return { for: 0, against: 0, abstain: 0 }; return { for: ((p.votes_for || 0) / t) * 100, against: ((p.votes_against || 0) / t) * 100, abstain: ((p.votes_abstain || 0) / t) * 100 }; };
   const hasVoted = (id: string) => userVotes?.some((v: any) => v.proposal_id === id);
 
-  const narrativeSections = [
-    { type: "summary" as const, content: `${proposals?.length || 0} governance proposals tracked. ${proposals?.filter((p: any) => p.status === 'active').length || 0} currently active for voting. ${spaces?.length || 0} governance spaces configured.`, confidence: 0.85 },
-    { type: "drivers" as const, content: "Governance quality is driven by institutional transparency, policy consistency, and stakeholder participation rates.", confidence: 0.75 },
-    { type: "uncertainty" as const, content: "Governance indicators rely on periodic assessments (typically annual). Real-time governance changes may not be reflected immediately.", confidence: 0.95 },
-  ];
+  // Governance Performance Metrics
+  const govPerformance = useMemo(() => {
+    const active = proposals?.filter((p: any) => p.status === 'active').length || 0;
+    const total = proposals?.length || 0;
+    const passed = proposals?.filter((p: any) => p.status === 'passed' || p.status === 'executed').length || 0;
+    const participationRate = total > 0 ? Math.round((passed / total) * 100) : 0;
+    
+    // Governance Performance Score
+    const performanceScore = Math.min(100, Math.round(
+      (spaces?.length || 0) * 10 + participationRate * 0.5 + (governanceData?.length || 0) * 2
+    ));
+    
+    // Institutional Stability
+    const stabilityIndex = Math.min(100, Math.round(
+      50 + (governanceData?.filter((g: any) => g.value > 0).length || 0) * 3
+    ));
+
+    return { performanceScore, stabilityIndex, active, total, participationRate };
+  }, [proposals, spaces, governanceData]);
+
+  const narrativeSections = useMemo(() => [
+    { type: "summary" as const, content: `Governance Performance Score: ${govPerformance.performanceScore}/100. Institutional Stability Index: ${govPerformance.stabilityIndex}/100. ${govPerformance.active} active proposals, ${govPerformance.total} total. ${spaces?.length || 0} governance spaces.`, confidence: 0.85 },
+    { type: "drivers" as const, content: "Governance quality driven by institutional transparency, policy consistency, stakeholder participation rates, and reform execution momentum.", confidence: 0.75 },
+    { type: "outlook" as const, content: `Policy execution momentum: ${govPerformance.participationRate}% proposal success rate. ${govPerformance.performanceScore >= 70 ? 'Strong institutional framework.' : 'Reform acceleration needed.'}`, confidence: 0.7 },
+    { type: "uncertainty" as const, content: "Governance indicators rely on periodic assessments. Real-time changes may not be reflected immediately. Confidence capped at 95%.", confidence: 0.95 },
+  ], [govPerformance, spaces]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!user) return null;
@@ -67,15 +88,43 @@ const GovernanceHub = () => {
       <div className="p-6 container mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
-          <div className="flex items-center gap-2"><Scale className="h-8 w-8 text-primary" /><div><h1 className="text-xl font-orbitron font-bold">Governance Hub</h1><p className="text-xs text-muted-foreground">DAO & Policy Management</p></div></div>
+          <div className="flex items-center gap-2"><Scale className="h-8 w-8 text-primary" /><div><h1 className="text-xl font-orbitron font-bold">Governance Hub</h1><p className="text-xs text-muted-foreground">Governance Performance & Policy Management</p></div></div>
         </div>
 
         <SignalBadge domain="governance" />
 
+        {/* Governance Performance Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Governance Performance</p>
+              <p className="text-2xl font-bold">{govPerformance.performanceScore}/100</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Institutional Stability</p>
+              <p className="text-2xl font-bold">{govPerformance.stabilityIndex}/100</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Execution Rate</p>
+              <p className="text-2xl font-bold">{govPerformance.participationRate}%</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Active Proposals</p>
+              <p className="text-2xl font-bold">{govPerformance.active}</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <ModeAwareSection onlyIn="executive">
           <ExecutiveBrief
-            soWhat={`${proposals?.filter((p: any) => p.status === 'active').length || 0} active proposals pending vote. ${governanceData?.length || 0} global governance indicators available.`}
-            nowWhat="Review active proposals and cast votes. Use scenario engine for policy impact modeling."
+            soWhat={`Governance Performance: ${govPerformance.performanceScore}/100. Stability Index: ${govPerformance.stabilityIndex}/100. ${govPerformance.active} active proposals pending.`}
+            nowWhat={govPerformance.performanceScore < 50 ? "Governance performance below threshold. Prioritize institutional reform proposals." : "Review active proposals and use scenario engine for policy impact modeling."}
           />
         </ModeAwareSection>
 
@@ -89,7 +138,7 @@ const GovernanceHub = () => {
           </TabsList>
 
           <TabsContent value="proposals" className="space-y-4">
-            <NarrativeSynthesis title="Governance Intelligence Brief" sections={narrativeSections} overallConfidence={0.8} lastUpdated={new Date().toISOString()} />
+            <NarrativeSynthesis title="Governance Performance Brief" sections={narrativeSections} overallConfidence={0.8} lastUpdated={new Date().toISOString()} />
             <ScrollArea className={isExecutiveMode ? "h-[400px]" : "h-[600px]"}>
               <div className="space-y-4">
                 {proposals?.length === 0 && <Card className="p-8 text-center"><Vote className="h-12 w-12 mx-auto text-muted-foreground mb-4" /><p className="text-muted-foreground">No proposals yet</p></Card>}
@@ -135,9 +184,7 @@ const GovernanceHub = () => {
             </CardContent></Card>
           </TabsContent>
 
-          <TabsContent value="scenarios" className="space-y-4">
-            <ScenarioEngine />
-          </TabsContent>
+          <TabsContent value="scenarios" className="space-y-4"><ScenarioEngine /></TabsContent>
 
           <TabsContent value="indicators" className="space-y-4">
             <Card><CardHeader><CardTitle>Global Governance Indicators</CardTitle><CardDescription>World Bank Governance Indicators (WGI)</CardDescription></CardHeader>

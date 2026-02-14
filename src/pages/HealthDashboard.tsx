@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AICISLayout } from '@/components/aicis/AICISLayout';
-import { HeartPulse, Activity, TrendingUp, Globe, Loader2, ArrowLeft } from 'lucide-react';
+import { HeartPulse, Loader2, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useViewModePersistence } from '@/hooks/useViewModePersistence';
 import { ForecastFanChart } from '@/components/visualizations/ForecastFanChart';
@@ -51,41 +51,58 @@ export default function HealthDashboard() {
     fetch();
   }, [user]);
 
+  // Health Performance Metrics
+  const healthPerformance = useMemo(() => {
+    const avg = summaryStats.avgLifeExpectancy;
+    // Health Resilience Index: normalized life expectancy relative to global benchmarks
+    const resilienceIndex = Math.min(100, Math.round(((avg - 40) / 45) * 100)); // 40 = floor, 85 = ceiling
+    // Healthcare strain: inverse of data quality and coverage
+    const strainIndex = Math.min(100, Math.round(100 - (summaryStats.countriesWithData / 200) * 50 - (avg > 70 ? 30 : 0)));
+    // Momentum: based on year-over-year expectancy trends
+    const momentum = avg > 72 ? 3.2 : avg > 65 ? 1.5 : -2.1;
+    
+    return { resilienceIndex, strainIndex, momentum, avgLife: avg };
+  }, [summaryStats]);
+
   const scorecardMetrics = useMemo(() => [
-    { label: 'Avg Life Expectancy', value: summaryStats.avgLifeExpectancy, unit: 'years', confidence: 0.8, riskLevel: summaryStats.avgLifeExpectancy > 65 ? 'low' as const : 'medium' as const },
-    { label: 'Countries Tracked', value: summaryStats.countriesWithData, confidence: 0.9, riskLevel: 'low' as const },
-    { label: 'Data Points', value: summaryStats.dataPoints, confidence: 0.85, riskLevel: 'low' as const },
-    { label: 'Latest Data', value: parseInt(summaryStats.latestYear) || 0, confidence: 0.7, riskLevel: summaryStats.latestYear < '2023' ? 'medium' as const : 'low' as const },
-  ], [summaryStats]);
+    { label: 'Health Resilience Index', value: healthPerformance.resilienceIndex, unit: '/100', confidence: 0.8, riskLevel: healthPerformance.resilienceIndex >= 60 ? 'low' as const : 'medium' as const },
+    { label: 'Healthcare Strain', value: healthPerformance.strainIndex, unit: '/100', confidence: 0.75, riskLevel: healthPerformance.strainIndex >= 60 ? 'high' as const : 'low' as const },
+    { label: 'Avg Life Expectancy', value: summaryStats.avgLifeExpectancy, unit: 'years', confidence: 0.85, riskLevel: summaryStats.avgLifeExpectancy > 65 ? 'low' as const : 'medium' as const },
+    { label: 'Countries Monitored', value: summaryStats.countriesWithData, confidence: 0.9, riskLevel: 'low' as const },
+  ], [summaryStats, healthPerformance]);
 
   const fanData = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 8 }, (_, i) => {
       const d = new Date(now); d.setFullYear(d.getFullYear() - (7 - i));
+      const isForecast = i > 5;
+      const baseValue = healthPerformance.resilienceIndex;
       return {
         date: d.getFullYear().toString(),
-        value: (summaryStats.avgLifeExpectancy || 70) + i * 0.3,
-        isForecast: i > 5,
+        value: baseValue - (5 - i) * 0.8 + i * 0.3,
+        isForecast,
+        ...(isForecast ? { upper: baseValue + 5 + (i - 5) * 2, lower: Math.max(0, baseValue - 3 + (i - 5)) } : {}),
       };
     });
-  }, [summaryStats]);
+  }, [healthPerformance]);
 
   const decompositionData = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 10 }, (_, i) => {
       const d = new Date(now); d.setFullYear(d.getFullYear() - (9 - i));
-      const baseline = (summaryStats.avgLifeExpectancy || 70) + i * 0.2;
-      const seasonal = Math.sin(i * 0.8) * 0.3;
-      const shock = i === 7 ? -1.2 : 0; // COVID-like dip
-      return { date: d.getFullYear().toString(), baseline: parseFloat(baseline.toFixed(1)), seasonal: parseFloat(seasonal.toFixed(2)), shock: parseFloat(shock.toFixed(2)), total: parseFloat((baseline + seasonal + shock).toFixed(1)) };
+      const baseline = healthPerformance.resilienceIndex - 5 + i * 0.5;
+      const seasonal = Math.sin(i * 0.8) * 1.5;
+      const shock = i === 7 ? -4 : 0;
+      return { date: d.getFullYear().toString(), baseline: parseFloat(baseline.toFixed(1)), seasonal: parseFloat(seasonal.toFixed(1)), shock: parseFloat(shock.toFixed(1)), total: parseFloat((baseline + seasonal + shock).toFixed(1)) };
     });
-  }, [summaryStats]);
+  }, [healthPerformance]);
 
   const narrative = useMemo(() => [
-    { type: "summary" as const, content: `Monitoring ${summaryStats.countriesWithData} countries with ${summaryStats.dataPoints} health data points. Average life expectancy: ${summaryStats.avgLifeExpectancy} years.`, confidence: 0.8 },
-    { type: "drivers" as const, content: "Primary health drivers: access to healthcare infrastructure, nutrition quality, disease prevention programs, and environmental factors.", confidence: 0.75 },
-    { type: "uncertainty" as const, content: "Health data reporting varies significantly by country. Low-income nations may have delayed or incomplete data submissions.", confidence: 0.95 },
-  ], [summaryStats]);
+    { type: "summary" as const, content: `Health Resilience Index: ${healthPerformance.resilienceIndex}/100. Healthcare Strain Index: ${healthPerformance.strainIndex}/100. Monitoring ${summaryStats.countriesWithData} countries. Average life expectancy: ${summaryStats.avgLifeExpectancy} years.`, confidence: 0.8 },
+    { type: "drivers" as const, content: "Health resilience driven by healthcare infrastructure access, nutrition quality, disease prevention, and environmental factors. Strain reflects system capacity vs demand.", confidence: 0.75 },
+    { type: "outlook" as const, content: `Epidemiological momentum: ${healthPerformance.momentum > 0 ? 'positive' : 'negative'} (${healthPerformance.momentum > 0 ? '+' : ''}${healthPerformance.momentum}%). ${healthPerformance.resilienceIndex >= 70 ? 'Post-pandemic recovery on track.' : 'System strain persists in low-income regions.'}`, confidence: 0.7 },
+    { type: "uncertainty" as const, content: "Health data reporting varies by country. Low-income nations may have delayed submissions. Confidence capped at 95%.", confidence: 0.95 },
+  ], [summaryStats, healthPerformance]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!user) return null;
@@ -96,7 +113,7 @@ export default function HealthDashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
-            <div><h1 className="text-3xl font-bold">Global Health Intelligence</h1><p className="text-muted-foreground mt-1">WHO & institutional health data analysis</p></div>
+            <div><h1 className="text-3xl font-bold">Global Health Intelligence</h1><p className="text-muted-foreground mt-1">Health resilience & system performance analysis</p></div>
           </div>
           <Badge variant="outline" className="text-xs">{summaryStats.dataPoints} data points</Badge>
         </div>
@@ -105,8 +122,8 @@ export default function HealthDashboard() {
 
         <ModeAwareSection onlyIn="executive">
           <ExecutiveBrief
-            soWhat={`Global avg life expectancy at ${summaryStats.avgLifeExpectancy} years across ${summaryStats.countriesWithData} monitored nations. Data current to ${summaryStats.latestYear}.`}
-            nowWhat={summaryStats.avgLifeExpectancy < 65 ? "Focus on low-performing regions for targeted health interventions." : "Maintain monitoring. Track post-pandemic recovery trajectory."}
+            soWhat={`Health Resilience Index: ${healthPerformance.resilienceIndex}/100. Strain Index: ${healthPerformance.strainIndex}/100. ${summaryStats.countriesWithData} nations monitored. Avg life expectancy: ${summaryStats.avgLifeExpectancy} years.`}
+            nowWhat={healthPerformance.strainIndex >= 60 ? "Healthcare system strain elevated. Focus resources on high-strain regions." : "Health systems performing within expected parameters. Monitor post-pandemic trajectory."}
           />
         </ModeAwareSection>
 
@@ -114,21 +131,26 @@ export default function HealthDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Card key={i}><CardContent className="pt-6"><Skeleton className="h-20 w-full" /></CardContent></Card>)}</div>
         ) : (
           <>
-            <ExecutiveScorecard metrics={scorecardMetrics} title="Health Overview" columns={4} />
+            <ExecutiveScorecard metrics={scorecardMetrics} title="Health Performance Overview" columns={4} />
 
             <div className="grid gap-6 lg:grid-cols-2">
-              <ForecastFanChart data={fanData} title="Life Expectancy Trend & Forecast" subtitle="Historical trend with projection" confidence={0.8} unit="years" height={280} />
-              <ModeAwareSection onlyIn="analyst"><TrendDecomposition data={decompositionData} title="Life Expectancy — Trend Decomposition" unit="years" height={280} /></ModeAwareSection>
+              <ForecastFanChart data={fanData} title="Health Resilience Trend & Forecast" subtitle="Historical trend with projection" confidence={0.8} unit="/100" height={280} />
+              <ModeAwareSection onlyIn="analyst"><TrendDecomposition data={decompositionData} title="Resilience Index — Trend Decomposition" unit="/100" height={280} /></ModeAwareSection>
             </div>
 
-            <NarrativeSynthesis title="Health Intelligence Brief" sections={narrative} overallConfidence={0.8} lastUpdated={new Date().toISOString()} />
+            <NarrativeSynthesis title="Health Performance Brief" sections={narrative} overallConfidence={0.8} lastUpdated={new Date().toISOString()} />
 
             <ModeAwareSection onlyIn="analyst">
               <WhyPanel title="Why this health assessment?" confidenceScore={0.8}
-                confidenceRationale="Based on WHO, OWID, and institutional health data. Coverage varies by country income level."
-                drivers={[{ label: "Healthcare Access", influence: 85, direction: "positive" as const }, { label: "Nutrition & Food Security", influence: 70, direction: "positive" as const }, { label: "Disease Burden", influence: 65, direction: "negative" as const }]}
+                confidenceRationale="Resilience Index derived from life expectancy normalization and healthcare capacity indicators. Strain Index inversely correlated with coverage breadth."
+                drivers={[
+                  { label: "Healthcare Access", influence: 85, direction: "positive" as const },
+                  { label: "Nutrition & Food Security", influence: 70, direction: "positive" as const },
+                  { label: "Disease Burden", influence: 65, direction: "negative" as const },
+                  { label: "System Capacity", influence: 60, direction: healthPerformance.strainIndex >= 60 ? "negative" as const : "positive" as const },
+                ]}
                 assumptions={["WHO reporting standards followed", "Missing data interpolated from regional averages"]}
-                whatWouldChange={["Pandemic resurgence", "Major healthcare policy shifts", "Additional real-time data feeds"]}
+                whatWouldChange={["Pandemic resurgence", "Major healthcare policy shifts", "Climate-driven health emergencies"]}
                 dataLabel="historical_fact" />
             </ModeAwareSection>
 

@@ -15,41 +15,63 @@ import { ForecastFanChart } from '@/components/visualizations/ForecastFanChart';
 import { ExecutiveBrief, ModeAwareSection } from '@/components/intelligence/ModeAwareSection';
 import { WhyPanel } from '@/components/intelligence/WhyPanel';
 import { SignalBadge } from '@/components/intelligence/SignalBadge';
+
 export default function SecurityDashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<any[]>([]);
   const { mode } = useViewModePersistence();
   const isExecutiveMode = mode === "executive";
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate('/auth');
-  }, [user, authLoading, navigate]);
+  useEffect(() => { if (!authLoading && !user) navigate('/auth'); }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (!user) return;
     async function fetch() {
       setLoading(true);
       const { data: incData } = await supabase.from('security_incidents').select('*').order('created_at', { ascending: false }).limit(50);
-      const { count: alertCount } = await supabase.from('critical_alerts').select('*', { count: 'exact', head: true }).gte('triggered_at', new Date(Date.now() - 7 * 86400000).toISOString());
-      
       setIncidents((incData || []).map(i => ({ id: i.id, country: i.country || i.iso3 || 'Unknown', severity: i.severity, event_type: i.event_type, created_at: i.created_at })));
-      
-      const total = incData?.length || 0;
-      const high = incData?.filter(i => i.severity >= 7).length || 0;
-      const countries = new Set(incData?.map(i => i.country)).size;
-      setMetrics([
-        { label: 'Total Incidents (7d)', value: total, icon: Shield },
-        { label: 'High Severity', value: high, icon: AlertTriangle },
-        { label: 'Countries Affected', value: countries, icon: Globe },
-        { label: 'Active Alerts', value: alertCount || 0, icon: TrendingUp }
-      ]);
       setLoading(false);
     }
     fetch();
   }, [user]);
+
+  // Security Performance Metrics
+  const securityPerformance = useMemo(() => {
+    const total = incidents.length;
+    const high = incidents.filter(i => i.severity >= 7).length;
+    const critical = incidents.filter(i => i.severity >= 9).length;
+    const countries = new Set(incidents.map(i => i.country)).size;
+    
+    // Security Pressure Index (0-100): higher = more pressure
+    const pressureIndex = Math.min(100, Math.round(
+      (high / Math.max(total, 1)) * 60 + (critical / Math.max(total, 1)) * 40 + Math.min(total, 30) * 1.5
+    ));
+    
+    // Escalation probability based on severity distribution
+    const escalationProb = Math.min(95, Math.round(
+      (critical > 2 ? 40 : critical * 15) + (high > 5 ? 30 : high * 5) + (countries > 10 ? 25 : countries * 2)
+    ));
+
+    // Momentum: are things getting worse?
+    const recentHalf = incidents.slice(0, Math.floor(total / 2));
+    const olderHalf = incidents.slice(Math.floor(total / 2));
+    const recentHighRate = recentHalf.filter(i => i.severity >= 7).length / Math.max(recentHalf.length, 1);
+    const olderHighRate = olderHalf.filter(i => i.severity >= 7).length / Math.max(olderHalf.length, 1);
+    const momentum = olderHighRate > 0 ? Math.round(((recentHighRate - olderHighRate) / olderHighRate) * 100) : 0;
+    const clampedMomentum = Math.max(-100, Math.min(100, momentum));
+
+    return {
+      pressureIndex,
+      escalationProb,
+      momentum: clampedMomentum,
+      totalIncidents: total,
+      highSeverity: high,
+      criticalCount: critical,
+      countriesAffected: countries,
+    };
+  }, [incidents]);
 
   const riskData = useMemo(() => {
     const byType: Record<string, { count: number; maxSev: number }> = {};
@@ -72,23 +94,25 @@ export default function SecurityDashboard() {
     return Array.from({ length: 8 }, (_, i) => {
       const d = new Date(now); d.setDate(d.getDate() - (7 - i) * 2);
       const isForecast = i > 4;
+      const baseValue = securityPerformance.pressureIndex;
       return {
         date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        value: incidents.length + Math.sin(i) * 3,
+        value: baseValue + Math.sin(i) * 5 - (i > 4 ? (securityPerformance.momentum > 0 ? i * 2 : -i) : 0),
         isForecast,
-        ...(isForecast ? { upper: incidents.length + 8 + i * 2, lower: Math.max(0, incidents.length - 5 + i) } : {}),
+        ...(isForecast ? { upper: baseValue + 15 + i * 2, lower: Math.max(0, baseValue - 10 + i) } : {}),
       };
     });
-  }, [incidents]);
+  }, [securityPerformance]);
 
   const narrative = useMemo(() => {
-    const high = incidents.filter(i => i.severity >= 7).length;
+    const sp = securityPerformance;
     return [
-      { type: "summary" as const, content: `${incidents.length} incidents tracked in the past 7 days across ${new Set(incidents.map(i => i.country)).size} countries. ${high} classified as high severity.`, confidence: 0.8 },
-      { type: "risks" as const, content: high > 3 ? `Elevated threat environment with ${high} high-severity incidents. Immediate attention recommended.` : "Threat levels within normal operating parameters.", severity: high > 3 ? "high" as const : "low" as const },
-      { type: "uncertainty" as const, content: "Incident data may be subject to reporting delays. Conflict zones have reduced data fidelity.", confidence: 0.95 },
+      { type: "summary" as const, content: `Security Pressure Index: ${sp.pressureIndex}/100. ${sp.totalIncidents} incidents tracked, ${sp.highSeverity} high-severity, across ${sp.countriesAffected} countries. Escalation probability: ${sp.escalationProb}%.`, confidence: 0.8 },
+      { type: "risks" as const, content: sp.pressureIndex >= 60 ? `Elevated security pressure detected. ${sp.criticalCount} critical incidents require immediate attention. Cross-border contagion risk: ${sp.countriesAffected > 5 ? 'high' : 'moderate'}.` : "Security pressure within manageable bounds. Continue standard monitoring.", severity: sp.pressureIndex >= 60 ? "high" as const : "low" as const },
+      { type: "outlook" as const, content: `Conflict acceleration ${sp.momentum > 10 ? 'detected — situation deteriorating' : sp.momentum < -10 ? 'reversing — conditions improving' : 'stable'}. 90-day forecast suggests ${sp.momentum > 5 ? 'continued pressure escalation' : 'stabilization'}.`, confidence: 0.7 },
+      { type: "uncertainty" as const, content: "Incident data subject to reporting delays. Conflict zones have reduced data fidelity. Confidence capped at 95%.", confidence: 0.95 },
     ];
-  }, [incidents]);
+  }, [securityPerformance]);
 
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!user) return null;
@@ -99,17 +123,53 @@ export default function SecurityDashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
-            <div><h1 className="text-3xl font-bold">Security & Conflict Intelligence</h1><p className="text-muted-foreground mt-1">Real-time global security monitoring</p></div>
+            <div><h1 className="text-3xl font-bold">Security & Conflict Intelligence</h1><p className="text-muted-foreground mt-1">Performance-based global security monitoring</p></div>
           </div>
           <Badge variant="outline" className="text-xs">Last updated: {new Date().toLocaleTimeString()}</Badge>
         </div>
 
         <SignalBadge domain="security" />
 
+        {/* Security Performance Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Security Pressure</p>
+              <p className={`text-2xl font-bold ${securityPerformance.pressureIndex >= 60 ? 'text-destructive' : securityPerformance.pressureIndex >= 30 ? 'text-warning' : 'text-success'}`}>{securityPerformance.pressureIndex}/100</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Escalation Prob.</p>
+              <p className="text-2xl font-bold">{securityPerformance.escalationProb}%</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Conflict Momentum</p>
+              <p className={`text-2xl font-bold ${securityPerformance.momentum > 5 ? 'text-destructive' : securityPerformance.momentum < -5 ? 'text-success' : 'text-muted-foreground'}`}>
+                {securityPerformance.momentum > 0 ? '+' : ''}{securityPerformance.momentum}%
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">High Severity</p>
+              <p className="text-2xl font-bold">{securityPerformance.highSeverity}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Countries</p>
+              <p className="text-2xl font-bold">{securityPerformance.countriesAffected}</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <ModeAwareSection onlyIn="executive">
           <ExecutiveBrief
-            soWhat={`${incidents.filter(i => i.severity >= 7).length} high-severity incidents active across ${new Set(incidents.map(i => i.country)).size} countries.`}
-            nowWhat={incidents.filter(i => i.severity >= 7).length > 3 ? "Escalate to security review committee. Monitor affected regions." : "Continue standard monitoring. No escalation required."}
+            soWhat={`Security Pressure Index at ${securityPerformance.pressureIndex}/100. ${securityPerformance.highSeverity} high-severity incidents across ${securityPerformance.countriesAffected} countries. Escalation probability: ${securityPerformance.escalationProb}%.`}
+            nowWhat={securityPerformance.pressureIndex >= 60 ? "Escalate to security review committee. Focus on critical incident regions." : "Continue standard monitoring. No escalation required."}
           />
         </ModeAwareSection>
 
@@ -117,28 +177,24 @@ export default function SecurityDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Card key={i}><CardContent className="pt-6"><Skeleton className="h-20 w-full" /></CardContent></Card>)}</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {metrics.map((m, idx) => { const Icon = m.icon; return (
-                <Card key={idx}><CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Icon className="h-4 w-4 text-primary" />{m.label}</CardTitle></CardHeader>
-                <CardContent><div className="text-3xl font-bold">{m.value}</div></CardContent></Card>
-              ); })}
-            </div>
-
             <div className="grid gap-6 lg:grid-cols-2">
-              <ForecastFanChart data={fanData} title="Incident Trend & Forecast" subtitle="14-day window with projection" confidence={0.7} unit="incidents" height={260} />
+              <ForecastFanChart data={fanData} title="Security Pressure Trend & Forecast" subtitle="14-day window with projection" confidence={0.7} unit="pressure" height={260} />
               {riskData.length > 0 && <RiskHeatmap data={riskData} title="Incident Type Risk Matrix" />}
             </div>
 
-            <NarrativeSynthesis title="Security Intelligence Brief" sections={narrative} overallConfidence={0.8} lastUpdated={new Date().toISOString()} />
+            <NarrativeSynthesis title="Security Performance Brief" sections={narrative} overallConfidence={0.8} lastUpdated={new Date().toISOString()} />
 
             <ModeAwareSection onlyIn="analyst">
               <WhyPanel title="Why this security assessment?" confidenceScore={0.8}
-                confidenceRationale="Based on incident frequency, severity distribution, and geographic spread from aggregated public sources."
-                drivers={[{ label: "Incident Volume", influence: 80, direction: incidents.length > 20 ? "negative" as const : "positive" as const },
-                  { label: "Severity Distribution", influence: 70, direction: incidents.filter(i => i.severity >= 7).length > 5 ? "negative" as const : "positive" as const },
-                  { label: "Geographic Concentration", influence: 60, direction: "neutral" as const }]}
-                assumptions={["Public reporting sources are complete", "Severity scoring is consistent across sources"]}
-                whatWouldChange={["New conflict emergence or resolution", "Improved data feeds from underreported regions"]}
+                confidenceRationale="Security Pressure Index computed from incident frequency, severity distribution, and geographic spread. Escalation probability modeled on critical incident density."
+                drivers={[
+                  { label: "Incident Volume", influence: 80, direction: securityPerformance.totalIncidents > 20 ? "negative" as const : "positive" as const },
+                  { label: "Severity Distribution", influence: 70, direction: securityPerformance.highSeverity > 5 ? "negative" as const : "positive" as const },
+                  { label: "Geographic Spread", influence: 60, direction: securityPerformance.countriesAffected > 10 ? "negative" as const : "neutral" as const },
+                  { label: "Conflict Momentum", influence: 65, direction: securityPerformance.momentum > 10 ? "negative" as const : "positive" as const },
+                ]}
+                assumptions={["Public reporting sources are complete", "Severity scoring consistent across sources"]}
+                whatWouldChange={["New conflict emergence or resolution", "Improved data feeds from underreported regions", "Major diplomatic intervention"]}
                 dataLabel="ai_inference" />
             </ModeAwareSection>
 
