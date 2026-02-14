@@ -17,6 +17,7 @@ import {
 function generateTestProfile(seed: number): Record<string, { metrics: MetricEntryV2[]; completeness: number }> {
   const domains = ['governance', 'health', 'energy', 'finance', 'food', 'security'];
   const profile: Record<string, { metrics: MetricEntryV2[]; completeness: number }> = {};
+  const sources = ['worldbank', 'who', 'faostat'];
 
   for (const domain of domains) {
     const metrics: MetricEntryV2[] = [];
@@ -29,7 +30,7 @@ function generateTestProfile(seed: number): Record<string, { metrics: MetricEntr
         metric: `${domain}_index`,
         value: Math.max(5, Math.min(95, base + noise + trend)),
         period: `2025-${String(i + 1).padStart(2, '0')}`,
-        source: 'test',
+        source: sources[i % sources.length],
       });
     }
     profile[domain] = { metrics, completeness: 0.6 + (seed % 4) * 0.1 };
