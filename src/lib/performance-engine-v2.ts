@@ -98,11 +98,11 @@ function normalizeWithBenchmark(
   return Math.max(0, Math.min(100, Math.round(score * 10) / 10));
 }
 
-// ─── 2. Exponential smoothing ───────────────────────────────────────
+// ─── 2. Exponential smoothing (Holt double for trend-aware) ─────────
 
 export function exponentialSmoothing(
   series: number[],
-  alpha: number = 0.6,
+  alpha: number = 0.55,
 ): number {
   if (series.length === 0) return 0;
   let s = series[0];
@@ -110,6 +110,27 @@ export function exponentialSmoothing(
     s = alpha * series[i] + (1 - alpha) * s;
   }
   return s;
+}
+
+/**
+ * Holt double exponential smoothing — captures level + trend.
+ * Returns [level, trend] for the last observation.
+ */
+export function holtSmoothing(
+  series: number[],
+  alpha: number = 0.55,
+  beta: number = 0.3,
+): { level: number; trend: number } {
+  if (series.length === 0) return { level: 0, trend: 0 };
+  if (series.length === 1) return { level: series[0], trend: 0 };
+  let level = series[0];
+  let trend = series[1] - series[0];
+  for (let i = 1; i < series.length; i++) {
+    const prevLevel = level;
+    level = alpha * series[i] + (1 - alpha) * (prevLevel + trend);
+    trend = beta * (level - prevLevel) + (1 - beta) * trend;
+  }
+  return { level, trend };
 }
 
 // ─── 3. Regression-based momentum (OLS slope over last N) ──────────
@@ -129,9 +150,11 @@ function regressionSlope(values: number[]): number {
 }
 
 function computeMomentumV2(values: number[]): number {
-  const recent = values.slice(-5);
+  // Use last 8 periods for more robust regression (upgraded from 5)
+  const recent = values.slice(-8);
+  if (recent.length < 3) return 0;
   const slope = regressionSlope(recent);
-  const mean = recent.reduce((s, v) => s + v, 0) / (recent.length || 1);
+  const mean = recent.reduce((s, v) => s + v, 0) / recent.length;
   // Normalize slope relative to mean → percentage momentum
   const raw = mean !== 0 ? (slope / Math.abs(mean)) * 100 : 0;
   return Math.max(-100, Math.min(100, Math.round(raw * 10) / 10));
@@ -285,30 +308,39 @@ export function computeDomainPerformanceV2(
   );
   if (breakResult.detected) riskPressureScore = Math.min(100, riskPressureScore + 10);
 
-  // Forecast: exponential smoothing based
-  const smoothed = exponentialSmoothing(values, 0.6);
-  const smoothedNorm = Math.round(normalizeWithBenchmark(smoothed, benchmark));
-  const dampingFactor = 0.7;
+  // Forecast: Holt double exponential smoothing (trend-aware)
+  const holt = holtSmoothing(values, 0.55, 0.3);
+  const holtNorm = Math.round(normalizeWithBenchmark(holt.level, benchmark));
+  const trendNorm = holt.trend / (Math.abs(holt.level) || 1); // relative trend
+
+  // Damping increases with volatility (high vol = less trend trust)
+  const dampingFactor = Math.max(0.3, 1 - (volatilityIndex / 200));
   const momentumFactor = momentumScore / 100;
 
   const forecast90d = Math.max(0, Math.min(100, Math.round(
-    smoothedNorm + (momentumFactor * 15) - (volatilityIndex * 0.05 * dampingFactor)
+    holtNorm + (trendNorm * 90 * dampingFactor) + (momentumFactor * 8)
   )));
   const forecast1y = Math.max(0, Math.min(100, Math.round(
-    smoothedNorm + (momentumFactor * 30) - (volatilityIndex * 0.1 * dampingFactor)
+    holtNorm + (trendNorm * 365 * dampingFactor * 0.5) + (momentumFactor * 15) - (volatilityIndex * 0.08)
   )));
 
   const forecastDirection: 'up' | 'down' | 'stable' =
     momentumScore > 5 ? 'up' : momentumScore < -5 ? 'down' : 'stable';
 
-  // Confidence: V2 formula
+  // Confidence: V2 calibrated formula
+  // Base is now 15 (not 40) — you must earn confidence through data
   const dataDensity = Math.min(1, metrics.length / 20);
+  const sourceDiv = new Set(metrics.map(m => m.source)).size;
+  const sourceDiversityBonus = Math.min(15, sourceDiv * 5); // up to 15 for 3+ sources
+  const timeSpanBonus = Math.min(15, (metrics.length / 5) * 3); // reward longer history
   let confidenceScore = Math.round(
-    40 +
-    (dataDensity * 20) +
-    (stabilityScore * 20) -
-    (volatilityIndex * 0.1) -
-    (breakResult.detected ? 10 : 0)
+    15 +                                 // empirical floor (was 40)
+    (dataDensity * 25) +                 // data volume: 0–25
+    (stabilityScore * 20) +              // backtest stability: 0–20
+    sourceDiversityBonus +               // source diversity: 0–15
+    timeSpanBonus -                      // temporal depth: 0–15
+    (volatilityIndex * 0.15) -           // volatility penalty (increased)
+    (breakResult.detected ? 12 : 0)      // structural break penalty (increased)
   );
   confidenceScore = Math.max(10, Math.min(95, confidenceScore));
 
