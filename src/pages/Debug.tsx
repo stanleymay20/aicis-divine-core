@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { validateV2 } from '@/lib/performance-engine-v2-validate';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
@@ -26,8 +27,13 @@ export default function Debug() {
     }
   }, [session, authLoading, navigate]);
 
+  const v2Ran = useRef(false);
   useEffect(() => {
     loadStatus();
+    if (!v2Ran.current) {
+      v2Ran.current = true;
+      validateV2();
+    }
   }, []);
 
   const loadStatus = async () => {

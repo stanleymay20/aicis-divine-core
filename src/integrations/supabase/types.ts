@@ -756,12 +756,15 @@ export type Database = {
           forecast_1y: number | null
           forecast_90d: number | null
           forecast_direction: string
+          forecast_stability_score: number
           id: string
           iso3: string
           momentum_score: number
           performance_index: number
           risk_pressure_score: number
           snapshot_date: string
+          structural_break_count: number
+          systemic_fragility_score: number
           volatility_index: number
         }
         Insert: {
@@ -771,12 +774,15 @@ export type Database = {
           forecast_1y?: number | null
           forecast_90d?: number | null
           forecast_direction?: string
+          forecast_stability_score?: number
           id?: string
           iso3: string
           momentum_score?: number
           performance_index?: number
           risk_pressure_score?: number
           snapshot_date?: string
+          structural_break_count?: number
+          systemic_fragility_score?: number
           volatility_index?: number
         }
         Update: {
@@ -786,12 +792,15 @@ export type Database = {
           forecast_1y?: number | null
           forecast_90d?: number | null
           forecast_direction?: string
+          forecast_stability_score?: number
           id?: string
           iso3?: string
           momentum_score?: number
           performance_index?: number
           risk_pressure_score?: number
           snapshot_date?: string
+          structural_break_count?: number
+          systemic_fragility_score?: number
           volatility_index?: number
         }
         Relationships: []
@@ -2216,6 +2225,45 @@ export type Database = {
         }
         Relationships: []
       }
+      global_domain_benchmarks: {
+        Row: {
+          domain: string
+          id: string
+          percentile_10: number
+          percentile_25: number
+          percentile_50: number
+          percentile_75: number
+          percentile_90: number
+          structural_ceiling: number
+          structural_floor: number
+          updated_at: string
+        }
+        Insert: {
+          domain: string
+          id?: string
+          percentile_10?: number
+          percentile_25?: number
+          percentile_50?: number
+          percentile_75?: number
+          percentile_90?: number
+          structural_ceiling?: number
+          structural_floor?: number
+          updated_at?: string
+        }
+        Update: {
+          domain?: string
+          id?: string
+          percentile_10?: number
+          percentile_25?: number
+          percentile_50?: number
+          percentile_75?: number
+          percentile_90?: number
+          structural_ceiling?: number
+          structural_floor?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gov_policies: {
         Row: {
           compliance_level: string | null
@@ -3149,6 +3197,36 @@ export type Database = {
           success_rate?: number | null
           trust_score?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      performance_backtests: {
+        Row: {
+          domain: string
+          id: string
+          iso3: string
+          mae: number
+          rmse: number
+          run_at: string
+          stability_score: number
+        }
+        Insert: {
+          domain: string
+          id?: string
+          iso3: string
+          mae?: number
+          rmse?: number
+          run_at?: string
+          stability_score?: number
+        }
+        Update: {
+          domain?: string
+          id?: string
+          iso3?: string
+          mae?: number
+          rmse?: number
+          run_at?: string
+          stability_score?: number
         }
         Relationships: []
       }
