@@ -1,6 +1,6 @@
 /**
- * AICIS Resilience Utilities
- * Circuit breaker + retry patterns for edge function calls.
+ * AICIS Client-Side Resilience Utilities
+ * Circuit breaker + retry for frontend API calls.
  */
 
 interface CircuitState {
@@ -10,18 +10,12 @@ interface CircuitState {
 }
 
 const circuits: Map<string, CircuitState> = new Map();
+const CIRCUIT_THRESHOLD = 3;
+const CIRCUIT_RESET_MS = 60_000;
 
-const CIRCUIT_THRESHOLD = 3;     // failures before opening
-const CIRCUIT_RESET_MS = 60_000; // 60s cooldown
-
-/**
- * Circuit breaker: prevents cascading failures by short-circuiting
- * calls to repeatedly failing services.
- */
 export function isCircuitOpen(key: string): boolean {
   const state = circuits.get(key);
   if (!state || !state.open) return false;
-  // Auto-reset after cooldown (half-open)
   if (Date.now() - state.lastFailure > CIRCUIT_RESET_MS) {
     state.open = false;
     state.failures = 0;
@@ -38,22 +32,14 @@ export function recordFailure(key: string): void {
   const state = circuits.get(key) || { failures: 0, lastFailure: 0, open: false };
   state.failures += 1;
   state.lastFailure = Date.now();
-  if (state.failures >= CIRCUIT_THRESHOLD) {
-    state.open = true;
-  }
+  if (state.failures >= CIRCUIT_THRESHOLD) state.open = true;
   circuits.set(key, state);
 }
 
-/**
- * Retry with exponential backoff.
- * @param fn - async function to retry
- * @param maxRetries - max attempts (default 3)
- * @param baseDelayMs - initial delay (default 500ms)
- */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelayMs: number = 500,
+  maxRetries: number = 2,
+  baseDelayMs: number = 400,
 ): Promise<T> {
   let lastError: Error | undefined;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -70,9 +56,6 @@ export async function retryWithBackoff<T>(
   throw lastError;
 }
 
-/**
- * Combined: circuit breaker + retry for Supabase function invocations.
- */
 export async function resilientCall<T>(
   key: string,
   fn: () => Promise<T>,
