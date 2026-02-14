@@ -1,14 +1,13 @@
 /**
- * AICIS Performance Engine V2 (APE-V2)
- * Statistically defensible sovereign performance forecasting.
+ * AICIS Performance Engine V2 (APE-V2) — Institutionally Hardened
  *
- * Upgrades over V1:
- *  - Cross-country anchored normalization via global benchmarks
- *  - Exponential smoothing forecasts
- *  - Regression-based momentum
- *  - Structural break detection
- *  - Nonlinear fragility multiplier
- *  - Backtest-validated confidence
+ * Mathematical integrity:
+ *  - Holt double-exponential backtest (matches production model)
+ *  - Period-aware forecast horizons (monthly/quarterly detection)
+ *  - t-statistic momentum significance filtering
+ *  - CUSUM-based structural break detection
+ *  - Data gap interpolation with staleness penalty
+ *  - Calibratable α/β via domain_model_parameters
  */
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -28,6 +27,7 @@ export interface DomainPerformanceV2 {
   domain: string;
   performanceIndex: number;       // 0–100
   momentumScore: number;          // -100 to +100
+  momentumTStat: number;          // t-statistic for slope significance
   volatilityIndex: number;        // 0–100
   riskPressureScore: number;      // 0–100
   forecast90d: number;
@@ -35,6 +35,9 @@ export interface DomainPerformanceV2 {
   forecastDirection: 'up' | 'down' | 'stable';
   confidenceScore: number;        // 10–95
   structuralBreak: boolean;
+  structuralBreakPValue: number;  // 0–1, lower = more significant
+  dataGapCount: number;           // number of interpolated gaps
+  dataStaleDays: number;          // days since last real observation
 }
 
 export interface NationalPerformanceIndexV2 {
@@ -44,31 +47,38 @@ export interface NationalPerformanceIndexV2 {
   momentum: number;
   volatility: number;
   riskPressure: number;
-  systemicFragility: number;      // 0–100  NEW
+  systemicFragility: number;
   forecast90d: number;
   forecast1y: number;
   forecastDirection: 'up' | 'down' | 'stable';
   confidence: number;
-  structuralBreakCount: number;   // NEW
-  forecastStability: number;      // 0–1    NEW
+  structuralBreakCount: number;
+  forecastStability: number;
   domains: DomainPerformanceV2[];
 }
 
 export interface BacktestResult {
   mae: number;
   rmse: number;
+  mape: number;           // NEW: Mean Absolute Percentage Error
+  forecastBias: number;   // NEW: positive = over-predicts
   stabilityScore: number; // 0–1
 }
 
 export interface MetricEntryV2 {
   metric: string;
   value: number;
-  period: string;
+  period: string;         // ISO date string, e.g. "2025-01" or "2025-Q1"
   source: string;
   unit?: string;
 }
 
-// ─── Domain weights (unchanged from V1) ─────────────────────────────
+export interface DomainModelParams {
+  alpha: number;
+  beta: number;
+}
+
+// ─── Domain weights ─────────────────────────────────────────────────
 
 const DOMAIN_WEIGHTS: Record<string, number> = {
   governance: 0.18,
@@ -82,6 +92,9 @@ const DOMAIN_WEIGHTS: Record<string, number> = {
   population: 0.02,
 };
 
+// Default model parameters (overridden by calibrated values)
+const DEFAULT_PARAMS: DomainModelParams = { alpha: 0.55, beta: 0.3 };
+
 // ─── 1. Benchmark-anchored normalization ────────────────────────────
 
 function normalizeWithBenchmark(
@@ -89,7 +102,6 @@ function normalizeWithBenchmark(
   benchmark: GlobalBenchmark | undefined,
 ): number {
   if (!benchmark) {
-    // Fallback: percentile-50 anchored scaling (value assumed 0–100)
     return Math.max(0, Math.min(100, value));
   }
   const { structural_floor, structural_ceiling } = benchmark;
@@ -98,24 +110,8 @@ function normalizeWithBenchmark(
   return Math.max(0, Math.min(100, Math.round(score * 10) / 10));
 }
 
-// ─── 2. Exponential smoothing (Holt double for trend-aware) ─────────
+// ─── 2. Holt double exponential smoothing ───────────────────────────
 
-export function exponentialSmoothing(
-  series: number[],
-  alpha: number = 0.55,
-): number {
-  if (series.length === 0) return 0;
-  let s = series[0];
-  for (let i = 1; i < series.length; i++) {
-    s = alpha * series[i] + (1 - alpha) * s;
-  }
-  return s;
-}
-
-/**
- * Holt double exponential smoothing — captures level + trend.
- * Returns [level, trend] for the last observation.
- */
 export function holtSmoothing(
   series: number[],
   alpha: number = 0.55,
@@ -133,11 +129,109 @@ export function holtSmoothing(
   return { level, trend };
 }
 
-// ─── 3. Regression-based momentum (OLS slope over last N) ──────────
+// Keep for backward compatibility
+export function exponentialSmoothing(
+  series: number[],
+  alpha: number = 0.55,
+): number {
+  if (series.length === 0) return 0;
+  let s = series[0];
+  for (let i = 1; i < series.length; i++) {
+    s = alpha * series[i] + (1 - alpha) * s;
+  }
+  return s;
+}
 
-function regressionSlope(values: number[]): number {
+// ─── 3. Period detection ────────────────────────────────────────────
+
+type Periodicity = 'monthly' | 'quarterly' | 'annual' | 'unknown';
+
+function detectPeriodicity(periods: string[]): Periodicity {
+  if (periods.length < 2) return 'unknown';
+  // Check for quarterly patterns (Q1, Q2, etc.)
+  if (periods.some(p => /Q[1-4]/.test(p))) return 'quarterly';
+  // Check for monthly patterns (YYYY-MM)
+  if (periods.some(p => /^\d{4}-\d{2}$/.test(p))) return 'monthly';
+  // Check for annual (YYYY only)
+  if (periods.every(p => /^\d{4}$/.test(p))) return 'annual';
+  return 'monthly'; // default assumption
+}
+
+/** Convert forecast horizon (days) to period-count based on detected periodicity */
+function horizonToPeriods(days: number, periodicity: Periodicity): number {
+  switch (periodicity) {
+    case 'monthly': return days / 30;
+    case 'quarterly': return days / 90;
+    case 'annual': return days / 365;
+    default: return days / 30;
+  }
+}
+
+// ─── 4. Data gap interpolation ──────────────────────────────────────
+
+interface GapFilledResult {
+  values: number[];
+  gapCount: number;
+  staleDays: number;
+}
+
+function fillDataGaps(
+  sorted: MetricEntryV2[],
+): GapFilledResult {
+  if (sorted.length < 2) {
+    return {
+      values: sorted.map(m => m.value),
+      gapCount: 0,
+      staleDays: 0,
+    };
+  }
+
+  const values = sorted.map(m => m.value);
+  const periods = sorted.map(m => m.period);
+  let gapCount = 0;
+
+  // Detect expected period gaps (simple: check for sequential month/quarter jumps)
+  const filled: number[] = [values[0]];
+  for (let i = 1; i < values.length; i++) {
+    const prevDate = new Date(periods[i - 1] + '-01');
+    const currDate = new Date(periods[i] + '-01');
+    if (!isNaN(prevDate.getTime()) && !isNaN(currDate.getTime())) {
+      const monthDiff = (currDate.getFullYear() - prevDate.getFullYear()) * 12 +
+        (currDate.getMonth() - prevDate.getMonth());
+      // If gap > 1 month, interpolate
+      if (monthDiff > 1) {
+        const gapsToFill = Math.min(monthDiff - 1, 6); // cap interpolation at 6
+        gapCount += gapsToFill;
+        for (let g = 1; g <= gapsToFill; g++) {
+          const t = g / (gapsToFill + 1);
+          filled.push(values[i - 1] + t * (values[i] - values[i - 1]));
+        }
+      }
+    }
+    filled.push(values[i]);
+  }
+
+  // Staleness: days since last observation
+  const lastPeriod = periods[periods.length - 1];
+  const lastDate = new Date(lastPeriod.length <= 7 ? lastPeriod + '-01' : lastPeriod);
+  const staleDays = isNaN(lastDate.getTime()) ? 0 :
+    Math.max(0, Math.round((Date.now() - lastDate.getTime()) / 86400000));
+
+  return { values: filled, gapCount, staleDays };
+}
+
+// ─── 5. OLS regression with t-statistic ─────────────────────────────
+
+interface RegressionResult {
+  slope: number;
+  tStat: number;
+  significant: boolean; // |t| >= 1.5
+}
+
+function regressionWithSignificance(values: number[]): RegressionResult {
   const n = values.length;
-  if (n < 2) return 0;
+  if (n < 3) return { slope: 0, tStat: 0, significant: false };
+
   const xMean = (n - 1) / 2;
   const yMean = values.reduce((s, v) => s + v, 0) / n;
   let num = 0;
@@ -146,21 +240,40 @@ function regressionSlope(values: number[]): number {
     num += (i - xMean) * (values[i] - yMean);
     den += (i - xMean) ** 2;
   }
-  return den === 0 ? 0 : num / den;
+  const slope = den === 0 ? 0 : num / den;
+
+  // Standard error of slope
+  const residuals = values.map((v, i) => v - (yMean + slope * (i - xMean)));
+  const sse = residuals.reduce((s, r) => s + r * r, 0);
+  const mse = sse / (n - 2);
+  const seBeta = Math.sqrt(mse / den);
+  const tStat = seBeta > 0 ? slope / seBeta : 0;
+
+  return {
+    slope,
+    tStat: Math.round(tStat * 100) / 100,
+    significant: Math.abs(tStat) >= 1.5,
+  };
 }
 
-function computeMomentumV2(values: number[]): number {
-  // Use last 8 periods for more robust regression (upgraded from 5)
+function computeMomentumV2(values: number[]): { momentum: number; tStat: number } {
   const recent = values.slice(-8);
-  if (recent.length < 3) return 0;
-  const slope = regressionSlope(recent);
+  if (recent.length < 3) return { momentum: 0, tStat: 0 };
+
+  const reg = regressionWithSignificance(recent);
+
+  // If not statistically significant, momentum is zero
+  if (!reg.significant) return { momentum: 0, tStat: reg.tStat };
+
   const mean = recent.reduce((s, v) => s + v, 0) / recent.length;
-  // Normalize slope relative to mean → percentage momentum
-  const raw = mean !== 0 ? (slope / Math.abs(mean)) * 100 : 0;
-  return Math.max(-100, Math.min(100, Math.round(raw * 10) / 10));
+  const raw = mean !== 0 ? (reg.slope / Math.abs(mean)) * 100 : 0;
+  return {
+    momentum: Math.max(-100, Math.min(100, Math.round(raw * 10) / 10)),
+    tStat: reg.tStat,
+  };
 }
 
-// ─── 4. Volatility (coefficient of variation, scaled) ───────────────
+// ─── 6. Volatility ──────────────────────────────────────────────────
 
 function computeVolatility(values: number[]): number {
   const recent = values.slice(-6);
@@ -172,61 +285,93 @@ function computeVolatility(values: number[]): number {
   return Math.round(Math.min(100, cv * 200));
 }
 
-// ─── 5. Structural break detection ─────────────────────────────────
+// ─── 7. CUSUM structural break detection ────────────────────────────
 
 interface StructuralBreakResult {
   detected: boolean;
-  momentumShift: number;
-  volatilitySpike: boolean;
+  pValue: number;       // approximate p-value
+  breakIndex: number;   // index of detected break (-1 if none)
 }
 
-function detectStructuralBreak(
-  values: number[],
-  previousMomentum: number,
-  currentMomentum: number,
-): StructuralBreakResult {
-  const momentumShift = Math.abs(currentMomentum - previousMomentum);
+function detectStructuralBreakCUSUM(values: number[]): StructuralBreakResult {
+  const n = values.length;
+  if (n < 6) return { detected: false, pValue: 1, breakIndex: -1 };
 
-  // Volatility spike: compare recent vol to rolling average vol
-  let volatilitySpike = false;
-  if (values.length >= 9) {
-    const olderVol = computeVolatility(values.slice(-9, -3));
-    const recentVol = computeVolatility(values.slice(-6));
-    if (olderVol > 0 && (recentVol - olderVol) / olderVol > 0.3) {
-      volatilitySpike = true;
-    }
+  const mean = values.reduce((s, v) => s + v, 0) / n;
+  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
+  const stdDev = Math.sqrt(variance);
+  if (stdDev === 0) return { detected: false, pValue: 1, breakIndex: -1 };
+
+  // Compute CUSUM
+  const cusum: number[] = [];
+  let cumSum = 0;
+  for (let i = 0; i < n; i++) {
+    cumSum += (values[i] - mean) / stdDev;
+    cusum.push(Math.abs(cumSum));
   }
 
-  const detected = momentumShift > 15 || volatilitySpike;
-  return { detected, momentumShift, volatilitySpike };
+  // Max CUSUM statistic
+  const maxCusum = Math.max(...cusum);
+  const breakIndex = cusum.indexOf(maxCusum);
+
+  // Approximate critical values for CUSUM (Brown-Durbin-Evans)
+  // At 5% significance: threshold ≈ 0.948 * sqrt(n)
+  // At 10%: ≈ 0.850 * sqrt(n)
+  const sqrtN = Math.sqrt(n);
+  const threshold5 = 0.948 * sqrtN;
+  const threshold10 = 0.850 * sqrtN;
+
+  let pValue = 1;
+  if (maxCusum >= threshold5) pValue = 0.05;
+  else if (maxCusum >= threshold10) pValue = 0.10;
+  else if (maxCusum >= 0.7 * sqrtN) pValue = 0.20;
+  else pValue = 0.50;
+
+  return {
+    detected: pValue <= 0.10, // significance at 10% level
+    pValue,
+    breakIndex: pValue <= 0.10 ? breakIndex : -1,
+  };
 }
 
-// ─── 6. Backtesting engine ─────────────────────────────────────────
+// ─── 8. Backtesting engine (uses Holt — matches production) ────────
 
 export function backtestForecast(
   historicalSeries: number[],
+  alpha: number = DEFAULT_PARAMS.alpha,
+  beta: number = DEFAULT_PARAMS.beta,
 ): BacktestResult {
   if (historicalSeries.length < 6) {
-    return { mae: 0, rmse: 0, stabilityScore: 0.5 };
+    return { mae: 0, rmse: 0, mape: 0, forecastBias: 0, stabilityScore: 0.5 };
   }
 
   const errors: number[] = [];
-  // Walk-forward: use first N to predict N+1, compare
+  const absPercentErrors: number[] = [];
+
+  // Walk-forward: use first N to predict N+1 via Holt
   for (let i = 4; i < historicalSeries.length; i++) {
     const trainSlice = historicalSeries.slice(0, i);
-    const predicted = exponentialSmoothing(trainSlice, 0.6);
+    const holt = holtSmoothing(trainSlice, alpha, beta);
+    const predicted = holt.level + holt.trend; // 1-step-ahead forecast
     const actual = historicalSeries[i];
-    errors.push(actual - predicted);
+    const error = actual - predicted;
+    errors.push(error);
+    if (Math.abs(actual) > 0.01) {
+      absPercentErrors.push(Math.abs(error / actual));
+    }
   }
 
-  if (errors.length === 0) return { mae: 0, rmse: 0, stabilityScore: 0.5 };
+  if (errors.length === 0) return { mae: 0, rmse: 0, mape: 0, forecastBias: 0, stabilityScore: 0.5 };
 
   const absErrors = errors.map(Math.abs);
   const mae = absErrors.reduce((s, v) => s + v, 0) / absErrors.length;
   const mse = errors.reduce((s, v) => s + v * v, 0) / errors.length;
   const rmse = Math.sqrt(mse);
+  const mape = absPercentErrors.length > 0
+    ? (absPercentErrors.reduce((s, v) => s + v, 0) / absPercentErrors.length) * 100
+    : 0;
+  const forecastBias = errors.reduce((s, v) => s + v, 0) / errors.length;
 
-  // Stability = 1 - normalized RMSE (relative to data range)
   const range = Math.max(...historicalSeries) - Math.min(...historicalSeries);
   const nrmse = range > 0 ? rmse / range : 0;
   const stabilityScore = Math.max(0, Math.min(1, 1 - nrmse));
@@ -234,11 +379,38 @@ export function backtestForecast(
   return {
     mae: Math.round(mae * 100) / 100,
     rmse: Math.round(rmse * 100) / 100,
+    mape: Math.round(mape * 100) / 100,
+    forecastBias: Math.round(forecastBias * 100) / 100,
     stabilityScore: Math.round(stabilityScore * 1000) / 1000,
   };
 }
 
-// ─── 7. Nonlinear fragility multiplier ─────────────────────────────
+// ─── 9. Parameter calibration (grid search) ─────────────────────────
+
+export function calibrateParameters(
+  historicalSeries: number[],
+): DomainModelParams {
+  if (historicalSeries.length < 8) return DEFAULT_PARAMS;
+
+  let bestAlpha = DEFAULT_PARAMS.alpha;
+  let bestBeta = DEFAULT_PARAMS.beta;
+  let bestRMSE = Infinity;
+
+  for (let a = 0.2; a <= 0.8; a += 0.1) {
+    for (let b = 0.1; b <= 0.5; b += 0.1) {
+      const result = backtestForecast(historicalSeries, a, b);
+      if (result.rmse < bestRMSE && result.rmse > 0) {
+        bestRMSE = result.rmse;
+        bestAlpha = Math.round(a * 10) / 10;
+        bestBeta = Math.round(b * 10) / 10;
+      }
+    }
+  }
+
+  return { alpha: bestAlpha, beta: bestBeta };
+}
+
+// ─── 10. Nonlinear fragility multiplier ─────────────────────────────
 
 function computeSystemicFragility(
   domainScores: Record<string, number>,
@@ -246,14 +418,11 @@ function computeSystemicFragility(
   const gov = (domainScores['governance'] ?? 50) / 100;
   const sec = (domainScores['security'] ?? 50) / 100;
   const fin = (domainScores['finance'] ?? 50) / 100;
-
-  // fragility = product of deficiencies
   const fragility = (1 - gov) * (1 - sec) * (1 - fin);
-  // systemic risk = 0–100
   return Math.round(fragility * 100 * 10) / 10;
 }
 
-// ─── 8. Domain performance (V2) ────────────────────────────────────
+// ─── 11. Domain performance (V2 hardened) ───────────────────────────
 
 export function computeDomainPerformanceV2(
   domain: string,
@@ -261,12 +430,14 @@ export function computeDomainPerformanceV2(
   dataCompleteness: number,
   benchmark: GlobalBenchmark | undefined,
   stabilityScore: number = 0.5,
+  params: DomainModelParams = DEFAULT_PARAMS,
 ): DomainPerformanceV2 {
   if (!metrics || metrics.length === 0) {
     return {
       domain,
       performanceIndex: 0,
       momentumScore: 0,
+      momentumTStat: 0,
       volatilityIndex: 0,
       riskPressureScore: 50,
       forecast90d: 0,
@@ -274,29 +445,33 @@ export function computeDomainPerformanceV2(
       forecastDirection: 'stable',
       confidenceScore: Math.max(10, Math.min(95, Math.round(dataCompleteness * 30))),
       structuralBreak: false,
+      structuralBreakPValue: 1,
+      dataGapCount: 0,
+      dataStaleDays: 0,
     };
   }
 
   const sorted = [...metrics].sort((a, b) => a.period.localeCompare(b.period));
-  const values = sorted.map(m => m.value);
+
+  // Data gap handling
+  const gapResult = fillDataGaps(sorted);
+  const values = gapResult.values;
+  const periods = sorted.map(m => m.period);
+  const periodicity = detectPeriodicity(periods);
 
   // Performance index: benchmark-anchored
   const latestValues = values.slice(-5);
   const avg = latestValues.reduce((s, v) => s + v, 0) / latestValues.length;
   const performanceIndex = Math.round(normalizeWithBenchmark(avg, benchmark));
 
-  // Momentum: regression-based
-  const momentumScore = computeMomentumV2(values);
-
-  // Previous momentum (for structural break detection)
-  const olderValues = values.slice(0, -3);
-  const previousMomentum = olderValues.length >= 2 ? computeMomentumV2(olderValues) : 0;
+  // Momentum: regression with t-stat significance
+  const { momentum: momentumScore, tStat: momentumTStat } = computeMomentumV2(values);
 
   // Volatility
   const volatilityIndex = computeVolatility(values);
 
-  // Structural break
-  const breakResult = detectStructuralBreak(values, previousMomentum, momentumScore);
+  // Structural break: CUSUM
+  const breakResult = detectStructuralBreakCUSUM(values);
 
   // Risk pressure
   let riskPressureScore = Math.round(
@@ -308,39 +483,54 @@ export function computeDomainPerformanceV2(
   );
   if (breakResult.detected) riskPressureScore = Math.min(100, riskPressureScore + 10);
 
-  // Forecast: Holt double exponential smoothing (trend-aware)
-  const holt = holtSmoothing(values, 0.55, 0.3);
+  // Forecast: Holt with period-correct horizons
+  const holt = holtSmoothing(values, params.alpha, params.beta);
   const holtNorm = Math.round(normalizeWithBenchmark(holt.level, benchmark));
-  const trendNorm = holt.trend / (Math.abs(holt.level) || 1); // relative trend
+  const trendPerPeriod = holt.trend; // trend in native units per period
 
-  // Damping increases with volatility (high vol = less trend trust)
+  // Convert horizons to periods
+  const periods90d = horizonToPeriods(90, periodicity);
+  const periods1y = horizonToPeriods(365, periodicity);
+
+  // Damping increases with volatility
   const dampingFactor = Math.max(0.3, 1 - (volatilityIndex / 200));
   const momentumFactor = momentumScore / 100;
 
+  // Project: level + (trend * periods * damping) + momentum adjustment
+  const trendNorm = benchmark
+    ? (trendPerPeriod / (benchmark.structural_ceiling - benchmark.structural_floor)) * 100
+    : trendPerPeriod;
+
   const forecast90d = Math.max(0, Math.min(100, Math.round(
-    holtNorm + (trendNorm * 90 * dampingFactor) + (momentumFactor * 8)
+    holtNorm + (trendNorm * periods90d * dampingFactor) + (momentumFactor * 5)
   )));
   const forecast1y = Math.max(0, Math.min(100, Math.round(
-    holtNorm + (trendNorm * 365 * dampingFactor * 0.5) + (momentumFactor * 15) - (volatilityIndex * 0.08)
+    holtNorm + (trendNorm * periods1y * dampingFactor * 0.5) + (momentumFactor * 10) - (volatilityIndex * 0.08)
   )));
 
   const forecastDirection: 'up' | 'down' | 'stable' =
     momentumScore > 5 ? 'up' : momentumScore < -5 ? 'down' : 'stable';
 
-  // Confidence: V2 calibrated formula
-  // Base is now 15 (not 40) — you must earn confidence through data
+  // Confidence: calibrated formula
   const dataDensity = Math.min(1, metrics.length / 20);
   const sourceDiv = new Set(metrics.map(m => m.source)).size;
-  const sourceDiversityBonus = Math.min(15, sourceDiv * 5); // up to 15 for 3+ sources
-  const timeSpanBonus = Math.min(15, (metrics.length / 5) * 3); // reward longer history
+  const sourceDiversityBonus = Math.min(15, sourceDiv * 5);
+  const timeSpanBonus = Math.min(15, (metrics.length / 5) * 3);
+
+  // Gap and staleness penalties
+  const gapPenalty = Math.min(10, gapResult.gapCount * 2);
+  const stalenessPenalty = gapResult.staleDays > 90 ? 8 : gapResult.staleDays > 30 ? 4 : 0;
+
   let confidenceScore = Math.round(
-    15 +                                 // empirical floor (was 40)
-    (dataDensity * 25) +                 // data volume: 0–25
-    (stabilityScore * 20) +              // backtest stability: 0–20
-    sourceDiversityBonus +               // source diversity: 0–15
-    timeSpanBonus -                      // temporal depth: 0–15
-    (volatilityIndex * 0.15) -           // volatility penalty (increased)
-    (breakResult.detected ? 12 : 0)      // structural break penalty (increased)
+    15 +
+    (dataDensity * 25) +
+    (stabilityScore * 20) +
+    sourceDiversityBonus +
+    timeSpanBonus -
+    (volatilityIndex * 0.15) -
+    (breakResult.detected ? 12 : 0) -
+    gapPenalty -
+    stalenessPenalty
   );
   confidenceScore = Math.max(10, Math.min(95, confidenceScore));
 
@@ -348,6 +538,7 @@ export function computeDomainPerformanceV2(
     domain,
     performanceIndex,
     momentumScore,
+    momentumTStat,
     volatilityIndex,
     riskPressureScore,
     forecast90d,
@@ -355,10 +546,13 @@ export function computeDomainPerformanceV2(
     forecastDirection,
     confidenceScore,
     structuralBreak: breakResult.detected,
+    structuralBreakPValue: breakResult.pValue,
+    dataGapCount: gapResult.gapCount,
+    dataStaleDays: gapResult.staleDays,
   };
 }
 
-// ─── 9. National Performance Index V2 ──────────────────────────────
+// ─── 12. National Performance Index V2 ──────────────────────────────
 
 export function computeNationalPerformanceV2(
   iso3: string,
@@ -366,14 +560,16 @@ export function computeNationalPerformanceV2(
   profile: Record<string, { metrics: MetricEntryV2[]; completeness: number }>,
   benchmarks: Record<string, GlobalBenchmark>,
   backtestResults: Record<string, BacktestResult>,
+  calibratedParams?: Record<string, DomainModelParams>,
 ): NationalPerformanceIndexV2 {
   const domains: DomainPerformanceV2[] = Object.entries(profile)
     .filter(([_, data]) => data && data.metrics && data.metrics.length > 0)
     .map(([domain, data]) => {
       const stability = backtestResults[domain]?.stabilityScore ?? 0.5;
+      const params = calibratedParams?.[domain] ?? DEFAULT_PARAMS;
       return computeDomainPerformanceV2(
         domain, data.metrics, data.completeness,
-        benchmarks[domain], stability,
+        benchmarks[domain], stability, params,
       );
     });
 
@@ -388,7 +584,6 @@ export function computeNationalPerformanceV2(
     };
   }
 
-  // Weighted aggregate
   let totalWeight = 0;
   let wPerf = 0, wMom = 0, wVol = 0, wRisk = 0;
   let wF90 = 0, wF1y = 0, wConf = 0;
@@ -416,21 +611,15 @@ export function computeNationalPerformanceV2(
   const forecast1y = Math.round(wF1y / n);
   const baseConfidence = Math.round(wConf / n);
 
-  // Nonlinear fragility
   const systemicFragility = computeSystemicFragility(domainScores);
-
-  // Blend risk: 60% weighted + 40% systemic
   const riskPressure = Math.round(weightedRisk * 0.6 + systemicFragility * 0.4);
-
   const structuralBreakCount = domains.filter(d => d.structuralBreak).length;
 
-  // Forecast stability: average of domain backtests
   const stabilities = Object.values(backtestResults).map(b => b.stabilityScore);
   const forecastStability = stabilities.length > 0
     ? Math.round((stabilities.reduce((s, v) => s + v, 0) / stabilities.length) * 1000) / 1000
     : 0.5;
 
-  // Final confidence adjusted by stability & breaks
   let confidence = Math.round(
     baseConfidence * forecastStability -
     (structuralBreakCount * 3)

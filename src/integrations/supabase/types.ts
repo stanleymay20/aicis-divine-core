@@ -750,8 +750,11 @@ export type Database = {
       }
       country_performance_snapshots: {
         Row: {
+          break_p_value: number | null
           confidence_score: number
           created_at: string
+          data_gap_count: number | null
+          data_stale_days: number | null
           domain: string
           forecast_1y: number | null
           forecast_90d: number | null
@@ -760,6 +763,7 @@ export type Database = {
           id: string
           iso3: string
           momentum_score: number
+          momentum_t_stat: number | null
           performance_index: number
           risk_pressure_score: number
           snapshot_date: string
@@ -768,8 +772,11 @@ export type Database = {
           volatility_index: number
         }
         Insert: {
+          break_p_value?: number | null
           confidence_score?: number
           created_at?: string
+          data_gap_count?: number | null
+          data_stale_days?: number | null
           domain: string
           forecast_1y?: number | null
           forecast_90d?: number | null
@@ -778,6 +785,7 @@ export type Database = {
           id?: string
           iso3: string
           momentum_score?: number
+          momentum_t_stat?: number | null
           performance_index?: number
           risk_pressure_score?: number
           snapshot_date?: string
@@ -786,8 +794,11 @@ export type Database = {
           volatility_index?: number
         }
         Update: {
+          break_p_value?: number | null
           confidence_score?: number
           created_at?: string
+          data_gap_count?: number | null
+          data_stale_days?: number | null
           domain?: string
           forecast_1y?: number | null
           forecast_90d?: number | null
@@ -796,6 +807,7 @@ export type Database = {
           id?: string
           iso3?: string
           momentum_score?: number
+          momentum_t_stat?: number | null
           performance_index?: number
           risk_pressure_score?: number
           snapshot_date?: string
@@ -1660,6 +1672,36 @@ export type Database = {
           impact_weight?: number | null
           last_updated?: string | null
           trend?: number | null
+        }
+        Relationships: []
+      }
+      domain_model_parameters: {
+        Row: {
+          alpha: number
+          beta: number
+          calibrated_at: string | null
+          calibrated_rmse: number | null
+          domain: string
+          id: string
+          iso3: string
+        }
+        Insert: {
+          alpha?: number
+          beta?: number
+          calibrated_at?: string | null
+          calibrated_rmse?: number | null
+          domain: string
+          id?: string
+          iso3: string
+        }
+        Update: {
+          alpha?: number
+          beta?: number
+          calibrated_at?: string | null
+          calibrated_rmse?: number | null
+          domain?: string
+          id?: string
+          iso3?: string
         }
         Relationships: []
       }
@@ -3203,27 +3245,33 @@ export type Database = {
       performance_backtests: {
         Row: {
           domain: string
+          forecast_bias: number | null
           id: string
           iso3: string
           mae: number
+          mape: number | null
           rmse: number
           run_at: string
           stability_score: number
         }
         Insert: {
           domain: string
+          forecast_bias?: number | null
           id?: string
           iso3: string
           mae?: number
+          mape?: number | null
           rmse?: number
           run_at?: string
           stability_score?: number
         }
         Update: {
           domain?: string
+          forecast_bias?: number | null
           id?: string
           iso3?: string
           mae?: number
+          mape?: number | null
           rmse?: number
           run_at?: string
           stability_score?: number
@@ -4057,6 +4105,33 @@ export type Database = {
           details?: Json | null
           id?: string
           message?: string
+        }
+        Relationships: []
+      }
+      system_flags: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          flag_key: string
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          flag_key: string
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          flag_key?: string
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
