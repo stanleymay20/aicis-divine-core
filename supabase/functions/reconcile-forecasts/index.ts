@@ -17,7 +17,6 @@ serve(async (req) => {
   try {
     structuredLog("info", FN, "Starting forecast reconciliation");
 
-    // 1. Find archived forecasts older than 90 days that haven't been reconciled
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
 
@@ -26,7 +25,7 @@ serve(async (req) => {
       async () => {
         const { data, error } = await supabase
           .from("forecast_archive")
-          .select("id, iso3, domain, performance_index, forecast_90d, forecast_upper_80, forecast_lower_80, forecast_upper_95, forecast_lower_95, confidence_score, created_at")
+          .select("id, iso3, domain, model_version, performance_index, forecast_90d, forecast_upper_80, forecast_lower_80, forecast_upper_95, forecast_lower_95, confidence_score, created_at")
           .lt("created_at", cutoff.toISOString())
           .limit(200);
         if (error) throw error;
@@ -39,7 +38,6 @@ serve(async (req) => {
       throw new Error(`Failed to fetch expired forecasts: ${fetchErr}`);
     }
 
-    // Filter out already-reconciled
     const forecastIds = expiredForecasts.map((f: any) => f.id);
     const { data: existing } = await supabase
       .from("forecast_outcomes")
@@ -53,10 +51,10 @@ serve(async (req) => {
 
     let reconciled = 0;
     const errors: string[] = [];
+    const residualsToInsert: any[] = [];
 
     for (const forecast of unreconciled) {
       try {
-        // 2. Get the most recent snapshot for same iso3+domain as "realized" value
         const { data: latestSnap } = await supabase
           .from("country_performance_snapshots")
           .select("performance_index, snapshot_date")
@@ -69,12 +67,11 @@ serve(async (req) => {
 
         const realized = latestSnap[0].performance_index;
         const predicted = forecast.forecast_90d;
-
         if (predicted === null || predicted === undefined) continue;
 
         const absoluteError = Math.abs(realized - predicted);
         const squaredError = (realized - predicted) ** 2;
-        const bias = realized - predicted; // positive = under-predicted
+        const bias = realized - predicted;
         const inside80 = realized >= (forecast.forecast_lower_80 ?? -Infinity) &&
                          realized <= (forecast.forecast_upper_80 ?? Infinity);
         const inside95 = realized >= (forecast.forecast_lower_95 ?? -Infinity) &&
@@ -94,23 +91,36 @@ serve(async (req) => {
           });
 
         if (insertErr) {
-          // Skip duplicates gracefully
           if (insertErr.code === "23505") continue;
           errors.push(`${forecast.iso3}/${forecast.domain}: ${insertErr.message}`);
         } else {
           reconciled++;
+          // Store residual for empirical distribution modeling
+          residualsToInsert.push({
+            model_version: forecast.model_version || "APE-V2.1",
+            domain: forecast.domain,
+            iso3: forecast.iso3,
+            residual: Math.round(bias * 100) / 100,
+            predicted_value: predicted,
+            realized_value: realized,
+            horizon_days: 90,
+          });
         }
       } catch (err) {
         errors.push(`${forecast.iso3}/${forecast.domain}: ${(err as Error).message}`);
       }
     }
 
-    // 3. Compute aggregate calibration metrics + Platt calibration
+    // Batch insert residuals
+    if (residualsToInsert.length > 0) {
+      await supabase.from("forecast_residuals").insert(residualsToInsert);
+    }
+
+    // Compute aggregate calibration metrics
     const { data: allOutcomes } = await supabase
       .from("forecast_outcomes")
       .select("absolute_error, squared_error, inside_80_band, inside_95_band, bias, realized_value, forecast_archive_id");
 
-    // Fetch confidence scores for Platt calibration
     const { data: archiveConfidences } = await supabase
       .from("forecast_archive")
       .select("id, confidence_score")
@@ -136,8 +146,8 @@ serve(async (req) => {
         ? Math.max(...realizedValues) - Math.min(...realizedValues) : 1;
       const nrmse = realizedRange > 0 ? rmse / realizedRange : 0;
 
-      // Platt calibration: fit logistic mapping from raw confidence to actual hit rate
-      let plattParams: { a: number; b: number; fitted: boolean } = { a: -1, b: 0, fitted: false };
+      // Platt calibration fitting
+      let plattA = -1, plattB = 0, plattFitted = false;
       if (allOutcomes.length >= 20) {
         const predictedConfs: number[] = [];
         const actualHits: boolean[] = [];
@@ -149,7 +159,6 @@ serve(async (req) => {
           }
         }
         if (predictedConfs.length >= 20) {
-          // Simple Platt fitting: Newton-Raphson
           const prior1 = actualHits.filter(h => h).length;
           const prior0 = predictedConfs.length - prior1;
           const hiTarget = (prior1 + 1) / (prior1 + 2);
@@ -175,10 +184,13 @@ serve(async (req) => {
             a += -(h22 * g1 - h21 * g2) / det;
             b += -(-h21 * g1 + h11 * g2) / det;
           }
-          plattParams = { a, b, fitted: true };
+          plattA = a;
+          plattB = b;
+          plattFitted = true;
         }
       }
 
+      // Upsert calibration metrics
       const metrics = [
         { metric_name: "mae", metric_value: Math.round(mae * 100) / 100 },
         { metric_name: "rmse", metric_value: Math.round(rmse * 100) / 100 },
@@ -196,21 +208,47 @@ serve(async (req) => {
           metric_value: m.metric_value,
           sample_size: n,
           computed_at: new Date().toISOString(),
-          calibration_params: plattParams.fitted ? plattParams : null,
+          calibration_params: plattFitted ? { a: plattA, b: plattB } : null,
         }, { onConflict: "model_version,metric_name" }).select();
+      }
+
+      // Upsert calibration profile (locked per version)
+      if (plattFitted) {
+        const { data: existingProfile } = await supabase
+          .from("model_calibration_profiles")
+          .select("id, status, locked_until")
+          .eq("model_version", "APE-V2.1")
+          .eq("status", "active")
+          .limit(1);
+
+        const isLocked = existingProfile?.[0]?.locked_until &&
+          new Date(existingProfile[0].locked_until) > new Date();
+
+        if (!isLocked) {
+          await supabase.from("model_calibration_profiles").upsert({
+            id: existingProfile?.[0]?.id || undefined,
+            model_version: "APE-V2.1",
+            platt_a: plattA,
+            platt_b: plattB,
+            sample_size: n,
+            fitted_at: new Date().toISOString(),
+            status: "active",
+          }, { onConflict: "model_version" }).select();
+        }
       }
     }
 
-    await supabase.from("system_logs").insert({
-      division: "intelligence",
-      action: "reconcile_forecasts",
-      result: "success",
-      log_level: "info",
-      metadata: { reconciled, total_checked: unreconciled.length, errors: errors.length },
+    // Log telemetry
+    await supabase.from("operational_telemetry").insert({
+      function_name: FN,
+      execution_time_ms: Date.now() - start,
+      status: "success",
+      items_processed: reconciled,
+      metadata: { total_checked: unreconciled.length, errors: errors.length, residuals_stored: residualsToInsert.length },
     });
 
-    structuredLog("info", FN, `Reconciled ${reconciled} forecasts`, undefined, start);
-    return jsonResponse({ success: true, reconciled, checked: unreconciled.length, errors: errors.length });
+    structuredLog("info", FN, `Reconciled ${reconciled} forecasts, stored ${residualsToInsert.length} residuals`, undefined, start);
+    return jsonResponse({ success: true, reconciled, checked: unreconciled.length, errors: errors.length, residuals: residualsToInsert.length });
   } catch (error) {
     structuredLog("error", FN, (error as Error).message, undefined, start);
     return errorResponse(error);

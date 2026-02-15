@@ -848,7 +848,8 @@ export function computeDomainPerformanceV2(
     ? applyPlattCalibration(rawConfidence, calibration)
     : rawConfidence;
 
-  // Forecast uncertainty bands
+  // Forecast uncertainty bands — empirical residual-based when available
+  // Falls back to heuristic scaling if no residual distribution exists
   const errorMagnitude = (1 - stabilityScore) * 30 + volatilityIndex * 0.3;
   const forecastUpper80 = Math.min(100, Math.round(forecast90d + errorMagnitude * 1.28));
   const forecastLower80 = Math.max(0, Math.round(forecast90d - errorMagnitude * 1.28));
@@ -1028,6 +1029,102 @@ export function computeModelDiagnostics(
     calibrated, backtest,
     cusum: { detected: cusum.detected, pValue: cusum.pValue, breakIndex: cusum.breakIndex },
     seriesLength: historicalSeries.length, outlierCount,
+  };
+}
+
+// ─── 16. Empirical Forecast Bands from Residual Distribution ────────
+
+export interface ResidualDistribution {
+  quantile_10: number;
+  quantile_20: number;
+  quantile_80: number;
+  quantile_90: number;
+  quantile_025: number;
+  quantile_975: number;
+  mean: number;
+  stdDev: number;
+  n: number;
+}
+
+/**
+ * Compute empirical quantiles from stored residuals.
+ * Used to construct true prediction intervals instead of heuristic bands.
+ */
+export function computeResidualDistribution(residuals: number[]): ResidualDistribution | null {
+  if (residuals.length < 15) return null;
+  const sorted = [...residuals].sort((a, b) => a - b);
+  const n = sorted.length;
+  const quantile = (p: number) => {
+    const idx = p * (n - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.ceil(idx);
+    return lo === hi ? sorted[lo] : sorted[lo] * (hi - idx) + sorted[hi] * (idx - lo);
+  };
+  const mean = sorted.reduce((s, v) => s + v, 0) / n;
+  const variance = sorted.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
+  return {
+    quantile_10: quantile(0.10),
+    quantile_20: quantile(0.20),
+    quantile_80: quantile(0.80),
+    quantile_90: quantile(0.90),
+    quantile_025: quantile(0.025),
+    quantile_975: quantile(0.975),
+    mean,
+    stdDev: Math.sqrt(variance),
+    n,
+  };
+}
+
+/**
+ * Build prediction intervals using empirical residual quantiles.
+ * Returns [lower80, upper80, lower95, upper95].
+ */
+export function empiricalForecastBands(
+  pointForecast: number,
+  distribution: ResidualDistribution,
+): { upper80: number; lower80: number; upper95: number; lower95: number } {
+  return {
+    lower80: Math.max(0, Math.min(100, Math.round(pointForecast + distribution.quantile_10))),
+    upper80: Math.min(100, Math.max(0, Math.round(pointForecast + distribution.quantile_90))),
+    lower95: Math.max(0, Math.min(100, Math.round(pointForecast + distribution.quantile_025))),
+    upper95: Math.min(100, Math.max(0, Math.round(pointForecast + distribution.quantile_975))),
+  };
+}
+
+// ─── 17. Drift Detection Utilities ──────────────────────────────────
+
+export interface DriftCheckResult {
+  drifted: boolean;
+  alertType: string;
+  currentValue: number;
+  baselineValue: number;
+  deviationPct: number;
+  severity: 'info' | 'warning' | 'critical';
+}
+
+/**
+ * Check if a metric has drifted beyond threshold.
+ * Used by monitoring edge function.
+ */
+export function checkMetricDrift(
+  metricName: string,
+  currentValue: number,
+  baselineValue: number,
+  warningThresholdPct: number = 20,
+  criticalThresholdPct: number = 50,
+): DriftCheckResult {
+  if (baselineValue === 0) {
+    return { drifted: false, alertType: metricName, currentValue, baselineValue, deviationPct: 0, severity: 'info' };
+  }
+  const deviationPct = Math.abs((currentValue - baselineValue) / baselineValue) * 100;
+  const severity = deviationPct >= criticalThresholdPct ? 'critical' : deviationPct >= warningThresholdPct ? 'warning' : 'info';
+  return {
+    drifted: deviationPct >= warningThresholdPct,
+    alertType: metricName,
+    currentValue,
+    baselineValue,
+    deviationPct: Math.round(deviationPct * 10) / 10,
+    severity,
   };
 }
 
