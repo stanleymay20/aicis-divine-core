@@ -693,6 +693,7 @@ export type Database = {
       }
       calibration_metrics: {
         Row: {
+          calibration_params: Json | null
           computed_at: string
           domain: string | null
           id: string
@@ -704,6 +705,7 @@ export type Database = {
           window_start: string | null
         }
         Insert: {
+          calibration_params?: Json | null
           computed_at?: string
           domain?: string | null
           id?: string
@@ -715,6 +717,7 @@ export type Database = {
           window_start?: string | null
         }
         Update: {
+          calibration_params?: Json | null
           computed_at?: string
           domain?: string | null
           id?: string
@@ -1734,6 +1737,39 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_coupling_matrix: {
+        Row: {
+          coupling_weight: number
+          created_at: string
+          evidence_note: string | null
+          id: string
+          model_version: string
+          propagation_delay_days: number | null
+          source_domain: string
+          target_domain: string
+        }
+        Insert: {
+          coupling_weight?: number
+          created_at?: string
+          evidence_note?: string | null
+          id?: string
+          model_version?: string
+          propagation_delay_days?: number | null
+          source_domain: string
+          target_domain: string
+        }
+        Update: {
+          coupling_weight?: number
+          created_at?: string
+          evidence_note?: string | null
+          id?: string
+          model_version?: string
+          propagation_delay_days?: number | null
+          source_domain?: string
+          target_domain?: string
+        }
+        Relationships: []
+      }
       domain_model_parameters: {
         Row: {
           alpha: number
@@ -2320,6 +2356,7 @@ export type Database = {
         Row: {
           alpha: number | null
           beta: number | null
+          calibration_version: string | null
           confidence_score: number | null
           country_name: string
           created_at: string
@@ -2337,14 +2374,17 @@ export type Database = {
           id: string
           iso3: string
           model_version: string
+          parameter_set_id: string | null
           performance_index: number | null
           stability_score: number | null
           structural_break_flag: boolean | null
           structural_break_p_value: number | null
+          training_window_end: string | null
         }
         Insert: {
           alpha?: number | null
           beta?: number | null
+          calibration_version?: string | null
           confidence_score?: number | null
           country_name: string
           created_at?: string
@@ -2362,14 +2402,17 @@ export type Database = {
           id?: string
           iso3: string
           model_version: string
+          parameter_set_id?: string | null
           performance_index?: number | null
           stability_score?: number | null
           structural_break_flag?: boolean | null
           structural_break_p_value?: number | null
+          training_window_end?: string | null
         }
         Update: {
           alpha?: number | null
           beta?: number | null
+          calibration_version?: string | null
           confidence_score?: number | null
           country_name?: string
           created_at?: string
@@ -2387,10 +2430,12 @@ export type Database = {
           id?: string
           iso3?: string
           model_version?: string
+          parameter_set_id?: string | null
           performance_index?: number | null
           stability_score?: number | null
           structural_break_flag?: boolean | null
           structural_break_p_value?: number | null
+          training_window_end?: string | null
         }
         Relationships: [
           {
@@ -2401,6 +2446,57 @@ export type Database = {
             referencedColumns: ["model_version"]
           },
         ]
+      }
+      forecast_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          domain: string
+          error_message: string | null
+          id: string
+          idempotency_key: string | null
+          iso3: string
+          max_attempts: number
+          model_version: string
+          priority: number
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          domain: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          iso3: string
+          max_attempts?: number
+          model_version?: string
+          priority?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          domain?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          iso3?: string
+          max_attempts?: number
+          model_version?: string
+          priority?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       forecast_outcomes: {
         Row: {
