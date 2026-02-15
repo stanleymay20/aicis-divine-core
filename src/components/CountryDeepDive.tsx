@@ -27,10 +27,10 @@ import { TemporalLayer } from "@/components/intelligence/TemporalLayer";
 import { ScenarioEngine } from "@/components/governance/ScenarioEngine";
 import { useViewModePersistence } from "@/hooks/useViewModePersistence";
 import { 
-  computeNationalPerformance, getMomentumArrow, getMomentumColor,
+  computeNationalPerformanceV2 as computeNationalPerformance, getMomentumArrow, getMomentumColor,
   getRiskLabel, getRiskBadgeVariant, getPerformanceLabel, getVolatilityLabel,
-  type NationalPerformanceIndex
-} from "@/lib/performance-engine";
+  type NationalPerformanceIndexV2 as NationalPerformanceIndex,
+} from "@/lib/performance-engine-v2";
 
 interface DivisionData {
   metrics: Array<{
@@ -94,9 +94,9 @@ export default function CountryDeepDive({ location, profile, completeness_overal
   const countryInfo = ALL_COUNTRIES.find(c => c.iso3 === location.iso3);
   const flag = getCountryFlag(countryInfo?.iso2 || "");
 
-  // Compute NPI via Performance Engine
+  // Compute NPI via Performance Engine V2
   const npi: NationalPerformanceIndex = useMemo(() => {
-    return computeNationalPerformance(location.iso3, location.name, profile as any);
+    return computeNationalPerformance(location.iso3, location.name, profile as any, {}, {});
   }, [location, profile]);
 
   // Executive Scorecard — now performance-based

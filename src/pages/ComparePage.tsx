@@ -23,10 +23,10 @@ import { NarrativeSynthesis } from "@/components/visualizations/NarrativeSynthes
 import { ModeAwareSection, ExecutiveBrief } from "@/components/intelligence/ModeAwareSection";
 import { WhyPanel } from "@/components/intelligence/WhyPanel";
 import {
-  computeNationalPerformance, getMomentumArrow, getMomentumColor,
+  computeNationalPerformanceV2 as computeNationalPerformance, getMomentumArrow, getMomentumColor,
   getPerformanceLabel, getRiskLabel, getRiskBadgeVariant,
-  type NationalPerformanceIndex,
-} from "@/lib/performance-engine";
+  type NationalPerformanceIndexV2 as NationalPerformanceIndex,
+} from "@/lib/performance-engine-v2";
 
 const COLOR_HEX = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -84,7 +84,7 @@ const ComparePage = () => {
     if (!profiles || profiles.length === 0) return [];
     return profiles.map((p: any) => {
       const country = ALL_COUNTRIES.find(c => c.iso3 === p.iso3);
-      return computeNationalPerformance(p.iso3, country?.name || p.iso3, p.profile || {});
+      return computeNationalPerformance(p.iso3, country?.name || p.iso3, p.profile || {}, {}, {});
     });
   }, [profiles]);
 

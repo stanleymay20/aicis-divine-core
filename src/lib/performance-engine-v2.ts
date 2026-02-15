@@ -174,12 +174,33 @@ function horizonToPeriods(days: number, periodicity: Periodicity): number {
   }
 }
 
-// ─── 4. Data gap interpolation ──────────────────────────────────────
+// ─── 4. Outlier detection (IQR-based winsorization) ─────────────────
+
+/**
+ * Detects and winsorizes outliers using the IQR method.
+ * Outliers beyond 1.5×IQR from Q1/Q3 are clamped to the fence values.
+ * This prevents single corrupted data points from distorting smoothing.
+ */
+function winsorizeOutliers(values: number[]): number[] {
+  if (values.length < 5) return [...values];
+  const sorted = [...values].sort((a, b) => a - b);
+  const q1Idx = Math.floor(sorted.length * 0.25);
+  const q3Idx = Math.floor(sorted.length * 0.75);
+  const q1 = sorted[q1Idx];
+  const q3 = sorted[q3Idx];
+  const iqr = q3 - q1;
+  const lowerFence = q1 - 1.5 * iqr;
+  const upperFence = q3 + 1.5 * iqr;
+  return values.map(v => Math.max(lowerFence, Math.min(upperFence, v)));
+}
+
+// ─── 5. Data gap interpolation ──────────────────────────────────────
 
 interface GapFilledResult {
   values: number[];
   gapCount: number;
   staleDays: number;
+  outlierCount: number;
 }
 
 function fillDataGaps(
@@ -190,11 +211,17 @@ function fillDataGaps(
       values: sorted.map(m => m.value),
       gapCount: 0,
       staleDays: 0,
+      outlierCount: 0,
     };
   }
 
-  const values = sorted.map(m => m.value);
+  const rawValues = sorted.map(m => m.value);
   const periods = sorted.map(m => m.period);
+
+  // Winsorize outliers before gap-filling
+  const values = winsorizeOutliers(rawValues);
+  const outlierCount = rawValues.filter((v, i) => v !== values[i]).length;
+
   let gapCount = 0;
 
   // Detect expected period gaps (simple: check for sequential month/quarter jumps)
@@ -224,7 +251,7 @@ function fillDataGaps(
   const staleDays = isNaN(lastDate.getTime()) ? 0 :
     Math.max(0, Math.round((Date.now() - lastDate.getTime()) / 86400000));
 
-  return { values: filled, gapCount, staleDays };
+  return { values: filled, gapCount, staleDays, outlierCount };
 }
 
 // ─── 5. OLS regression with t-statistic ─────────────────────────────
@@ -328,52 +355,67 @@ export function computeVolatilityDetailed(values: number[]): VolatilityResult {
   return { total, downside, upside, ratio };
 }
 
-// ─── 7. CUSUM structural break detection ────────────────────────────
+// ─── 7. CUSUM structural break detection (on Holt residuals) ────────
 
 interface StructuralBreakResult {
   detected: boolean;
-  pValue: number;       // approximate p-value
+  pValue: number;       // approximate p-value (continuous)
   breakIndex: number;   // index of detected break (-1 if none)
 }
 
-function detectStructuralBreakCUSUM(values: number[]): StructuralBreakResult {
+/**
+ * CUSUM test on Holt model residuals (not raw values).
+ * Running on raw values confounds trend with structural change.
+ * Using residuals isolates genuine regime shifts.
+ */
+function detectStructuralBreakCUSUM(
+  values: number[],
+  alpha: number = DEFAULT_PARAMS.alpha,
+  beta: number = DEFAULT_PARAMS.beta,
+): StructuralBreakResult {
   const n = values.length;
   if (n < 6) return { detected: false, pValue: 1, breakIndex: -1 };
 
-  const mean = values.reduce((s, v) => s + v, 0) / n;
-  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
+  // Compute Holt one-step-ahead residuals
+  const residuals: number[] = [];
+  let level = values[0];
+  let trend = values.length > 1 ? values[1] - values[0] : 0;
+  for (let i = 1; i < n; i++) {
+    const predicted = level + trend;
+    residuals.push(values[i] - predicted);
+    const prevLevel = level;
+    level = alpha * values[i] + (1 - alpha) * (prevLevel + trend);
+    trend = beta * (level - prevLevel) + (1 - beta) * trend;
+  }
+
+  const rn = residuals.length;
+  if (rn < 4) return { detected: false, pValue: 1, breakIndex: -1 };
+
+  const mean = residuals.reduce((s, v) => s + v, 0) / rn;
+  const variance = residuals.reduce((s, v) => s + (v - mean) ** 2, 0) / rn;
   const stdDev = Math.sqrt(variance);
   if (stdDev === 0) return { detected: false, pValue: 1, breakIndex: -1 };
 
-  // Compute CUSUM
+  // Compute CUSUM on standardized residuals
   const cusum: number[] = [];
   let cumSum = 0;
-  for (let i = 0; i < n; i++) {
-    cumSum += (values[i] - mean) / stdDev;
+  for (let i = 0; i < rn; i++) {
+    cumSum += (residuals[i] - mean) / stdDev;
     cusum.push(Math.abs(cumSum));
   }
 
-  // Max CUSUM statistic
   const maxCusum = Math.max(...cusum);
   const breakIndex = cusum.indexOf(maxCusum);
 
-  // Approximate critical values for CUSUM (Brown-Durbin-Evans)
-  // At 5% significance: threshold ≈ 0.948 * sqrt(n)
-  // At 10%: ≈ 0.850 * sqrt(n)
-  const sqrtN = Math.sqrt(n);
-  const threshold5 = 0.948 * sqrtN;
-  const threshold10 = 0.850 * sqrtN;
-
-  let pValue = 1;
-  if (maxCusum >= threshold5) pValue = 0.05;
-  else if (maxCusum >= threshold10) pValue = 0.10;
-  else if (maxCusum >= 0.7 * sqrtN) pValue = 0.20;
-  else pValue = 0.50;
+  // Continuous p-value approximation: p ≈ 2 * exp(-2 * (maxCusum/sqrt(n))^2)
+  // Based on Kolmogorov-Smirnov bridge distribution
+  const normalizedStat = maxCusum / Math.sqrt(rn);
+  const pValue = Math.min(1, Math.max(0.001, 2 * Math.exp(-2 * normalizedStat * normalizedStat)));
 
   return {
-    detected: pValue <= 0.10, // significance at 10% level
-    pValue,
-    breakIndex: pValue <= 0.10 ? breakIndex : -1,
+    detected: pValue <= 0.10,
+    pValue: Math.round(pValue * 1000) / 1000,
+    breakIndex: pValue <= 0.10 ? breakIndex + 1 : -1, // +1 to map back to original values index
   };
 }
 
@@ -521,8 +563,8 @@ export function computeDomainPerformanceV2(
   const volResult = computeVolatilityDetailed(values);
   const volatilityIndex = volResult.total;
 
-  // Structural break: CUSUM
-  const breakResult = detectStructuralBreakCUSUM(values);
+  // Structural break: CUSUM on Holt residuals
+  const breakResult = detectStructuralBreakCUSUM(values, params.alpha, params.beta);
 
   // Risk pressure
   let riskPressureScore = Math.round(
