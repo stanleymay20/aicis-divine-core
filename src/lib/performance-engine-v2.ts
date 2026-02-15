@@ -29,11 +29,18 @@ export interface DomainPerformanceV2 {
   momentumScore: number;          // -100 to +100
   momentumTStat: number;          // t-statistic for slope significance
   volatilityIndex: number;        // 0–100
+  volatilityDownside: number;     // 0–100 (negative moves only)
+  volatilityUpside: number;       // 0–100 (positive moves only)
+  volatilitySkewRatio: number;    // downside/upside; >1 = negatively skewed
   riskPressureScore: number;      // 0–100
   forecast90d: number;
   forecast1y: number;
   forecastDirection: 'up' | 'down' | 'stable';
   confidenceScore: number;        // 10–95
+  forecastUpper80: number;        // 80% confidence upper bound
+  forecastLower80: number;        // 80% confidence lower bound
+  forecastUpper95: number;        // 95% confidence upper bound
+  forecastLower95: number;        // 95% confidence lower bound
   structuralBreak: boolean;
   structuralBreakPValue: number;  // 0–1, lower = more significant
   dataGapCount: number;           // number of interpolated gaps
@@ -273,16 +280,52 @@ function computeMomentumV2(values: number[]): { momentum: number; tStat: number 
   };
 }
 
-// ─── 6. Volatility ──────────────────────────────────────────────────
+// ─── 6. Volatility (with downside/upside separation) ────────────────
+
+export interface VolatilityResult {
+  total: number;       // 0–100 (same as before)
+  downside: number;    // 0–100 (negative moves only)
+  upside: number;      // 0–100 (positive moves only)
+  ratio: number;       // downside/upside ratio; >1 = skewed negative
+}
 
 function computeVolatility(values: number[]): number {
+  return computeVolatilityDetailed(values).total;
+}
+
+export function computeVolatilityDetailed(values: number[]): VolatilityResult {
   const recent = values.slice(-6);
-  if (recent.length < 2) return 0;
+  if (recent.length < 2) return { total: 0, downside: 0, upside: 0, ratio: 1 };
+
   const mean = recent.reduce((s, v) => s + v, 0) / recent.length;
+
+  // Total volatility (CV-based)
   const variance = recent.reduce((s, v) => s + (v - mean) ** 2, 0) / recent.length;
   const stdDev = Math.sqrt(variance);
   const cv = Math.abs(mean) > 0 ? stdDev / Math.abs(mean) : 0;
-  return Math.round(Math.min(100, cv * 200));
+  const total = Math.round(Math.min(100, cv * 200));
+
+  // Downside volatility: only negative deviations from mean
+  const downsideDeviations = recent.filter(v => v < mean).map(v => (v - mean) ** 2);
+  const downsideVar = downsideDeviations.length > 0
+    ? downsideDeviations.reduce((s, v) => s + v, 0) / recent.length
+    : 0;
+  const downsideStd = Math.sqrt(downsideVar);
+  const downsideCv = Math.abs(mean) > 0 ? downsideStd / Math.abs(mean) : 0;
+  const downside = Math.round(Math.min(100, downsideCv * 200));
+
+  // Upside volatility: only positive deviations from mean
+  const upsideDeviations = recent.filter(v => v > mean).map(v => (v - mean) ** 2);
+  const upsideVar = upsideDeviations.length > 0
+    ? upsideDeviations.reduce((s, v) => s + v, 0) / recent.length
+    : 0;
+  const upsideStd = Math.sqrt(upsideVar);
+  const upsideCv = Math.abs(mean) > 0 ? upsideStd / Math.abs(mean) : 0;
+  const upside = Math.round(Math.min(100, upsideCv * 200));
+
+  const ratio = upside > 0 ? Math.round((downside / upside) * 100) / 100 : (downside > 0 ? 10 : 1);
+
+  return { total, downside, upside, ratio };
 }
 
 // ─── 7. CUSUM structural break detection ────────────────────────────
@@ -439,11 +482,18 @@ export function computeDomainPerformanceV2(
       momentumScore: 0,
       momentumTStat: 0,
       volatilityIndex: 0,
+      volatilityDownside: 0,
+      volatilityUpside: 0,
+      volatilitySkewRatio: 1,
       riskPressureScore: 50,
       forecast90d: 0,
       forecast1y: 0,
       forecastDirection: 'stable',
       confidenceScore: Math.max(10, Math.min(95, Math.round(dataCompleteness * 30))),
+      forecastUpper80: 0,
+      forecastLower80: 0,
+      forecastUpper95: 0,
+      forecastLower95: 0,
       structuralBreak: false,
       structuralBreakPValue: 1,
       dataGapCount: 0,
@@ -467,8 +517,9 @@ export function computeDomainPerformanceV2(
   // Momentum: regression with t-stat significance
   const { momentum: momentumScore, tStat: momentumTStat } = computeMomentumV2(values);
 
-  // Volatility
-  const volatilityIndex = computeVolatility(values);
+  // Volatility (with downside/upside separation)
+  const volResult = computeVolatilityDetailed(values);
+  const volatilityIndex = volResult.total;
 
   // Structural break: CUSUM
   const breakResult = detectStructuralBreakCUSUM(values);
@@ -534,17 +585,32 @@ export function computeDomainPerformanceV2(
   );
   confidenceScore = Math.max(10, Math.min(95, confidenceScore));
 
+  // Forecast uncertainty bands (from backtest error distribution)
+  // Use stabilityScore as proxy for error magnitude: lower stability = wider bands
+  const errorMagnitude = (1 - stabilityScore) * 30 + volatilityIndex * 0.3;
+  const forecastUpper80 = Math.min(100, Math.round(forecast90d + errorMagnitude * 1.28));
+  const forecastLower80 = Math.max(0, Math.round(forecast90d - errorMagnitude * 1.28));
+  const forecastUpper95 = Math.min(100, Math.round(forecast90d + errorMagnitude * 1.96));
+  const forecastLower95 = Math.max(0, Math.round(forecast90d - errorMagnitude * 1.96));
+
   return {
     domain,
     performanceIndex,
     momentumScore,
     momentumTStat,
     volatilityIndex,
+    volatilityDownside: volResult.downside,
+    volatilityUpside: volResult.upside,
+    volatilitySkewRatio: volResult.ratio,
     riskPressureScore,
     forecast90d,
     forecast1y,
     forecastDirection,
     confidenceScore,
+    forecastUpper80,
+    forecastLower80,
+    forecastUpper95,
+    forecastLower95,
     structuralBreak: breakResult.detected,
     structuralBreakPValue: breakResult.pValue,
     dataGapCount: gapResult.gapCount,

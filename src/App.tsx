@@ -28,6 +28,7 @@ import SecurityDashboard from "./pages/SecurityDashboard";
 import HealthDashboard from "./pages/HealthDashboard";
 import ComparePage from "./pages/ComparePage";
 import IntelligenceThread from "./pages/IntelligenceThread";
+import MethodologyPage from "./pages/MethodologyPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/compliance" element={<CompliancePortal />} />
             <Route path="/federation" element={<FederationHub />} />
             <Route path="/compare" element={<ComparePage />} />
+            <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/enterprise-governance" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><EnterpriseGovernance /></Suspense>} />
             <Route path="/ethics" element={<Ethics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
