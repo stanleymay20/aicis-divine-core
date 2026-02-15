@@ -152,23 +152,30 @@ function detectStructuralBreakCUSUM(values: number[], alpha = 0.55, beta = 0.3) 
   return { detected: pValue <= 0.10, pValue: Math.round(pValue * 1000) / 1000, breakIndex: pValue <= 0.10 ? bi + 1 : -1 };
 }
 
+interface ResidualEntry { predicted: number; realized: number; residual: number; decayWeight: number; }
+
 function backtestForecast(series: number[], alpha = 0.55, beta = 0.3) {
-  if (series.length < 6) return { mae: 0, rmse: 0, mape: 0, forecastBias: 0, stabilityScore: 0.5 };
-  const errors: number[] = [], ape: number[] = [];
+  if (series.length < 6) return { mae: 0, rmse: 0, mape: 0, forecastBias: 0, stabilityScore: 0.5, residuals: [] as ResidualEntry[] };
+  const errors: number[] = [], ape: number[] = [], residuals: ResidualEntry[] = [];
+  const now = Date.now();
   for (let i = 4; i < series.length; i++) {
     const h = holtSmoothing(series.slice(0, i), alpha, beta);
-    const err = series[i] - (h.level + h.trend);
+    const predicted = h.level + h.trend;
+    const actual = series[i];
+    const err = actual - predicted;
     errors.push(err);
-    if (Math.abs(series[i]) > 0.01) ape.push(Math.abs(err / series[i]));
+    if (Math.abs(actual) > 0.01) ape.push(Math.abs(err / actual));
+    const ageDays = (series.length - i) * 30; // approximate
+    residuals.push({ predicted: r2(predicted), realized: r2(actual), residual: r2(err), decayWeight: r3(Math.exp(-0.01 * ageDays)) });
   }
-  if (errors.length === 0) return { mae: 0, rmse: 0, mape: 0, forecastBias: 0, stabilityScore: 0.5 };
+  if (errors.length === 0) return { mae: 0, rmse: 0, mape: 0, forecastBias: 0, stabilityScore: 0.5, residuals: [] as ResidualEntry[] };
   const mae = errors.reduce((s, v) => s + Math.abs(v), 0) / errors.length;
   const rmse = Math.sqrt(errors.reduce((s, v) => s + v * v, 0) / errors.length);
   const mape = ape.length > 0 ? (ape.reduce((s, v) => s + v, 0) / ape.length) * 100 : 0;
   const bias = errors.reduce((s, v) => s + v, 0) / errors.length;
   const range = Math.max(...series) - Math.min(...series);
   const stability = range > 0 ? Math.max(0, Math.min(1, 1 - rmse / range)) : 0.5;
-  return { mae: r2(mae), rmse: r2(rmse), mape: r2(mape), forecastBias: r2(bias), stabilityScore: r3(stability) };
+  return { mae: r2(mae), rmse: r2(rmse), mape: r2(mape), forecastBias: r2(bias), stabilityScore: r3(stability), residuals };
 }
 
 function calibrateParameters(series: number[]) {
@@ -359,6 +366,7 @@ Deno.serve(async (req) => {
     const allSnapshots: any[] = [];
     const allArchive: any[] = [];
     const allCalibMetrics: any[] = [];
+    const allResiduals: any[] = [];
     const killSwitchMetrics = { rmseValues: [] as number[], hitCount: 0, totalForecasts: 0, breakRate: 0 };
 
     for (const profile of validProfiles) {
@@ -381,6 +389,18 @@ Deno.serve(async (req) => {
         const values = metrics.sort((a, b) => a.period.localeCompare(b.period)).map(m => m.value);
         const calibrated = calibrateParameters(values);
         const bt = backtestForecast(values, calibrated.alpha, calibrated.beta);
+
+        // Collect per-period residuals for empirical interval maturation
+        const breakInfo = detectStructuralBreakCUSUM(values, calibrated.alpha, calibrated.beta);
+        for (const res of bt.residuals) {
+          allResiduals.push({
+            iso3, domain, model_version: MODEL_VERSION,
+            predicted_value: res.predicted, realized_value: res.realized,
+            residual: res.residual, horizon_days: 90,
+            decay_weight: res.decayWeight,
+            regime_flag: breakInfo.detected ? "post_break" : "stable",
+          });
+        }
 
         const dp = computeDomainPerformance(
           domain, metrics, domainData.completeness ?? 0.5,
@@ -485,6 +505,7 @@ Deno.serve(async (req) => {
       batchInsert("country_performance_snapshots", allSnapshots),
       batchInsert("calibration_metrics", allCalibMetrics),
       batchInsert("spc_control_observations", allSPCObs),
+      batchInsert("forecast_residuals", allResiduals),
     ]);
 
     // 6. Kill-switch evaluation
@@ -515,6 +536,7 @@ Deno.serve(async (req) => {
         countriesProcessed, totalDomains, breakCount,
         archiveEntries: allArchive.length, snapshotEntries: allSnapshots.length,
         calibrationEntries: allCalibMetrics.length, spcEntries: allSPCObs.length,
+        residualEntries: allResiduals.length,
         killSwitchTriggered, frozen, elapsedMs: elapsed,
       }),
     });
@@ -522,7 +544,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true, frozen, killSwitchTriggered,
       countriesProcessed, totalDomains, breakCount,
-      entries: { archive: allArchive.length, snapshots: allSnapshots.length, calibration: allCalibMetrics.length, spc: allSPCObs.length },
+      entries: { archive: allArchive.length, snapshots: allSnapshots.length, calibration: allCalibMetrics.length, spc: allSPCObs.length, residuals: allResiduals.length },
       elapsedMs: elapsed,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
