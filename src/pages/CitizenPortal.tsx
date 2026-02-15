@@ -9,44 +9,32 @@ import { NodeFederationPanel } from "@/components/NodeFederationPanel";
 import { AICISCore } from "@/components/AICISCore";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Globe, Shield, Brain, AlertTriangle } from "lucide-react";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 
 export default function CitizenPortal() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Header */}
-      <div className="border-b border-border/40 bg-card/30 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+    <AICISLayout>
+      <div className="p-6 container mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-3">
               <Globe className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  AICIS Citizen Portal
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Global Coordination & Transparency Hub
-                </p>
+                <h1 className="text-2xl font-orbitron font-bold">AICIS Citizen Portal</h1>
+                <p className="text-sm text-muted-foreground">Global Coordination & Transparency Hub</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1">
-                <Shield className="h-3 w-3" />
-                Sovereign Access
-              </Badge>
-            </div>
           </div>
+          <Badge variant="outline" className="gap-1">
+            <Shield className="h-3 w-3" />
+            Sovereign Access
+          </Badge>
         </div>
-      </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
@@ -145,6 +133,7 @@ export default function CitizenPortal() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </AICISLayout>
   );
 }

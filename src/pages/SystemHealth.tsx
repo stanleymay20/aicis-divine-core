@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { type DiagnosticResult, type FailedApi, getErrorMessage } from '@/types/aicis';
 import { cn } from '@/lib/utils';
-import aicisLogo from "@/assets/aicis-logo.png";
+import { AICISLayout } from '@/components/aicis/AICISLayout';
 
 export default function SystemHealth() {
   const { session, loading: authLoading } = useAuth();
@@ -203,26 +203,21 @@ export default function SystemHealth() {
   const totalApis = Object.keys(apiUptime).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Background effects */}
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,hsl(189_40%_20%_/_0.1)_1px,transparent_1px),linear-gradient(to_bottom,hsl(189_40%_20%_/_0.1)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
-      
-      <div className="container mx-auto py-8 px-4 relative z-10">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <img src={aicisLogo} alt="AICIS" className="h-10 w-10 object-contain drop-shadow-[0_0_12px_hsl(var(--primary))]" />
-                <div>
-                  <h1 className="text-2xl font-orbitron font-bold">System Health & Transparency</h1>
-                  <p className="text-muted-foreground text-sm">Real-time diagnostic & self-healing monitoring</p>
-                </div>
+    <AICISLayout>
+      <div className="p-6 container mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <Activity className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-2xl font-orbitron font-bold">System Health & Transparency</h1>
+                <p className="text-muted-foreground text-sm">Real-time diagnostic & self-healing monitoring</p>
               </div>
             </div>
+          </div>
             
             <div className="flex gap-2">
               <Button onClick={runDiagnostics} disabled={loading} variant="outline">
@@ -451,9 +446,8 @@ export default function SystemHealth() {
               <p className="text-lg mb-4">No diagnostic data available</p>
               <Button onClick={runDiagnostics}>Run First Diagnostic</Button>
             </Card>
-          )}
-        </div>
+        )}
       </div>
-    </div>
+    </AICISLayout>
   );
 }
