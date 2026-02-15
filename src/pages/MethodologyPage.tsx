@@ -48,7 +48,8 @@ const whitepaperContent = {
 - Residuals stored per (model_version, domain, horizon_days) in forecast_residuals
 - Decay weight: w_i = exp(-λ × age_days), λ = 0.01
 - Weighted quantiles computed for 80% (Q10/Q90) and 95% (Q2.5/Q97.5) prediction intervals
-- Falls back to heuristic bands when insufficient residual data (<15 observations)
+- computeDomainPerformanceV2 uses empirical bands when residualDist is provided (≥15 observations)
+- Falls back to heuristic scaling (errorMagnitude × z-score) when residuals unavailable
 - Separate distributions maintained for 30d, 90d, and 365d horizons`,
     },
     {
@@ -84,7 +85,9 @@ const whitepaperContent = {
 - Holt exponential smoothing assumes locally linear trends; abrupt nonlinearities may be underfit
 - CUSUM break detection uses approximate p-values (Brown-Durbin-Evans)
 - Decay-weighted residuals assume exponential forgetting (may not suit cyclical patterns)
-- Kill-switch thresholds are fixed, not adaptive to data volume`,
+- Kill-switch thresholds are fixed, not adaptive to data volume
+- Empirical forecast bands require ≥15 residual observations; new domains use heuristic fallback
+- Freeze flag (kill-switch) is enforced in computeDomainPerformanceV2 and edge functions`,
     },
     {
       id: "history",
