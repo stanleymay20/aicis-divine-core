@@ -108,7 +108,7 @@ serve(async (req) => {
     // 3. Compute aggregate calibration metrics
     const { data: allOutcomes } = await supabase
       .from("forecast_outcomes")
-      .select("absolute_error, squared_error, inside_80_band, inside_95_band, bias");
+      .select("absolute_error, squared_error, inside_80_band, inside_95_band, bias, realized_value");
 
     if (allOutcomes && allOutcomes.length > 0) {
       const n = allOutcomes.length;
@@ -119,21 +119,37 @@ serve(async (req) => {
       const hit80 = allOutcomes.filter((o: any) => o.inside_80_band).length / n;
       const hit95 = allOutcomes.filter((o: any) => o.inside_95_band).length / n;
 
+      // MAPE: need realized values > 0 to avoid division by zero
+      const mapeOutcomes = allOutcomes.filter((o: any) => o.realized_value && Math.abs(o.realized_value) > 0.01);
+      const mape = mapeOutcomes.length > 0
+        ? mapeOutcomes.reduce((s: number, o: any) => s + Math.abs(o.absolute_error / o.realized_value), 0) / mapeOutcomes.length * 100
+        : 0;
+
+      // Normalized RMSE (scale-independent)
+      const realizedValues = allOutcomes.map((o: any) => o.realized_value).filter((v: any) => v != null);
+      const realizedRange = realizedValues.length > 1
+        ? Math.max(...realizedValues) - Math.min(...realizedValues)
+        : 1;
+      const nrmse = realizedRange > 0 ? rmse / realizedRange : 0;
+
       const metrics = [
         { metric_name: "mae", metric_value: Math.round(mae * 100) / 100 },
         { metric_name: "rmse", metric_value: Math.round(rmse * 100) / 100 },
+        { metric_name: "nrmse", metric_value: Math.round(nrmse * 1000) / 1000 },
+        { metric_name: "mape", metric_value: Math.round(mape * 100) / 100 },
         { metric_name: "avg_bias", metric_value: Math.round(avgBias * 100) / 100 },
         { metric_name: "hit_rate_80", metric_value: Math.round(hit80 * 1000) / 1000 },
         { metric_name: "hit_rate_95", metric_value: Math.round(hit95 * 1000) / 1000 },
       ];
 
       for (const m of metrics) {
-        await supabase.from("calibration_metrics").insert({
+        await supabase.from("calibration_metrics").upsert({
           model_version: "APE-V2.1",
           metric_name: m.metric_name,
           metric_value: m.metric_value,
           sample_size: n,
-        });
+          computed_at: new Date().toISOString(),
+        }, { onConflict: "model_version,metric_name" }).select();
       }
     }
 

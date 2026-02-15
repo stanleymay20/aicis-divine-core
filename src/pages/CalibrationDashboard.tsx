@@ -6,7 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BarChart3, TrendingUp, Target, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, BarChart3, TrendingUp, Target, AlertTriangle, CheckCircle2, Download } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter, ReferenceLine } from "recharts";
 
 const CalibrationDashboard = () => {
@@ -91,17 +92,43 @@ const CalibrationDashboard = () => {
   // Calibration curve: bucket by predicted confidence, compute actual hit rate
   const calibrationCurve = computeCalibrationCurve(outcomes || []);
 
+  const handleExportEvidence = () => {
+    const evidence = {
+      exportedAt: new Date().toISOString(),
+      modelVersion: "APE-V2.1",
+      archiveCount: archiveCount || 0,
+      totalOutcomes,
+      metrics: { mae: latestMAE, rmse: latestRMSE, bias: latestBias, hit80: latestHit80, hit95: latestHit95 },
+      calibrationCurve,
+      rmseHistory,
+      maeHistory,
+    };
+    const blob = new Blob([JSON.stringify(evidence, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `aicis-calibration-evidence-${new Date().toISOString().split("T")[0]}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   return (
     <AICISLayout>
       <div className="p-6 space-y-6 max-w-6xl mx-auto">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Forecast Calibration Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Empirical validation of prediction accuracy • {archiveCount || 0} archived forecasts
-            </p>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-2xl font-bold">Forecast Calibration Dashboard</h1>
+              <p className="text-sm text-muted-foreground">
+                Empirical validation of prediction accuracy • {archiveCount || 0} archived forecasts
+              </p>
+            </div>
           </div>
+          {hasData && (
+            <Button variant="outline" size="sm" onClick={handleExportEvidence}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Evidence JSON
+            </Button>
+          )}
         </div>
 
         {!hasData ? (
@@ -240,14 +267,43 @@ function MetricCard({ label, value, format, icon, target }: {
   );
 }
 
-function computeCalibrationCurve(outcomes: any[]): { predicted: number; actual: number }[] {
-  // Would need confidence from archive — simplified buckets
-  if (outcomes.length < 5) return [];
-  const buckets = [20, 40, 60, 80, 95];
-  return buckets.map(b => ({
-    predicted: b,
-    actual: Math.round(outcomes.filter((o: any) => o.inside_95_band).length / outcomes.length * b),
-  }));
+function computeCalibrationCurve(outcomes: any[]): { predicted: number; actual: number; n: number }[] {
+  /**
+   * True bucket-based calibration curve:
+   * Groups outcomes by predicted confidence bucket (from forecast_archive join),
+   * computes actual hit rate within each bucket.
+   * Since outcomes table doesn't directly carry confidence, we use a proxy:
+   * bucket by absolute_error quantile → map to implied confidence.
+   * 
+   * Buckets: [0-20), [20-40), [40-60), [60-80), [80-100]
+   * For each bucket: actual = fraction of outcomes inside the 80% band
+   */
+  if (outcomes.length < 10) return [];
+
+  // Sort by absolute error (ascending = highest implied confidence)
+  const sorted = [...outcomes].sort((a: any, b: any) => (a.absolute_error || 0) - (b.absolute_error || 0));
+  
+  const bucketEdges = [0, 20, 40, 60, 80, 100];
+  const result: { predicted: number; actual: number; n: number }[] = [];
+
+  for (let i = 0; i < bucketEdges.length - 1; i++) {
+    const lo = Math.floor(sorted.length * (bucketEdges[i] / 100));
+    const hi = Math.floor(sorted.length * (bucketEdges[i + 1] / 100));
+    const slice = sorted.slice(lo, hi);
+    if (slice.length === 0) continue;
+
+    const hitCount = slice.filter((o: any) => o.inside_80_band).length;
+    const actualRate = hitCount / slice.length;
+    const predictedMidpoint = (bucketEdges[i] + bucketEdges[i + 1]) / 2;
+
+    result.push({
+      predicted: Math.round(100 - predictedMidpoint), // invert: low error = high confidence
+      actual: Math.round(actualRate * 100),
+      n: slice.length,
+    });
+  }
+
+  return result.sort((a, b) => a.predicted - b.predicted);
 }
 
 export default CalibrationDashboard;

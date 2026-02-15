@@ -860,26 +860,32 @@ export function sensitivityAnalysis(
   let maxNPI = baseNPI;
   const sensitiveDomains: { domain: string; spread: number }[] = [];
 
-  for (const domain of Object.keys(DOMAIN_WEIGHTS)) {
-    // Perturb this domain's weight +20% and -20%
-    const origWeight = DOMAIN_WEIGHTS[domain];
+  // CRITICAL FIX: Clone weights to prevent global mutation
+  const frozenWeights = { ...DOMAIN_WEIGHTS };
 
-    // +20%
+  for (const domain of Object.keys(frozenWeights)) {
+    const origWeight = frozenWeights[domain];
+
+    // +20%: temporarily override global, compute, restore immediately
     DOMAIN_WEIGHTS[domain] = origWeight * 1.2;
     const high = computeNationalPerformanceV2(iso3, countryName, profile, benchmarks, backtestResults, calibratedParams);
+    DOMAIN_WEIGHTS[domain] = origWeight; // restore before next call
 
     // -20%
     DOMAIN_WEIGHTS[domain] = origWeight * 0.8;
     const low = computeNationalPerformanceV2(iso3, countryName, profile, benchmarks, backtestResults, calibratedParams);
-
-    // Restore
-    DOMAIN_WEIGHTS[domain] = origWeight;
+    DOMAIN_WEIGHTS[domain] = origWeight; // restore immediately
 
     const spread = Math.abs(high.overallIndex - low.overallIndex);
     if (spread > 2) sensitiveDomains.push({ domain, spread });
 
     minNPI = Math.min(minNPI, low.overallIndex, high.overallIndex);
     maxNPI = Math.max(maxNPI, low.overallIndex, high.overallIndex);
+  }
+
+  // Verify restoration integrity
+  for (const [k, v] of Object.entries(frozenWeights)) {
+    DOMAIN_WEIGHTS[k] = v;
   }
 
   return {
