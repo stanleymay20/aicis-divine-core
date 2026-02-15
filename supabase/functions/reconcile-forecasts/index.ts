@@ -105,10 +105,17 @@ serve(async (req) => {
       }
     }
 
-    // 3. Compute aggregate calibration metrics
+    // 3. Compute aggregate calibration metrics + Platt calibration
     const { data: allOutcomes } = await supabase
       .from("forecast_outcomes")
-      .select("absolute_error, squared_error, inside_80_band, inside_95_band, bias, realized_value");
+      .select("absolute_error, squared_error, inside_80_band, inside_95_band, bias, realized_value, forecast_archive_id");
+
+    // Fetch confidence scores for Platt calibration
+    const { data: archiveConfidences } = await supabase
+      .from("forecast_archive")
+      .select("id, confidence_score")
+      .limit(1000);
+    const confidenceMap = new Map((archiveConfidences || []).map((a: any) => [a.id, a.confidence_score]));
 
     if (allOutcomes && allOutcomes.length > 0) {
       const n = allOutcomes.length;
@@ -119,18 +126,58 @@ serve(async (req) => {
       const hit80 = allOutcomes.filter((o: any) => o.inside_80_band).length / n;
       const hit95 = allOutcomes.filter((o: any) => o.inside_95_band).length / n;
 
-      // MAPE: need realized values > 0 to avoid division by zero
       const mapeOutcomes = allOutcomes.filter((o: any) => o.realized_value && Math.abs(o.realized_value) > 0.01);
       const mape = mapeOutcomes.length > 0
         ? mapeOutcomes.reduce((s: number, o: any) => s + Math.abs(o.absolute_error / o.realized_value), 0) / mapeOutcomes.length * 100
         : 0;
 
-      // Normalized RMSE (scale-independent)
       const realizedValues = allOutcomes.map((o: any) => o.realized_value).filter((v: any) => v != null);
       const realizedRange = realizedValues.length > 1
-        ? Math.max(...realizedValues) - Math.min(...realizedValues)
-        : 1;
+        ? Math.max(...realizedValues) - Math.min(...realizedValues) : 1;
       const nrmse = realizedRange > 0 ? rmse / realizedRange : 0;
+
+      // Platt calibration: fit logistic mapping from raw confidence to actual hit rate
+      let plattParams: { a: number; b: number; fitted: boolean } = { a: -1, b: 0, fitted: false };
+      if (allOutcomes.length >= 20) {
+        const predictedConfs: number[] = [];
+        const actualHits: boolean[] = [];
+        for (const o of allOutcomes) {
+          const conf = confidenceMap.get(o.forecast_archive_id);
+          if (conf !== undefined) {
+            predictedConfs.push(conf / 100);
+            actualHits.push(!!o.inside_80_band);
+          }
+        }
+        if (predictedConfs.length >= 20) {
+          // Simple Platt fitting: Newton-Raphson
+          const prior1 = actualHits.filter(h => h).length;
+          const prior0 = predictedConfs.length - prior1;
+          const hiTarget = (prior1 + 1) / (prior1 + 2);
+          const loTarget = 1 / (prior0 + 2);
+          const t = actualHits.map(h => h ? hiTarget : loTarget);
+          let a = 0, b = Math.log((prior0 + 1) / (prior1 + 1));
+          for (let iter = 0; iter < 50; iter++) {
+            let h11 = 1e-12, h22 = 1e-12, h21 = 0, g1 = 0, g2 = 0;
+            for (let i = 0; i < predictedConfs.length; i++) {
+              const fApB = a * predictedConfs[i] + b;
+              const p = fApB >= 0 ? Math.exp(-fApB) / (1 + Math.exp(-fApB)) : 1 / (1 + Math.exp(fApB));
+              const q = 1 - p;
+              const d2 = p * q;
+              h11 += predictedConfs[i] * predictedConfs[i] * d2;
+              h22 += d2;
+              h21 += predictedConfs[i] * d2;
+              g1 += predictedConfs[i] * (t[i] - p);
+              g2 += t[i] - p;
+            }
+            if (Math.abs(g1) < 1e-5 && Math.abs(g2) < 1e-5) break;
+            const det = h11 * h22 - h21 * h21;
+            if (Math.abs(det) < 1e-15) break;
+            a += -(h22 * g1 - h21 * g2) / det;
+            b += -(-h21 * g1 + h11 * g2) / det;
+          }
+          plattParams = { a, b, fitted: true };
+        }
+      }
 
       const metrics = [
         { metric_name: "mae", metric_value: Math.round(mae * 100) / 100 },
@@ -149,6 +196,7 @@ serve(async (req) => {
           metric_value: m.metric_value,
           sample_size: n,
           computed_at: new Date().toISOString(),
+          calibration_params: plattParams.fitted ? plattParams : null,
         }, { onConflict: "model_version,metric_name" }).select();
       }
     }
