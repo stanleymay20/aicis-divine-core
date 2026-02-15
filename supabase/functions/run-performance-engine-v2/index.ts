@@ -519,11 +519,11 @@ Deno.serve(async (req) => {
       await supabase.from("system_flags").update({ enabled: true, updated_at: new Date().toISOString() }).eq("flag_key", "freeze_forecasts");
       // Log critical alert
       await supabase.from("critical_alerts").insert({
-        headline: `Kill-Switch Activated: ${avgRMSE > 50 ? "RMSE out of control" : "Break rate >60%"}`,
+        headline: `Kill-Switch Activated: ${avgMAPE > 50 ? "MAPE out of control" : "Break rate >60%"}`,
         level: "critical",
         severity: 10,
         event_type: "kill_switch",
-        meta: { avgRMSE: r2(avgRMSE), breakRate: r2(currentBreakRate), countriesProcessed, totalDomains },
+        meta: { avgMAPE: r2(avgMAPE), breakRate: r2(currentBreakRate), countriesProcessed, totalDomains },
       });
     }
 
