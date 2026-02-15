@@ -4,7 +4,7 @@
  * gap handling, period-aware forecasts, parameter calibration.
  */
 
-import { computeNationalPerformance } from './performance-engine';
+// V1 comparison removed — V2 is now the sole production engine
 import {
   computeNationalPerformanceV2,
   backtestForecast,
@@ -92,10 +92,9 @@ export function validateV2(): void {
   });
   console.groupEnd();
 
-  // ── Test 3: Country comparisons (with gaps) ──
+  // ── Test 3: Country comparisons (V2 only) ──
   for (const { iso3, name, seed } of COUNTRIES) {
     const profile = generateTestProfile(seed, true); // gaps enabled
-    const v1 = computeNationalPerformance(iso3, name, profile);
 
     const backtests: Record<string, BacktestResult> = {};
     const calParams: Record<string, DomainModelParams> = {};
@@ -109,9 +108,7 @@ export function validateV2(): void {
 
     console.group(`🌍 ${name} (${iso3})`);
     console.table({
-      'V1 NPI': v1.overallIndex,
       'V2 NPI': v2.overallIndex,
-      'V1 Conf': v1.confidence,
       'V2 Conf': v2.confidence,
       'Fragility': v2.systemicFragility,
       'Breaks': v2.structuralBreakCount,
