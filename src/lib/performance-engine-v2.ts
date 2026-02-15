@@ -470,8 +470,14 @@ export function backtestForecast(
   };
 }
 
-// ─── 9. Parameter calibration (grid search) ─────────────────────────
+// ─── 9. Parameter calibration (k-fold cross-validated grid search) ──
 
+/**
+ * Calibrates Holt parameters using time-series cross-validation.
+ * Uses expanding-window k-fold (k=3) to prevent overfitting to a single
+ * train/test split. Returns the (α, β) pair that minimizes average RMSE
+ * across all folds.
+ */
 export function calibrateParameters(
   historicalSeries: number[],
 ): DomainModelParams {
@@ -479,15 +485,35 @@ export function calibrateParameters(
 
   let bestAlpha = DEFAULT_PARAMS.alpha;
   let bestBeta = DEFAULT_PARAMS.beta;
-  let bestRMSE = Infinity;
+  let bestAvgRMSE = Infinity;
 
-  for (let a = 0.2; a <= 0.8; a += 0.1) {
-    for (let b = 0.1; b <= 0.5; b += 0.1) {
-      const result = backtestForecast(historicalSeries, a, b);
-      if (result.rmse < bestRMSE && result.rmse > 0) {
-        bestRMSE = result.rmse;
-        bestAlpha = Math.round(a * 10) / 10;
-        bestBeta = Math.round(b * 10) / 10;
+  // k-fold expanding window cross-validation
+  const k = 3;
+  const minTrainSize = Math.max(4, Math.floor(historicalSeries.length * 0.4));
+
+  for (let a = 0.2; a <= 0.8; a += 0.05) {
+    for (let b = 0.05; b <= 0.5; b += 0.05) {
+      let totalRMSE = 0;
+      let foldCount = 0;
+
+      for (let fold = 0; fold < k; fold++) {
+        const foldEnd = minTrainSize + Math.floor(((historicalSeries.length - minTrainSize) / k) * (fold + 1));
+        if (foldEnd > historicalSeries.length) break;
+        const foldSlice = historicalSeries.slice(0, foldEnd);
+        const result = backtestForecast(foldSlice, a, b);
+        if (result.rmse > 0) {
+          totalRMSE += result.rmse;
+          foldCount++;
+        }
+      }
+
+      if (foldCount > 0) {
+        const avgRMSE = totalRMSE / foldCount;
+        if (avgRMSE < bestAvgRMSE) {
+          bestAvgRMSE = avgRMSE;
+          bestAlpha = Math.round(a * 100) / 100;
+          bestBeta = Math.round(b * 100) / 100;
+        }
       }
     }
   }
@@ -744,6 +770,94 @@ export function computeNationalPerformanceV2(
     forecast90d, forecast1y, forecastDirection,
     confidence, structuralBreakCount, forecastStability,
     domains,
+  };
+}
+
+// ─── 13. Sensitivity analysis ───────────────────────────────────────
+
+/**
+ * Runs a sensitivity analysis by perturbing domain weights ±20% and
+ * measuring the resulting spread in NPI. Returns the max absolute
+ * deviation — a measure of how sensitive the composite index is
+ * to weight assumptions.
+ */
+export function sensitivityAnalysis(
+  iso3: string,
+  countryName: string,
+  profile: Record<string, { metrics: MetricEntryV2[]; completeness: number }>,
+  benchmarks: Record<string, GlobalBenchmark>,
+  backtestResults: Record<string, BacktestResult>,
+  calibratedParams?: Record<string, DomainModelParams>,
+): { baseNPI: number; maxDeviation: number; perturbedRange: [number, number]; sensitive_domains: string[] } {
+  const base = computeNationalPerformanceV2(iso3, countryName, profile, benchmarks, backtestResults, calibratedParams);
+  const baseNPI = base.overallIndex;
+
+  let minNPI = baseNPI;
+  let maxNPI = baseNPI;
+  const sensitiveDomains: { domain: string; spread: number }[] = [];
+
+  for (const domain of Object.keys(DOMAIN_WEIGHTS)) {
+    // Perturb this domain's weight +20% and -20%
+    const origWeight = DOMAIN_WEIGHTS[domain];
+
+    // +20%
+    DOMAIN_WEIGHTS[domain] = origWeight * 1.2;
+    const high = computeNationalPerformanceV2(iso3, countryName, profile, benchmarks, backtestResults, calibratedParams);
+
+    // -20%
+    DOMAIN_WEIGHTS[domain] = origWeight * 0.8;
+    const low = computeNationalPerformanceV2(iso3, countryName, profile, benchmarks, backtestResults, calibratedParams);
+
+    // Restore
+    DOMAIN_WEIGHTS[domain] = origWeight;
+
+    const spread = Math.abs(high.overallIndex - low.overallIndex);
+    if (spread > 2) sensitiveDomains.push({ domain, spread });
+
+    minNPI = Math.min(minNPI, low.overallIndex, high.overallIndex);
+    maxNPI = Math.max(maxNPI, low.overallIndex, high.overallIndex);
+  }
+
+  return {
+    baseNPI,
+    maxDeviation: Math.round((maxNPI - minNPI) * 10) / 10,
+    perturbedRange: [minNPI, maxNPI],
+    sensitive_domains: sensitiveDomains
+      .sort((a, b) => b.spread - a.spread)
+      .slice(0, 3)
+      .map(d => d.domain),
+  };
+}
+
+/**
+ * Model diagnostics summary for audit transparency.
+ * Returns key metrics that an external reviewer can verify.
+ */
+export function computeModelDiagnostics(
+  historicalSeries: number[],
+  alpha?: number,
+  beta?: number,
+): {
+  calibrated: DomainModelParams;
+  backtest: BacktestResult;
+  cusum: { detected: boolean; pValue: number; breakIndex: number };
+  seriesLength: number;
+  outlierCount: number;
+} {
+  const calibrated = calibrateParameters(historicalSeries);
+  const a = alpha ?? calibrated.alpha;
+  const b = beta ?? calibrated.beta;
+  const backtest = backtestForecast(historicalSeries, a, b);
+  const cusum = detectStructuralBreakCUSUM(historicalSeries, a, b);
+  const winsorized = winsorizeOutliers(historicalSeries);
+  const outlierCount = historicalSeries.filter((v, i) => v !== winsorized[i]).length;
+
+  return {
+    calibrated,
+    backtest,
+    cusum: { detected: cusum.detected, pValue: cusum.pValue, breakIndex: cusum.breakIndex },
+    seriesLength: historicalSeries.length,
+    outlierCount,
   };
 }
 

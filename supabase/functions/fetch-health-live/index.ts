@@ -1,14 +1,15 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resilientCall, structuredLog, handleCors, errorResponse, jsonResponse } from "../_shared/resilience.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const FN = "fetch-health-live";
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  const start = Date.now();
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -19,31 +20,24 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    console.log("Invoking pull-owid-health for live health data...");
-    
-    const { data, error } = await supabase.functions.invoke('pull-owid-health', {
-      body: {}
-    });
+    structuredLog('info', FN, 'Refreshing health data', { user_id: user.id });
 
-    if (error) throw error;
+    const data = await resilientCall(`${FN}:pull`, async () => {
+      const { data, error } = await supabase.functions.invoke('pull-owid-health', { body: {} });
+      if (error) throw error;
+      return data;
+    }, { maxRetries: 1, timeoutMs: 20000 });
 
-    // Trigger impact evaluation and learning
-    await supabase.functions.invoke('evaluate-impact');
-    await supabase.functions.invoke('learn-policy-weights');
+    // Trigger downstream in parallel, don't block on failure
+    await Promise.allSettled([
+      supabase.functions.invoke('evaluate-impact'),
+      supabase.functions.invoke('learn-policy-weights'),
+    ]);
 
-    return new Response(
-      JSON.stringify({ 
-        ok: true, 
-        message: "Health data refreshed successfully",
-        data
-      }), 
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    structuredLog('info', FN, 'Health data refreshed', undefined, start);
+    return jsonResponse({ ok: true, message: "Health data refreshed successfully", data });
   } catch (e) {
-    console.error("fetch-health-live error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), 
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    structuredLog('error', FN, (e as Error).message, undefined, start);
+    return errorResponse(e);
   }
 });

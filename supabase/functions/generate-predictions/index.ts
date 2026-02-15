@@ -1,90 +1,50 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resilientCall, structuredLog, handleCors, corsHeaders, errorResponse, jsonResponse } from "../_shared/resilience.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const FN = "generate-predictions";
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  const start = Date.now();
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-    console.log('Generating predictive intelligence across all divisions...');
+    structuredLog('info', FN, 'Starting prediction generation');
 
     const divisions = ['health', 'food', 'energy', 'governance', 'finance', 'security'];
     const predictions: any[] = [];
 
     for (const division of divisions) {
-      console.log(`Processing division: ${division}`);
-      let historicalData: any[] = [];
-      
-      switch (division) {
-        case 'health':
-          const { data: healthData } = await supabase
-            .from('health_data')
-            .select('*')
-            .order('updated_at', { ascending: false })
-            .limit(50);
-          historicalData = healthData || [];
-          break;
-        case 'food':
-          const { data: foodData } = await supabase
-            .from('food_security')
-            .select('*')
-            .order('updated_at', { ascending: false })
-            .limit(50);
-          historicalData = foodData || [];
-          break;
-        case 'energy':
-          const { data: energyData } = await supabase
-            .from('energy_grid')
-            .select('*')
-            .order('updated_at', { ascending: false })
-            .limit(50);
-          historicalData = energyData || [];
-          break;
-        case 'governance':
-          const { data: govData } = await supabase
-            .from('governance_global')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-          historicalData = govData || [];
-          break;
-        case 'finance':
-          const { data: finData } = await supabase
-            .from('finance_data')
-            .select('*')
-            .order('updated_at', { ascending: false })
-            .limit(100);
-          historicalData = finData || [];
-          break;
-        case 'security':
-          const { data: secData } = await supabase
-            .from('security_incidents')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-          historicalData = secData || [];
-          break;
-      }
-
-      console.log(`${division}: found ${historicalData.length} records`);
+      const historicalData = await resilientCall(`${FN}:fetch:${division}`, async () => {
+        const tableMap: Record<string, { table: string; order: string }> = {
+          health: { table: 'health_data', order: 'updated_at' },
+          food: { table: 'food_security', order: 'updated_at' },
+          energy: { table: 'energy_grid', order: 'updated_at' },
+          governance: { table: 'governance_global', order: 'created_at' },
+          finance: { table: 'finance_data', order: 'updated_at' },
+          security: { table: 'security_incidents', order: 'created_at' },
+        };
+        const conf = tableMap[division];
+        const { data, error } = await supabase
+          .from(conf.table)
+          .select('*')
+          .order(conf.order, { ascending: false })
+          .limit(division === 'finance' ? 100 : 50);
+        if (error) throw error;
+        return data || [];
+      }, { maxRetries: 1, timeoutMs: 15000 });
 
       if (historicalData.length === 0) continue;
 
-      // Group by country/region
       const byCountry = historicalData.reduce((acc: any, item: any) => {
         const country = item.country || item.region || item.iso_code || 'Global';
         if (!acc[country]) acc[country] = [];
@@ -92,160 +52,106 @@ serve(async (req) => {
         return acc;
       }, {});
 
-      // Generate predictions for each country (cap at 2 to prevent timeout)
       const countryEntries = Object.entries(byCountry).slice(0, 2);
       for (const [country, data] of countryEntries) {
         const dataArray = data as any[];
         if (dataArray.length < 1) continue;
 
-        // Calculate future dates for 90-day forecast
         const today = new Date();
-        const futureDate1 = new Date(today);
-        futureDate1.setDate(today.getDate() + 30);
-        const futureDate2 = new Date(today);
-        futureDate2.setDate(today.getDate() + 60);
-        const futureDate3 = new Date(today);
-        futureDate3.setDate(today.getDate() + 90);
-
         const formatDate = (d: Date) => d.toISOString().split('T')[0];
+        const futureDate1 = new Date(today); futureDate1.setDate(today.getDate() + 30);
+        const futureDate2 = new Date(today); futureDate2.setDate(today.getDate() + 60);
+        const futureDate3 = new Date(today); futureDate3.setDate(today.getDate() + 90);
 
-        // Generate AI-powered forecast
-        const prompt = `Analyze this ${division} data for ${country} and provide a 90-day FUTURE forecast starting from today (${formatDate(today)}).
+        try {
+          const forecast = await resilientCall(`${FN}:ai:${division}:${country}`, async () => {
+            const prompt = `Analyze this ${division} data for ${country} and provide a 90-day FUTURE forecast starting from today (${formatDate(today)}).
 
 Historical Data:
 ${JSON.stringify(dataArray.slice(0, 5), null, 2)}
 
 Provide a JSON response with these exact fields:
 {
-  "summary": "Brief 1-2 sentence forecast summary for the next 90 days",
+  "summary": "Brief 1-2 sentence forecast summary",
   "trend": "increasing" | "stable" | "decreasing",
   "risk_level": "low" | "medium" | "high" | "critical",
   "confidence": 0.0-0.95,
   "key_factors": ["factor1", "factor2"],
   "timeline": [
-    {"date": "${formatDate(futureDate1)}", "value": 100, "event": "optional note"},
+    {"date": "${formatDate(futureDate1)}", "value": 100},
     {"date": "${formatDate(futureDate2)}", "value": 105},
     {"date": "${formatDate(futureDate3)}", "value": 110}
   ]
 }
 
-IMPORTANT: 
-- All dates in timeline MUST be in the future (after ${formatDate(today)})
-- Confidence MUST NOT exceed 0.95 (95% cap enforced)
-- Return ONLY the JSON object, no markdown.`;
+IMPORTANT: All dates MUST be future. Confidence MUST NOT exceed 0.95. Return ONLY JSON.`;
 
-        try {
-          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash-lite',
-              messages: [
-                { role: 'system', content: 'You are AICIS predictive analytics AI. Provide forecasts in valid JSON format only. No markdown.' },
-                { role: 'user', content: prompt }
-              ],
-              temperature: 0.2,
-              max_tokens: 500
-            })
-          });
+            const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash-lite',
+                messages: [
+                  { role: 'system', content: 'You are AICIS predictive analytics AI. Provide forecasts in valid JSON format only. No markdown.' },
+                  { role: 'user', content: prompt }
+                ],
+                temperature: 0.2,
+                max_tokens: 500
+              })
+            });
 
-          if (!aiResponse.ok) {
-            console.error(`AI response not ok for ${country} ${division}: ${aiResponse.status}`);
-            continue;
-          }
+            if (!aiResponse.ok) throw new Error(`AI API error: ${aiResponse.status}`);
+            const aiResult = await aiResponse.json();
+            const forecastText = aiResult.choices?.[0]?.message?.content || '{}';
 
-          const aiResult = await aiResponse.json();
-          const forecastText = aiResult.choices?.[0]?.message?.content || '{}';
-          
-          let forecast;
-          try {
-            // Try direct parse
-            forecast = JSON.parse(forecastText);
-          } catch {
-            // Try to extract JSON from markdown code blocks
-            const match = forecastText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (match) {
-              try {
-                forecast = JSON.parse(match[1]);
-              } catch {
-                forecast = { summary: `Forecast pending for ${country}`, confidence: 0.5, trend: 'stable', risk_level: 'medium' };
-              }
-            } else {
-              forecast = { summary: `Forecast analysis for ${country}`, confidence: 0.5, trend: 'stable', risk_level: 'medium' };
+            try {
+              return JSON.parse(forecastText);
+            } catch {
+              const match = forecastText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+              if (match) return JSON.parse(match[1]);
+              return { summary: `Forecast pending for ${country}`, confidence: 0.5, trend: 'stable', risk_level: 'medium' };
             }
-          }
+          }, { maxRetries: 1, timeoutMs: 20000 });
 
-          // Enforce 95% confidence cap
           const cappedConfidence = Math.min(forecast.confidence || 0.7, 0.95);
 
           predictions.push({
-            division,
-            country,
-            forecast,
+            division, country, forecast,
             confidence: cappedConfidence,
-            volatility_index: forecast.risk_level === 'critical' ? 0.8 : 
-                             forecast.risk_level === 'high' ? 0.6 : 
+            volatility_index: forecast.risk_level === 'critical' ? 0.8 :
+                             forecast.risk_level === 'high' ? 0.6 :
                              forecast.risk_level === 'medium' ? 0.4 : 0.2,
             predicted_at: new Date().toISOString()
           });
-
-          console.log(`Generated prediction for ${country} in ${division}`);
         } catch (err) {
-          console.error(`Error generating prediction for ${country} ${division}:`, err);
+          structuredLog('warn', FN, `Prediction failed for ${country}/${division}`, { error: (err as Error).message });
         }
       }
     }
 
-    // Insert predictions in batch
-    console.log(`Inserting ${predictions.length} predictions...`);
-    
     let inserted = 0;
     for (const pred of predictions) {
       const { error } = await supabase.from('predictions').insert({
-        division: pred.division,
-        country: pred.country,
-        forecast: pred.forecast,
-        confidence: pred.confidence,
-        volatility_index: pred.volatility_index,
-        predicted_at: pred.predicted_at
+        division: pred.division, country: pred.country,
+        forecast: pred.forecast, confidence: pred.confidence,
+        volatility_index: pred.volatility_index, predicted_at: pred.predicted_at
       });
-      if (error) {
-        console.error(`Insert error for ${pred.country}:`, error.message);
-      } else {
-        inserted++;
-      }
+      if (!error) inserted++;
     }
 
-    console.log(`Successfully inserted ${inserted} of ${predictions.length} predictions`);
-
     await supabase.from('system_logs').insert({
-      division: 'intelligence',
-      action: 'generate_predictions',
-      result: 'success',
-      log_level: 'info',
-      metadata: { 
-        predictions_generated: inserted,
-        divisions_processed: divisions.length,
-        timestamp: new Date().toISOString()
-      }
+      division: 'intelligence', action: 'generate_predictions',
+      result: 'success', log_level: 'info',
+      metadata: { predictions_generated: inserted, divisions_processed: divisions.length }
     });
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        predictions_generated: inserted,
-        total_processed: predictions.length
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    structuredLog('info', FN, `Generated ${inserted} predictions`, undefined, start);
+    return jsonResponse({ success: true, predictions_generated: inserted, total_processed: predictions.length });
   } catch (error) {
-    console.error('Error generating predictions:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    structuredLog('error', FN, (error as Error).message, undefined, start);
+    return errorResponse(error);
   }
 });
