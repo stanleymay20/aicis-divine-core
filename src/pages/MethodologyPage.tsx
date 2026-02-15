@@ -1,165 +1,208 @@
 /**
  * AICIS Model Methodology & Audit Readiness Page
- * Auto-generated whitepaper + forecast accuracy + data source transparency.
+ * Formal versioned whitepaper with export capabilities.
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { AICISLayout } from "@/components/aicis/AICISLayout";
 import {
   BookOpen, BarChart3, Database, Shield, GitBranch,
-  TrendingUp, AlertTriangle, CheckCircle2
+  TrendingUp, AlertTriangle, CheckCircle2, Download, FileText
 } from "lucide-react";
+import { CURRENT_MODEL_VERSION } from "@/lib/performance-engine-v2";
+
+const WHITEPAPER_VERSION = 3;
+
+const whitepaperContent = {
+  version: WHITEPAPER_VERSION,
+  modelVersion: CURRENT_MODEL_VERSION,
+  generatedAt: new Date().toISOString(),
+  sections: [
+    {
+      id: "formulation",
+      title: "1. Mathematical Formulation",
+      content: `The AICIS Performance Engine V2 (APE-V2) computes National Performance Indices across 9 domains using:
+- Benchmark-anchored normalization against global_domain_benchmarks (structural floor/ceiling)
+- Formula: score = ((value - floor) / (ceiling - floor)) × 100, clamped to [0, 100]
+- Weighted aggregation via version-locked domain_weights (governance 0.18, health 0.16, etc.)
+- Stateless computation: all weights, parameters, and calibration profiles are passed explicitly via ComputeContext`,
+    },
+    {
+      id: "calibration",
+      title: "2. Calibration Procedure",
+      content: `Platt Scaling calibration maps raw compositional confidence → empirical probabilities:
+- calibrated = 1 / (1 + exp(a * raw + b))
+- Parameters (a, b) fitted via Newton-Raphson on (predicted_confidence, actual_hit_80_band) pairs
+- Minimum 20 samples required; smoothed target probabilities per Platt (2000)
+- Calibration profiles stored in model_calibration_profiles with locked_until enforcement
+- Recalibration only occurs when profile is unlocked (quarterly schedule)`,
+    },
+    {
+      id: "residuals",
+      title: "3. Residual Modeling Method",
+      content: `Horizon-specific residual distributions with exponential decay weighting:
+- Residuals stored per (model_version, domain, horizon_days) in forecast_residuals
+- Decay weight: w_i = exp(-λ × age_days), λ = 0.01
+- Weighted quantiles computed for 80% (Q10/Q90) and 95% (Q2.5/Q97.5) prediction intervals
+- Falls back to heuristic bands when insufficient residual data (<15 observations)
+- Separate distributions maintained for 30d, 90d, and 365d horizons`,
+    },
+    {
+      id: "drift",
+      title: "4. Drift Detection Framework",
+      content: `Statistical Process Control (SPC) with EWMA control charts:
+- EWMA: EWMA_t = λ × x_t + (1-λ) × EWMA_(t-1), λ = 0.2
+- Rolling window: 30 observations for μ and σ computation
+- Control bands: UCL = μ + 3σ, LCL = μ - 3σ
+- Out-of-control signals trigger drift alerts with severity escalation
+- Monitored metrics: RMSE, MAPE, Hit80, Hit95, Avg Bias
+- Kill-switch activation on: RMSE > 3σ, Hit80 < 60%, Break rate > 60%, Cal divergence > 25%`,
+    },
+    {
+      id: "promotion",
+      title: "5. Promotion Governance (Champion–Challenger)",
+      content: `Model lifecycle: shadow → challenger → active → deprecated
+- New models deployed as "shadow" running in parallel
+- Promotion requires Diebold-Mariano test at 95% confidence
+- DM test: d_t = e_A² - e_B², test_stat = d̄ / SE(d), two-sided p-value
+- Promotion only if statistically superior (p < 0.05) with ≥10 paired observations
+- Previous active model auto-deprecated on promotion
+- No manual override: governance is statistical`,
+    },
+    {
+      id: "limitations",
+      title: "6. Limitations and Assumptions",
+      content: `Known limitations:
+- Domain weights are expert-assigned, not empirically derived via PCA or factor analysis
+- Fragility model uses multiplicative deficiency across 3 of 9 domains (governance, security, finance)
+- Graph-based coupling propagation is single-pass (no iterative equilibrium)
+- Confidence calibration targets 80% band hit rate, not true event probability
+- Holt exponential smoothing assumes locally linear trends; abrupt nonlinearities may be underfit
+- CUSUM break detection uses approximate p-values (Brown-Durbin-Evans)
+- Decay-weighted residuals assume exponential forgetting (may not suit cyclical patterns)
+- Kill-switch thresholds are fixed, not adaptive to data volume`,
+    },
+    {
+      id: "history",
+      title: "7. Version History",
+      content: `V2.1 (2026-02-15): SPC/EWMA drift detection, kill-switch, Platt calibration, regime switching, 
+  graph-based fragility, champion-challenger governance, decay-weighted residuals, audit hashing
+V2.0 (2026-02-14): Holt smoothing, CUSUM breaks, t-stat momentum, gap interpolation, grid-search calibration
+V1.0 (2026-02-01): Simple exponential smoothing, CV volatility, fixed hyperparameters`,
+    },
+  ],
+};
 
 const MethodologyPage = () => {
+  const handleExportJSON = () => {
+    const blob = new Blob([JSON.stringify(whitepaperContent, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `AICIS-Methodology-${CURRENT_MODEL_VERSION}-v${WHITEPAPER_VERSION}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const handleExportText = () => {
+    const lines = [
+      `AICIS Performance Engine — Technical Methodology`,
+      `Model Version: ${CURRENT_MODEL_VERSION}`,
+      `Document Version: ${WHITEPAPER_VERSION}`,
+      `Generated: ${new Date().toISOString()}`,
+      `${"=".repeat(60)}`,
+      "",
+    ];
+    for (const section of whitepaperContent.sections) {
+      lines.push(section.title, "", section.content, "", "---", "");
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `AICIS-Methodology-${CURRENT_MODEL_VERSION}-v${WHITEPAPER_VERSION}.txt`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   return (
     <AICISLayout>
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
         <div className="flex items-center gap-3">
           <BookOpen className="h-8 w-8 text-primary" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold">Model Methodology & Audit Package</h1>
             <p className="text-sm text-muted-foreground">
-              Institutional documentation for independent review and regulatory compliance
+              Formal versioned whitepaper for independent review and regulatory compliance
             </p>
           </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportJSON}>
+              <Download className="h-4 w-4 mr-2" />JSON
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportText}>
+              <FileText className="h-4 w-4 mr-2" />Text
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Badge variant="outline">Model: {CURRENT_MODEL_VERSION}</Badge>
+          <Badge variant="outline">Doc v{WHITEPAPER_VERSION}</Badge>
+          <Badge variant="secondary">Formal Whitepaper</Badge>
         </div>
 
         <Tabs defaultValue="methodology" className="space-y-4">
           <TabsList className="w-full justify-start flex-wrap h-auto">
             <TabsTrigger value="methodology" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              Methodology
+              <BookOpen className="h-4 w-4" />Whitepaper
             </TabsTrigger>
             <TabsTrigger value="parameters" className="gap-2">
-              <GitBranch className="h-4 w-4" />
-              Parameters
+              <GitBranch className="h-4 w-4" />Parameters
             </TabsTrigger>
             <TabsTrigger value="accuracy" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Forecast Accuracy
+              <BarChart3 className="h-4 w-4" />Accuracy
             </TabsTrigger>
             <TabsTrigger value="sources" className="gap-2">
-              <Database className="h-4 w-4" />
-              Data Sources
+              <Database className="h-4 w-4" />Sources
             </TabsTrigger>
             <TabsTrigger value="registry" className="gap-2">
-              <Shield className="h-4 w-4" />
-              Model Registry
+              <Shield className="h-4 w-4" />Registry
             </TabsTrigger>
           </TabsList>
 
-          {/* Methodology Whitepaper */}
           <TabsContent value="methodology">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5" />
-                  AICIS Performance Engine V2 — Technical Whitepaper
+                  AICIS Performance Engine — Technical Whitepaper
                 </CardTitle>
-                <Badge variant="outline">Auto-generated from source code</Badge>
+                <div className="flex gap-2">
+                  <Badge variant="outline">Auto-generated from source code</Badge>
+                  <Badge variant="outline">Version {WHITEPAPER_VERSION}</Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[600px]">
                   <div className="prose prose-sm dark:prose-invert max-w-none space-y-6">
-                    <Section title="1. Overview">
-                      The AICIS Performance Engine V2 (APE-V2) computes National Performance
-                      Indices across 9 domains using benchmark-anchored normalization, Holt
-                      double-exponential smoothing for forecasts, and CUSUM-based structural
-                      break detection.
-                    </Section>
-
-                    <Section title="2. Normalization">
-                      Raw metric values are normalized against global benchmarks stored in{" "}
-                      <code>global_domain_benchmarks</code>. Each benchmark defines structural
-                      floor/ceiling bounds. The formula:{" "}
-                      <code>score = ((value - floor) / (ceiling - floor)) × 100</code>, clamped
-                      to [0, 100].
-                    </Section>
-
-                    <Section title="3. Forecasting Model">
-                      <strong>Holt Double Exponential Smoothing</strong> with level (α) and
-                      trend (β) parameters. The model produces both a smoothed level and a
-                      trend component. Forecasts project forward using period-aware horizons
-                      (monthly, quarterly, or annual detection). A volatility-scaled damping
-                      factor reduces trend influence for high-volatility series:{" "}
-                      <code>damping = max(0.3, 1 - volatility/200)</code>.
-                    </Section>
-
-                    <Section title="4. Momentum Calculation">
-                      8-period OLS regression on normalized values. The slope is converted to
-                      a percentage of the mean. A t-statistic significance filter ensures only
-                      statistically meaningful trends (|t| ≥ 1.5) produce non-zero momentum.
-                      This prevents noise from being reported as signal.
-                    </Section>
-
-                    <Section title="5. Volatility Decomposition">
-                      Total volatility uses coefficient of variation on the last 6 periods.
-                      V2 separates this into <strong>downside volatility</strong> (negative
-                      deviations only) and <strong>upside volatility</strong> (positive
-                      deviations only). The skew ratio (downside/upside) identifies
-                      asymmetric risk profiles.
-                    </Section>
-
-                    <Section title="6. Structural Break Detection">
-                      CUSUM (Cumulative Sum) test with Brown-Durbin-Evans approximate
-                      critical values. At 5% significance: threshold ≈ 0.948√n. Returns a
-                      p-value and break index. Breaks are flagged at the 10% significance
-                      level, triggering +10 risk pressure and -12 confidence adjustments.
-                    </Section>
-
-                    <Section title="7. Confidence Scoring">
-                      Composite formula: <code>15 + (density × 25) + (stability × 20) +
-                      sourceDiversityBonus + timeSpanBonus - volatilityPenalty -
-                      breakPenalty - gapPenalty - stalenessPenalty</code>. Base of 15
-                      ensures confidence is earned. Clamped to [10, 95].
-                    </Section>
-
-                    <Section title="8. Uncertainty Bands">
-                      80% and 95% confidence intervals derived from backtest error
-                      distribution. Band width scales with <code>(1 - stabilityScore) × 30
-                      + volatility × 0.3</code>, multiplied by z-scores (1.28 for 80%,
-                      1.96 for 95%).
-                    </Section>
-
-                    <Section title="9. Systemic Fragility">
-                      Multiplicative deficiency model across governance, security, and
-                      finance: <code>fragility = (1 - gov) × (1 - sec) × (1 - fin)</code>.
-                      Captures nonlinear cascading risk where multiple weak domains
-                      compound.
-                    </Section>
-
-                    <Section title="10. Backtesting">
-                      Walk-forward validation using Holt model (identical to production).
-                      Metrics: MAE, RMSE, MAPE, forecast bias. Stability score derived
-                      from normalized RMSE. Grid-search calibration optimizes α and β
-                      per domain to minimize RMSE.
-                    </Section>
-
-                    <Section title="11. Known Limitations">
-                      <ul className="list-disc pl-4 space-y-1">
-                        <li>Domain weights (governance 0.18, etc.) are not empirically calibrated</li>
-                        <li>Fragility model uses only 3 of 9 domains</li>
-                        <li>No out-of-sample validation against real outcomes yet</li>
-                        <li>Confidence formula is compositional, not empirically calibrated</li>
-                        <li>Exponential smoothing assumes continuity — regime changes not handled</li>
-                      </ul>
-                    </Section>
+                    {whitepaperContent.sections.map(section => (
+                      <div key={section.id}>
+                        <h3 className="text-base font-semibold mb-2">{section.title}</h3>
+                        <div className="text-sm text-muted-foreground whitespace-pre-line">{section.content}</div>
+                      </div>
+                    ))}
                   </div>
                 </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Parameter Calibration */}
           <TabsContent value="parameters">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <GitBranch className="h-5 w-5" />
-                  Parameter Calibration Report
+                  <GitBranch className="h-5 w-5" />Parameter Calibration Report
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -167,60 +210,55 @@ const MethodologyPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ParamCard label="Level Smoothing (α)" defaultVal="0.55" range="0.2–0.8" method="Grid search minimizing RMSE" />
                     <ParamCard label="Trend Smoothing (β)" defaultVal="0.30" range="0.1–0.5" method="Grid search minimizing RMSE" />
-                    <ParamCard label="Momentum Window" defaultVal="8 periods" range="N/A" method="Fixed (statistical minimum for t-test)" />
-                    <ParamCard label="t-stat Threshold" defaultVal="1.5" range="N/A" method="Standard significance proxy" />
-                    <ParamCard label="CUSUM Significance" defaultVal="10%" range="5–10%" method="Brown-Durbin-Evans tables" />
-                    <ParamCard label="Damping Floor" defaultVal="0.3" range="N/A" method="Prevents over-damping in volatile series" />
-                    <ParamCard label="Confidence Base" defaultVal="15" range="N/A" method="Ensures confidence is earned, not assumed" />
+                    <ParamCard label="EWMA Lambda (λ)" defaultVal="0.2" range="0.05–0.5" method="SPC drift detection sensitivity" />
+                    <ParamCard label="Decay Lambda" defaultVal="0.01" range="0.005–0.05" method="Residual age weighting" />
+                    <ParamCard label="SPC Window" defaultVal="30 obs" range="N/A" method="Rolling control chart baseline" />
+                    <ParamCard label="Control Bands" defaultVal="3σ" range="N/A" method="Standard SPC practice" />
+                    <ParamCard label="DM Test Threshold" defaultVal="p < 0.05" range="N/A" method="Two-sided significance for promotion" />
                     <ParamCard label="Confidence Cap" defaultVal="95" range="N/A" method="Military/humanitarian doctrine" />
                   </div>
                   <Separator />
                   <div className="text-sm text-muted-foreground">
                     <AlertTriangle className="inline h-4 w-4 mr-1" />
-                    Domain weights are currently expert-assigned, not empirically calibrated.
-                    Future work: sensitivity analysis and cross-validation.
+                    Domain weights are currently expert-assigned. Kill-switch thresholds are fixed at RMSE 3σ / Hit80 60% / Break rate 60%.
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Forecast Accuracy */}
           <TabsContent value="accuracy">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Forecast Accuracy Dashboard
+                  <BarChart3 className="h-5 w-5" />Forecast Accuracy Dashboard
                 </CardTitle>
                 <Badge variant="secondary">Requires 12 months of live tracking</Badge>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-12 space-y-4">
                   <TrendingUp className="h-16 w-16 mx-auto text-muted-foreground/30" />
-                  <h3 className="text-lg font-semibold">Accuracy Tracking Not Yet Available</h3>
+                  <h3 className="text-lg font-semibold">Accuracy Tracking — Accumulating</h3>
                   <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Forecast accuracy requires comparing historical predictions against
-                    observed outcomes over a minimum 12-month tracking period. This
-                    dashboard will populate automatically as live data accumulates.
+                    Forecast accuracy requires comparing historical predictions against outcomes over a minimum 12-month period.
+                    Residual distributions, SPC charts, and calibration curves will populate automatically.
                   </p>
-                  <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto pt-4">
+                  <div className="grid grid-cols-4 gap-4 max-w-md mx-auto pt-4">
                     <MetricPlaceholder label="MAE" />
                     <MetricPlaceholder label="RMSE" />
                     <MetricPlaceholder label="MAPE" />
+                    <MetricPlaceholder label="Hit80" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Data Sources */}
           <TabsContent value="sources">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Database className="h-5 w-5" />
-                  Data Source Transparency
+                  <Database className="h-5 w-5" />Data Source Transparency
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -234,9 +272,7 @@ const MethodologyPage = () => {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{src.domain}</Badge>
                         <Badge variant={src.status === 'active' ? 'default' : 'secondary'}>
-                          {src.status === 'active' ? (
-                            <><CheckCircle2 className="h-3 w-3 mr-1" />Active</>
-                          ) : 'Pending'}
+                          {src.status === 'active' ? <><CheckCircle2 className="h-3 w-3 mr-1" />Active</> : 'Pending'}
                         </Badge>
                       </div>
                     </div>
@@ -246,51 +282,39 @@ const MethodologyPage = () => {
             </Card>
           </TabsContent>
 
-          {/* Model Registry */}
           <TabsContent value="registry">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Versioned Model Registry
+                  <Shield className="h-5 w-5" />Versioned Model Registry
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <RegistryEntry
-                    version="V2.1"
-                    date="2026-02-15"
-                    changes={[
-                      "Downside/upside volatility separation",
-                      "80%/95% forecast uncertainty bands",
-                      "Signal prioritization engine",
-                      "Feature flag runtime system",
-                    ]}
-                    status="current"
-                  />
-                  <RegistryEntry
-                    version="V2.0"
-                    date="2026-02-14"
-                    changes={[
-                      "Holt double-exponential smoothing",
-                      "CUSUM structural break detection",
-                      "t-statistic momentum filtering",
-                      "Data gap interpolation",
-                      "Grid-search parameter calibration",
-                    ]}
-                    status="superseded"
-                  />
-                  <RegistryEntry
-                    version="V1.0"
-                    date="2026-02-01"
-                    changes={[
-                      "Simple exponential smoothing",
-                      "CV-based volatility",
-                      "Threshold-based structural breaks",
-                      "Fixed hyperparameters",
-                    ]}
-                    status="deprecated"
-                  />
+                  <RegistryEntry version="V2.1" date="2026-02-15" status="current" changes={[
+                    "SPC/EWMA drift detection with 3σ control bands",
+                    "Automatic kill-switch on process out-of-control",
+                    "Platt scaling calibration with locked profiles",
+                    "Champion-Challenger promotion via Diebold-Mariano test",
+                    "Decay-weighted horizon-specific residual distributions",
+                    "Regime switching on structural break",
+                    "Graph-based cross-domain fragility propagation",
+                    "SHA-256 cryptographic audit hashing of residual datasets",
+                    "Formal versioned methodology whitepaper export",
+                  ]} />
+                  <RegistryEntry version="V2.0" date="2026-02-14" status="superseded" changes={[
+                    "Holt double-exponential smoothing",
+                    "CUSUM structural break detection",
+                    "t-statistic momentum filtering",
+                    "Data gap interpolation",
+                    "Grid-search parameter calibration",
+                  ]} />
+                  <RegistryEntry version="V1.0" date="2026-02-01" status="deprecated" changes={[
+                    "Simple exponential smoothing",
+                    "CV-based volatility",
+                    "Threshold-based structural breaks",
+                    "Fixed hyperparameters",
+                  ]} />
                 </div>
               </CardContent>
             </Card>
@@ -300,14 +324,6 @@ const MethodologyPage = () => {
     </AICISLayout>
   );
 };
-
-// Helper components
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div>
-    <h3 className="text-base font-semibold mb-2">{title}</h3>
-    <div className="text-sm text-muted-foreground">{children}</div>
-  </div>
-);
 
 const ParamCard = ({ label, defaultVal, range, method }: {
   label: string; defaultVal: string; range: string; method: string;

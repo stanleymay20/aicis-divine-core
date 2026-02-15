@@ -1091,7 +1091,207 @@ export function empiricalForecastBands(
   };
 }
 
-// ─── 17. Drift Detection Utilities ──────────────────────────────────
+// ─── 17. Statistical Process Control (SPC) ─────────────────────────
+
+export interface SPCObservation {
+  metricName: string;
+  observedValue: number;
+  ewmaValue: number;
+  rollingMean: number;
+  rollingStd: number;
+  upperControl: number;
+  lowerControl: number;
+  outOfControl: boolean;
+}
+
+/**
+ * EWMA (Exponentially Weighted Moving Average) control chart.
+ * λ = smoothing factor (0.2 typical for drift detection).
+ * Returns SPC observation with 3σ control bands.
+ */
+export function computeEWMA(
+  currentValue: number,
+  previousEWMA: number,
+  lambda: number = 0.2,
+): number {
+  return lambda * currentValue + (1 - lambda) * previousEWMA;
+}
+
+/**
+ * Full SPC evaluation for a metric observation against a rolling window.
+ */
+export function evaluateSPC(
+  metricName: string,
+  currentValue: number,
+  history: number[],
+  lambda: number = 0.2,
+): SPCObservation {
+  const n = history.length;
+  if (n < 5) {
+    return {
+      metricName, observedValue: currentValue, ewmaValue: currentValue,
+      rollingMean: currentValue, rollingStd: 0, upperControl: currentValue,
+      lowerControl: currentValue, outOfControl: false,
+    };
+  }
+
+  // Rolling mean and std from window
+  const rollingMean = history.reduce((s, v) => s + v, 0) / n;
+  const variance = history.reduce((s, v) => s + (v - rollingMean) ** 2, 0) / n;
+  const rollingStd = Math.sqrt(variance);
+
+  // EWMA
+  const prevEWMA = history.length > 0 ? history[history.length - 1] : currentValue;
+  const ewmaValue = computeEWMA(currentValue, prevEWMA, lambda);
+
+  // 3σ control bands
+  const upperControl = rollingMean + 3 * rollingStd;
+  const lowerControl = rollingMean - 3 * rollingStd;
+
+  const outOfControl = currentValue > upperControl || currentValue < lowerControl;
+
+  return {
+    metricName, observedValue: currentValue, ewmaValue,
+    rollingMean: Math.round(rollingMean * 1000) / 1000,
+    rollingStd: Math.round(rollingStd * 1000) / 1000,
+    upperControl: Math.round(upperControl * 1000) / 1000,
+    lowerControl: Math.round(lowerControl * 1000) / 1000,
+    outOfControl,
+  };
+}
+
+// ─── 18. Decay-Weighted Residual Distribution ───────────────────────
+
+/**
+ * Compute exponentially decay-weighted quantiles from residuals.
+ * More recent residuals contribute more to the distribution.
+ * @param residuals Array of { value, ageDays }
+ * @param lambda Decay rate (higher = faster decay of old data)
+ */
+export function computeDecayWeightedDistribution(
+  residuals: { value: number; ageDays: number }[],
+  lambda: number = 0.01,
+): ResidualDistribution | null {
+  if (residuals.length < 15) return null;
+
+  // Compute weights
+  const weighted = residuals.map(r => ({
+    value: r.value,
+    weight: Math.exp(-lambda * r.ageDays),
+  }));
+
+  // Sort by value
+  weighted.sort((a, b) => a.value - b.value);
+
+  const totalWeight = weighted.reduce((s, w) => s + w.weight, 0);
+  const weightedMean = weighted.reduce((s, w) => s + w.value * w.weight, 0) / totalWeight;
+  const weightedVariance = weighted.reduce((s, w) => s + w.weight * (w.value - weightedMean) ** 2, 0) / totalWeight;
+
+  // Weighted quantile function
+  const weightedQuantile = (p: number): number => {
+    let cumWeight = 0;
+    const target = p * totalWeight;
+    for (const w of weighted) {
+      cumWeight += w.weight;
+      if (cumWeight >= target) return w.value;
+    }
+    return weighted[weighted.length - 1].value;
+  };
+
+  return {
+    quantile_10: weightedQuantile(0.10),
+    quantile_20: weightedQuantile(0.20),
+    quantile_80: weightedQuantile(0.80),
+    quantile_90: weightedQuantile(0.90),
+    quantile_025: weightedQuantile(0.025),
+    quantile_975: weightedQuantile(0.975),
+    mean: weightedMean,
+    stdDev: Math.sqrt(weightedVariance),
+    n: residuals.length,
+  };
+}
+
+// ─── 19. Champion-Challenger Promotion (Diebold-Mariano) ────────────
+
+/**
+ * Diebold-Mariano test for comparing predictive accuracy of two models.
+ * Tests H0: equal predictive accuracy.
+ * Returns test statistic and approximate two-sided p-value.
+ */
+export function dieboldMarianoTest(
+  errorsA: number[],
+  errorsB: number[],
+): { testStatistic: number; pValue: number; aIsBetter: boolean } {
+  const n = Math.min(errorsA.length, errorsB.length);
+  if (n < 10) return { testStatistic: 0, pValue: 1, aIsBetter: false };
+
+  // Loss differential: d_t = e_A^2 - e_B^2
+  const d: number[] = [];
+  for (let i = 0; i < n; i++) {
+    d.push(errorsA[i] ** 2 - errorsB[i] ** 2);
+  }
+
+  const dMean = d.reduce((s, v) => s + v, 0) / n;
+  const dVar = d.reduce((s, v) => s + (v - dMean) ** 2, 0) / (n - 1);
+  const se = Math.sqrt(dVar / n);
+
+  if (se === 0) return { testStatistic: 0, pValue: 1, aIsBetter: false };
+
+  const testStatistic = dMean / se;
+
+  // Approximate p-value using normal CDF approximation
+  const absT = Math.abs(testStatistic);
+  const pValue = 2 * (1 - normalCDF(absT));
+
+  return {
+    testStatistic: Math.round(testStatistic * 100) / 100,
+    pValue: Math.round(pValue * 10000) / 10000,
+    aIsBetter: dMean < 0, // negative d means A has smaller squared errors
+  };
+}
+
+// Normal CDF approximation (Abramowitz & Stegun)
+function normalCDF(x: number): number {
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + p * x);
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return 0.5 * (1 + sign * y);
+}
+
+// ─── 20. Kill-Switch Logic ──────────────────────────────────────────
+
+export interface KillSwitchConditions {
+  rmseOutOfControl: boolean;
+  hit80Below60: boolean;
+  breakRateAbove60: boolean;
+  calibrationDivergenceAbove25: boolean;
+}
+
+/**
+ * Evaluate kill-switch conditions. If ANY are true, system should freeze.
+ */
+export function evaluateKillSwitch(conditions: KillSwitchConditions): {
+  shouldFreeze: boolean;
+  reasons: string[];
+  forcedConfidence: number;
+} {
+  const reasons: string[] = [];
+  if (conditions.rmseOutOfControl) reasons.push("RMSE beyond 3σ control band");
+  if (conditions.hit80Below60) reasons.push("Hit80 below 60%");
+  if (conditions.breakRateAbove60) reasons.push("Structural break rate >60%");
+  if (conditions.calibrationDivergenceAbove25) reasons.push("Calibration divergence >25%");
+
+  return {
+    shouldFreeze: reasons.length > 0,
+    reasons,
+    forcedConfidence: reasons.length > 0 ? 10 : -1,
+  };
+}
+
+// ─── Legacy Drift Detection (kept for backward compat) ──────────────
 
 export interface DriftCheckResult {
   drifted: boolean;
@@ -1102,10 +1302,6 @@ export interface DriftCheckResult {
   severity: 'info' | 'warning' | 'critical';
 }
 
-/**
- * Check if a metric has drifted beyond threshold.
- * Used by monitoring edge function.
- */
 export function checkMetricDrift(
   metricName: string,
   currentValue: number,
@@ -1121,8 +1317,7 @@ export function checkMetricDrift(
   return {
     drifted: deviationPct >= warningThresholdPct,
     alertType: metricName,
-    currentValue,
-    baselineValue,
+    currentValue, baselineValue,
     deviationPct: Math.round(deviationPct * 10) / 10,
     severity,
   };

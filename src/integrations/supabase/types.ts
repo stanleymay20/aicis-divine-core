@@ -691,6 +691,39 @@ export type Database = {
           },
         ]
       }
+      calibration_audit_hashes: {
+        Row: {
+          calibration_profile_id: string | null
+          computed_at: string
+          hash_algorithm: string
+          id: string
+          metadata: Json | null
+          model_version: string
+          residual_count: number
+          residual_sample_hash: string
+        }
+        Insert: {
+          calibration_profile_id?: string | null
+          computed_at?: string
+          hash_algorithm?: string
+          id?: string
+          metadata?: Json | null
+          model_version: string
+          residual_count: number
+          residual_sample_hash: string
+        }
+        Update: {
+          calibration_profile_id?: string | null
+          computed_at?: string
+          hash_algorithm?: string
+          id?: string
+          metadata?: Json | null
+          model_version?: string
+          residual_count?: number
+          residual_sample_hash?: string
+        }
+        Relationships: []
+      }
       calibration_metrics: {
         Row: {
           calibration_params: Json | null
@@ -2593,6 +2626,7 @@ export type Database = {
       forecast_residuals: {
         Row: {
           created_at: string
+          decay_weight: number | null
           domain: string
           horizon_days: number
           id: string
@@ -2600,10 +2634,12 @@ export type Database = {
           model_version: string
           predicted_value: number
           realized_value: number
+          regime_flag: string | null
           residual: number
         }
         Insert: {
           created_at?: string
+          decay_weight?: number | null
           domain: string
           horizon_days?: number
           id?: string
@@ -2611,10 +2647,12 @@ export type Database = {
           model_version: string
           predicted_value: number
           realized_value: number
+          regime_flag?: string | null
           residual: number
         }
         Update: {
           created_at?: string
+          decay_weight?: number | null
           domain?: string
           horizon_days?: number
           id?: string
@@ -2622,6 +2660,7 @@ export type Database = {
           model_version?: string
           predicted_value?: number
           realized_value?: number
+          regime_flag?: string | null
           residual?: number
         }
         Relationships: []
@@ -3233,6 +3272,33 @@ export type Database = {
         }
         Relationships: []
       }
+      methodology_documents: {
+        Row: {
+          content: Json
+          document_version: number
+          generated_at: string
+          hash: string | null
+          id: string
+          model_version: string
+        }
+        Insert: {
+          content: Json
+          document_version?: number
+          generated_at?: string
+          hash?: string | null
+          id?: string
+          model_version: string
+        }
+        Update: {
+          content?: Json
+          document_version?: number
+          generated_at?: string
+          hash?: string | null
+          id?: string
+          model_version?: string
+        }
+        Relationships: []
+      }
       metrics: {
         Row: {
           confidence: number | null
@@ -3338,8 +3404,12 @@ export type Database = {
           fragility_model_version: string
           git_commit_hash: string | null
           id: string
+          model_status: string
           model_version: string
           notes: string | null
+          promoted_at: string | null
+          promotion_p_value: number | null
+          promotion_test_statistic: number | null
           release_date: string
           status: string
           structural_break_method: string
@@ -3352,8 +3422,12 @@ export type Database = {
           fragility_model_version?: string
           git_commit_hash?: string | null
           id?: string
+          model_status?: string
           model_version: string
           notes?: string | null
+          promoted_at?: string | null
+          promotion_p_value?: number | null
+          promotion_test_statistic?: number | null
           release_date?: string
           status?: string
           structural_break_method?: string
@@ -3366,8 +3440,12 @@ export type Database = {
           fragility_model_version?: string
           git_commit_hash?: string | null
           id?: string
+          model_status?: string
           model_version?: string
           notes?: string | null
+          promoted_at?: string | null
+          promotion_p_value?: number | null
+          promotion_test_statistic?: number | null
           release_date?: string
           status?: string
           structural_break_method?: string
@@ -4556,6 +4634,48 @@ export type Database = {
           reference_links?: Json | null
           severity?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      spc_control_observations: {
+        Row: {
+          ewma_value: number | null
+          id: string
+          lower_control: number | null
+          metric_name: string
+          model_version: string
+          observed_at: string
+          observed_value: number
+          out_of_control: boolean | null
+          rolling_mean: number | null
+          rolling_std: number | null
+          upper_control: number | null
+        }
+        Insert: {
+          ewma_value?: number | null
+          id?: string
+          lower_control?: number | null
+          metric_name: string
+          model_version?: string
+          observed_at?: string
+          observed_value: number
+          out_of_control?: boolean | null
+          rolling_mean?: number | null
+          rolling_std?: number | null
+          upper_control?: number | null
+        }
+        Update: {
+          ewma_value?: number | null
+          id?: string
+          lower_control?: number | null
+          metric_name?: string
+          model_version?: string
+          observed_at?: string
+          observed_value?: number
+          out_of_control?: boolean | null
+          rolling_mean?: number | null
+          rolling_std?: number | null
+          upper_control?: number | null
         }
         Relationships: []
       }

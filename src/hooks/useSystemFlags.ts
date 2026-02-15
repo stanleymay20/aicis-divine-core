@@ -11,6 +11,8 @@ interface SystemFlags {
   enable_fragility_model: boolean;
   enable_fan_charts: boolean;
   enable_signal_prioritization: boolean;
+  freeze_forecasts: boolean;
+  spc_active: boolean;
   [key: string]: boolean;
 }
 
@@ -20,6 +22,8 @@ const DEFAULT_FLAGS: SystemFlags = {
   enable_fragility_model: true,
   enable_fan_charts: true,
   enable_signal_prioritization: true,
+  freeze_forecasts: false,
+  spc_active: true,
 };
 
 export function useSystemFlags() {
