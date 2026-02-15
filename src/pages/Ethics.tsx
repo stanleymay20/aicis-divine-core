@@ -13,9 +13,10 @@ import {
   CheckCircle,
   XCircle,
   Download,
-  ExternalLink
+  ExternalLink,
+  Scale
 } from "lucide-react";
-import aicisLogo from "@/assets/aicis-logo.png";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 
 /**
  * AICIS Ethics & Non-Surveillance Guarantee
@@ -139,12 +140,11 @@ export default function Ethics() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+    <AICISLayout>
+      <div className="p-6 container max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={aicisLogo} alt="AICIS" className="h-10 w-10" />
+            <Scale className="h-8 w-8 text-primary" />
             <div>
               <h1 className="font-orbitron font-bold text-lg">AICIS Ethics</h1>
               <p className="text-xs text-muted-foreground">Non-Surveillance Guarantee</p>
@@ -160,9 +160,7 @@ export default function Ethics() {
             Download Manifest
           </Button>
         </div>
-      </header>
 
-      <main className="container max-w-5xl mx-auto px-4 py-8 space-y-8">
         {/* Hero Section */}
         <div className="text-center space-y-4 py-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/30">
@@ -362,7 +360,7 @@ export default function Ethics() {
             Last updated: {new Date().toLocaleDateString()}
           </p>
         </div>
-      </main>
-    </div>
+      </div>
+    </AICISLayout>
   );
 }

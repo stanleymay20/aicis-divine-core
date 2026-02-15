@@ -12,6 +12,7 @@ import {
   Network, Globe, Lock, ArrowLeft, Server, Shield,
   CheckCircle, XCircle, RefreshCw, Database, Zap, Users
 } from "lucide-react";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 
 const FederationHub = () => {
   const navigate = useNavigate();
@@ -105,29 +106,20 @@ const FederationHub = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Network className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-orbitron font-bold">Federation Hub</h1>
-                <p className="text-xs text-muted-foreground">Distributed Intelligence Network</p>
-              </div>
+    <AICISLayout>
+      <div className="p-6 container mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <Network className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-xl font-orbitron font-bold">Federation Hub</h1>
+              <p className="text-xs text-muted-foreground">Distributed Intelligence Network</p>
             </div>
           </div>
-          <Badge variant="default" className="font-mono">
-            {peers?.length || 0} Peers Connected
-          </Badge>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="peers">
           <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="peers">
@@ -367,8 +359,8 @@ const FederationHub = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+      </div>
+    </AICISLayout>
   );
 };
 

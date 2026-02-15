@@ -17,6 +17,7 @@ import {
   Server, Brain, Zap
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -175,12 +176,11 @@ const AdminDashboard = () => {
   const totalDivisions = systemHealth?.length || 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <AICISLayout>
+      <div className="p-6 container mx-auto space-y-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2">
@@ -198,9 +198,8 @@ const AdminDashboard = () => {
             <Badge variant="default">Administrator</Badge>
           </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-6">
+
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="overview">
@@ -537,8 +536,8 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+      </div>
+    </AICISLayout>
   );
 };
 

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 import {
   Shield, Download, Trash2, ArrowLeft, FileText,
   Lock, CheckCircle, Clock, AlertTriangle, Eye,
@@ -123,26 +124,20 @@ const CompliancePortal = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Shield className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-orbitron font-bold">Compliance Portal</h1>
-                <p className="text-xs text-muted-foreground">GDPR & Data Rights Management</p>
-              </div>
+    <AICISLayout>
+      <div className="p-6 container mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <Shield className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-xl font-orbitron font-bold">Compliance Portal</h1>
+              <p className="text-xs text-muted-foreground">GDPR & Data Rights Management</p>
             </div>
           </div>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="rights">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="rights">
@@ -428,8 +423,8 @@ const CompliancePortal = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+      </div>
+    </AICISLayout>
   );
 };
 
