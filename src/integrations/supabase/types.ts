@@ -138,6 +138,7 @@ export type Database = {
           bias_score: number | null
           confidence: number | null
           created_at: string | null
+          created_by: string | null
           division_key: string
           ethical_flags: string[] | null
           explanation: Json | null
@@ -151,6 +152,7 @@ export type Database = {
           bias_score?: number | null
           confidence?: number | null
           created_at?: string | null
+          created_by?: string | null
           division_key: string
           ethical_flags?: string[] | null
           explanation?: Json | null
@@ -164,6 +166,7 @@ export type Database = {
           bias_score?: number | null
           confidence?: number | null
           created_at?: string | null
+          created_by?: string | null
           division_key?: string
           ethical_flags?: string[] | null
           explanation?: Json | null
@@ -307,6 +310,7 @@ export type Database = {
           acknowledged_by: string | null
           country: string | null
           created_at: string | null
+          created_by: string | null
           division: string
           id: string
           message: string
@@ -320,6 +324,7 @@ export type Database = {
           acknowledged_by?: string | null
           country?: string | null
           created_at?: string | null
+          created_by?: string | null
           division: string
           id?: string
           message: string
@@ -333,6 +338,7 @@ export type Database = {
           acknowledged_by?: string | null
           country?: string | null
           created_at?: string | null
+          created_by?: string | null
           division?: string
           id?: string
           message?: string
@@ -347,6 +353,7 @@ export type Database = {
           anomaly_type: string
           baseline_metrics: Json | null
           created_at: string | null
+          created_by: string | null
           description: string
           detected_at: string | null
           deviation_percentage: number | null
@@ -363,6 +370,7 @@ export type Database = {
           anomaly_type: string
           baseline_metrics?: Json | null
           created_at?: string | null
+          created_by?: string | null
           description: string
           detected_at?: string | null
           deviation_percentage?: number | null
@@ -379,6 +387,7 @@ export type Database = {
           anomaly_type?: string
           baseline_metrics?: Json | null
           created_at?: string | null
+          created_by?: string | null
           description?: string
           detected_at?: string | null
           deviation_percentage?: number | null
@@ -453,6 +462,7 @@ export type Database = {
         Row: {
           action: string
           created_at: string | null
+          created_by: string | null
           decided_at: string | null
           decided_by: string | null
           division: string
@@ -464,6 +474,7 @@ export type Database = {
         Insert: {
           action: string
           created_at?: string | null
+          created_by?: string | null
           decided_at?: string | null
           decided_by?: string | null
           division: string
@@ -475,6 +486,7 @@ export type Database = {
         Update: {
           action?: string
           created_at?: string | null
+          created_by?: string | null
           decided_at?: string | null
           decided_by?: string | null
           division?: string
@@ -865,6 +877,7 @@ export type Database = {
       crisis_events: {
         Row: {
           created_at: string | null
+          created_by: string | null
           details_md: string | null
           id: string
           kind: string
@@ -877,6 +890,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           details_md?: string | null
           id?: string
           kind: string
@@ -889,6 +903,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           details_md?: string | null
           id?: string
           kind?: string
