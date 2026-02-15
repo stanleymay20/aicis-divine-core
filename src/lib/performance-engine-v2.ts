@@ -85,7 +85,7 @@ export interface DomainModelParams {
   beta: number;
 }
 
-// ─── Domain weights ─────────────────────────────────────────────────
+// ─── Domain weights (mutable for sensitivity analysis; production should load from DB) ──
 
 const DOMAIN_WEIGHTS: Record<string, number> = {
   governance: 0.18,
@@ -101,6 +101,70 @@ const DOMAIN_WEIGHTS: Record<string, number> = {
 
 // Default model parameters (overridden by calibrated values)
 const DEFAULT_PARAMS: DomainModelParams = { alpha: 0.55, beta: 0.3 };
+
+// Current model version tag — must match model_registry
+export const CURRENT_MODEL_VERSION = "APE-V2.1";
+
+/**
+ * Load domain weights from database (domain_weights table).
+ * Falls back to hardcoded DOMAIN_WEIGHTS if DB unavailable.
+ */
+export async function loadDomainWeightsFromDB(
+  supabaseClient: any,
+  modelVersion: string = CURRENT_MODEL_VERSION,
+): Promise<Record<string, number>> {
+  try {
+    const { data, error } = await supabaseClient
+      .from("domain_weights")
+      .select("domain, weight")
+      .eq("model_version", modelVersion);
+    if (error || !data || data.length === 0) return { ...DOMAIN_WEIGHTS };
+    const weights: Record<string, number> = {};
+    for (const row of data) weights[row.domain] = Number(row.weight);
+    return weights;
+  } catch {
+    return { ...DOMAIN_WEIGHTS };
+  }
+}
+
+/**
+ * Archive a forecast snapshot to forecast_archive table (immutable).
+ * Safe to call — errors are logged but do not throw.
+ */
+export async function archiveForecastSnapshot(
+  supabaseClient: any,
+  iso3: string,
+  countryName: string,
+  domain: DomainPerformanceV2,
+  params: DomainModelParams,
+): Promise<void> {
+  try {
+    await supabaseClient.from("forecast_archive").insert({
+      iso3,
+      country_name: countryName,
+      domain: domain.domain,
+      model_version: CURRENT_MODEL_VERSION,
+      alpha: params.alpha,
+      beta: params.beta,
+      performance_index: domain.performanceIndex,
+      forecast_90d: domain.forecast90d,
+      forecast_1y: domain.forecast1y,
+      forecast_upper_80: domain.forecastUpper80,
+      forecast_lower_80: domain.forecastLower80,
+      forecast_upper_95: domain.forecastUpper95,
+      forecast_lower_95: domain.forecastLower95,
+      confidence_score: domain.confidenceScore,
+      stability_score: 0, // filled at national level
+      structural_break_flag: domain.structuralBreak,
+      structural_break_p_value: domain.structuralBreakPValue,
+      data_stale_days: domain.dataStaleDays,
+      data_quality_score: Math.max(0, 100 - domain.dataGapCount * 5 - domain.dataStaleDays * 0.5),
+      gap_interpolation_count: domain.dataGapCount,
+    });
+  } catch {
+    // Non-critical: archiving failure should not break computation
+  }
+}
 
 // ─── 1. Benchmark-anchored normalization ────────────────────────────
 

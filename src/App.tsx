@@ -29,6 +29,9 @@ import HealthDashboard from "./pages/HealthDashboard";
 import ComparePage from "./pages/ComparePage";
 import IntelligenceThread from "./pages/IntelligenceThread";
 import MethodologyPage from "./pages/MethodologyPage";
+const CalibrationDashboard = lazy(() => import("./pages/CalibrationDashboard"));
+const GovernanceLegal = lazy(() => import("./pages/GovernanceLegal"));
+const ReadinessReport = lazy(() => import("./pages/ReadinessReport"));
 
 const queryClient = new QueryClient();
 
@@ -61,6 +64,9 @@ const App = () => (
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/methodology" element={<MethodologyPage />} />
             <Route path="/enterprise-governance" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><EnterpriseGovernance /></Suspense>} />
+            <Route path="/calibration" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><CalibrationDashboard /></Suspense>} />
+            <Route path="/governance-legal" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><GovernanceLegal /></Suspense>} />
+            <Route path="/readiness-report" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><ReadinessReport /></Suspense>} />
             <Route path="/ethics" element={<Ethics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
