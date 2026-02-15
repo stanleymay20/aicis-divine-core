@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { ExecutiveEscalationPanel } from "./ExecutiveEscalationPanel";
 import { 
   AlertTriangle, 
   TrendingUp, 
@@ -332,6 +333,10 @@ export const ExecutiveIntelligenceMode = () => {
           );
         })}
       </div>
+
+
+      {/* Executive Escalation Panel */}
+      <ExecutiveEscalationPanel />
 
       {/* 72h Attention Window */}
       <Card className="border-warning/30">

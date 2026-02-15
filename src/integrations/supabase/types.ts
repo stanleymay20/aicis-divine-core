@@ -1874,6 +1874,51 @@ export type Database = {
         }
         Relationships: []
       }
+      drift_alerts: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_by: string | null
+          alert_type: string
+          baseline_value: number | null
+          created_at: string
+          current_value: number | null
+          details: Json | null
+          deviation_pct: number | null
+          id: string
+          metric_name: string | null
+          model_version: string
+          severity: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_by?: string | null
+          alert_type: string
+          baseline_value?: number | null
+          created_at?: string
+          current_value?: number | null
+          details?: Json | null
+          deviation_pct?: number | null
+          id?: string
+          metric_name?: string | null
+          model_version: string
+          severity?: string
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_by?: string | null
+          alert_type?: string
+          baseline_value?: number | null
+          created_at?: string
+          current_value?: number | null
+          details?: Json | null
+          deviation_pct?: number | null
+          id?: string
+          metric_name?: string | null
+          model_version?: string
+          severity?: string
+        }
+        Relationships: []
+      }
       economic_indicators: {
         Row: {
           country: string
@@ -2545,6 +2590,42 @@ export type Database = {
           },
         ]
       }
+      forecast_residuals: {
+        Row: {
+          created_at: string
+          domain: string
+          horizon_days: number
+          id: string
+          iso3: string | null
+          model_version: string
+          predicted_value: number
+          realized_value: number
+          residual: number
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          horizon_days?: number
+          id?: string
+          iso3?: string | null
+          model_version: string
+          predicted_value: number
+          realized_value: number
+          residual: number
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          horizon_days?: number
+          id?: string
+          iso3?: string | null
+          model_version?: string
+          predicted_value?: number
+          realized_value?: number
+          residual?: number
+        }
+        Relationships: []
+      }
       geo_catalog: {
         Row: {
           bbox: number[] | null
@@ -3205,6 +3286,50 @@ export type Database = {
           },
         ]
       }
+      model_calibration_profiles: {
+        Row: {
+          created_at: string
+          fitted_at: string
+          id: string
+          locked_until: string | null
+          model_version: string
+          platt_a: number
+          platt_b: number
+          sample_size: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          fitted_at?: string
+          id?: string
+          locked_until?: string | null
+          model_version: string
+          platt_a?: number
+          platt_b?: number
+          sample_size?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          fitted_at?: string
+          id?: string
+          locked_until?: string | null
+          model_version?: string
+          platt_a?: number
+          platt_b?: number
+          sample_size?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_calibration_profiles_model_version_fkey"
+            columns: ["model_version"]
+            isOneToOne: false
+            referencedRelation: "model_registry"
+            referencedColumns: ["model_version"]
+          },
+        ]
+      }
       model_registry: {
         Row: {
           alpha_default: number
@@ -3410,6 +3535,42 @@ export type Database = {
           priority?: number | null
           started_at?: string | null
           status?: string | null
+        }
+        Relationships: []
+      }
+      operational_telemetry: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          execution_time_ms: number | null
+          function_name: string
+          id: string
+          items_processed: number | null
+          metadata: Json | null
+          retry_count: number | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          function_name: string
+          id?: string
+          items_processed?: number | null
+          metadata?: Json | null
+          retry_count?: number | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          function_name?: string
+          id?: string
+          items_processed?: number | null
+          metadata?: Json | null
+          retry_count?: number | null
+          status?: string
         }
         Relationships: []
       }

@@ -33,6 +33,7 @@ const CalibrationDashboard = lazy(() => import("./pages/CalibrationDashboard"));
 const GovernanceLegal = lazy(() => import("./pages/GovernanceLegal"));
 const ReadinessReport = lazy(() => import("./pages/ReadinessReport"));
 const CompareModels = lazy(() => import("./pages/CompareModels"));
+const OperationalDashboard = lazy(() => import("./pages/OperationalDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/governance-legal" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><GovernanceLegal /></Suspense>} />
             <Route path="/readiness-report" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><ReadinessReport /></Suspense>} />
             <Route path="/compare-models" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><CompareModels /></Suspense>} />
+            <Route path="/operations" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><OperationalDashboard /></Suspense>} />
             <Route path="/ethics" element={<Ethics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
