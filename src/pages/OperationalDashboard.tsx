@@ -4,12 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AICISLayout } from "@/components/aicis/AICISLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Activity, AlertTriangle, CheckCircle2, Clock, Zap, BarChart3 } from "lucide-react";
+import { Loader2, Activity, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  ReferenceLine, Area, ComposedChart,
 } from "recharts";
 
 const OperationalDashboard = () => {
@@ -20,7 +21,6 @@ const OperationalDashboard = () => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
 
-  // Telemetry data
   const { data: telemetry = [] } = useQuery({
     queryKey: ["op-telemetry"],
     queryFn: async () => {
@@ -34,7 +34,6 @@ const OperationalDashboard = () => {
     enabled: !!user,
   });
 
-  // Drift alerts
   const { data: driftAlerts = [] } = useQuery({
     queryKey: ["op-drift-alerts"],
     queryFn: async () => {
@@ -48,7 +47,6 @@ const OperationalDashboard = () => {
     enabled: !!user,
   });
 
-  // Forecast job stats
   const { data: jobStats } = useQuery({
     queryKey: ["op-job-stats"],
     queryFn: async () => {
@@ -67,10 +65,23 @@ const OperationalDashboard = () => {
     enabled: !!user,
   });
 
+  // SPC control chart data
+  const { data: spcData = [] } = useQuery({
+    queryKey: ["op-spc-observations"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("spc_control_observations")
+        .select("metric_name, observed_value, ewma_value, rolling_mean, rolling_std, upper_control, lower_control, out_of_control, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   if (authLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!user) return null;
 
-  // Compute aggregate stats
   const successCount = telemetry.filter((t: any) => t.status === "success").length;
   const failCount = telemetry.filter((t: any) => t.status !== "success").length;
   const successRate = telemetry.length > 0 ? Math.round((successCount / telemetry.length) * 100) : 0;
@@ -79,11 +90,9 @@ const OperationalDashboard = () => {
     : 0;
   const totalRetries = telemetry.reduce((s: number, t: any) => s + (t.retry_count || 0), 0);
 
-  // P99 latency
   const latencies = telemetry.map((t: any) => t.execution_time_ms || 0).sort((a: number, b: number) => a - b);
   const p99 = latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.99)] : 0;
 
-  // Latency chart data (last 20 entries)
   const chartData = telemetry.slice(0, 20).reverse().map((t: any) => ({
     name: new Date(t.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     latency: t.execution_time_ms || 0,
@@ -92,6 +101,26 @@ const OperationalDashboard = () => {
 
   const unackAlerts = driftAlerts.filter((a: any) => !a.acknowledged);
 
+  // Build SPC chart per metric
+  const spcByMetric: Record<string, any[]> = {};
+  for (const obs of spcData) {
+    const mn = (obs as any).metric_name;
+    if (!spcByMetric[mn]) spcByMetric[mn] = [];
+    spcByMetric[mn].push({
+      time: new Date((obs as any).created_at).toLocaleDateString([], { month: "short", day: "numeric" }),
+      value: (obs as any).observed_value,
+      ewma: (obs as any).ewma_value,
+      mean: (obs as any).rolling_mean,
+      ucl: (obs as any).upper_control,
+      lcl: (obs as any).lower_control,
+      ooc: (obs as any).out_of_control,
+    });
+  }
+  // Reverse to chronological
+  for (const key of Object.keys(spcByMetric)) {
+    spcByMetric[key].reverse();
+  }
+
   return (
     <AICISLayout>
       <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -99,7 +128,7 @@ const OperationalDashboard = () => {
           <Activity className="h-7 w-7 text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Operational Observability</h1>
-            <p className="text-sm text-muted-foreground">Runtime telemetry, drift alerts, job health</p>
+            <p className="text-sm text-muted-foreground">Runtime telemetry, SPC control charts, drift alerts, job health</p>
           </div>
         </div>
 
@@ -141,6 +170,68 @@ const OperationalDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* SPC Control Charts */}
+        {Object.keys(spcByMetric).length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              SPC Control Charts
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(spcByMetric).map(([metric, data]) => (
+                <Card key={metric}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      {metric.replace(/_/g, " ").toUpperCase()}
+                      {data.some((d: any) => d.ooc) && (
+                        <Badge variant="destructive" className="text-[9px]">OUT OF CONTROL</Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <ComposedChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="time" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" />
+                        <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" domain={['auto', 'auto']} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                          labelStyle={{ color: "hsl(var(--foreground))" }}
+                        />
+                        {/* Control band fill */}
+                        <Area type="monotone" dataKey="ucl" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.05} />
+                        <Area type="monotone" dataKey="lcl" stroke="none" fill="hsl(var(--destructive))" fillOpacity={0.05} />
+                        {/* Reference lines */}
+                        {data.length > 0 && (
+                          <>
+                            <ReferenceLine y={data[data.length - 1]?.ucl} stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={1} />
+                            <ReferenceLine y={data[data.length - 1]?.lcl} stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={1} />
+                            <ReferenceLine y={data[data.length - 1]?.mean} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeWidth={1} />
+                          </>
+                        )}
+                        <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={(props: any) => {
+                          const { cx, cy, payload } = props;
+                          if (payload.ooc) {
+                            return <circle cx={cx} cy={cy} r={4} fill="hsl(var(--destructive))" stroke="hsl(var(--destructive))" />;
+                          }
+                          return <circle cx={cx} cy={cy} r={2} fill="hsl(var(--primary))" />;
+                        }} />
+                        <Line type="monotone" dataKey="ewma" stroke="hsl(var(--accent-foreground))" strokeWidth={1} strokeDasharray="4 2" dot={false} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                    <div className="flex gap-4 text-[9px] text-muted-foreground mt-1 justify-center">
+                      <span>━ Observed</span>
+                      <span>╌ EWMA</span>
+                      <span className="text-destructive">┅ 3σ Bands</span>
+                      <span>┅ Mean</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Latency Chart */}
         <Card>
