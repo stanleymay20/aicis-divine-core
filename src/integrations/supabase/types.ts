@@ -691,6 +691,50 @@ export type Database = {
           },
         ]
       }
+      calibration_metrics: {
+        Row: {
+          computed_at: string
+          domain: string | null
+          id: string
+          metric_name: string
+          metric_value: number
+          model_version: string
+          sample_size: number
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          computed_at?: string
+          domain?: string | null
+          id?: string
+          metric_name: string
+          metric_value: number
+          model_version: string
+          sample_size?: number
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          computed_at?: string
+          domain?: string | null
+          id?: string
+          metric_name?: string
+          metric_value?: number
+          model_version?: string
+          sample_size?: number
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calibration_metrics_model_version_fkey"
+            columns: ["model_version"]
+            isOneToOne: false
+            referencedRelation: "model_registry"
+            referencedColumns: ["model_version"]
+          },
+        ]
+      }
       command_history: {
         Row: {
           command: string
@@ -1720,6 +1764,41 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_weights: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          model_version: string
+          rationale: string | null
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          model_version: string
+          rationale?: string | null
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          model_version?: string
+          rationale?: string | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_weights_model_version_fkey"
+            columns: ["model_version"]
+            isOneToOne: false
+            referencedRelation: "model_registry"
+            referencedColumns: ["model_version"]
+          },
+        ]
+      }
       dpia_logs: {
         Row: {
           approved: boolean | null
@@ -2236,6 +2315,139 @@ export type Database = {
           yield_index?: number
         }
         Relationships: []
+      }
+      forecast_archive: {
+        Row: {
+          alpha: number | null
+          beta: number | null
+          confidence_score: number | null
+          country_name: string
+          created_at: string
+          created_by: string | null
+          data_quality_score: number | null
+          data_stale_days: number | null
+          domain: string
+          forecast_1y: number | null
+          forecast_90d: number | null
+          forecast_lower_80: number | null
+          forecast_lower_95: number | null
+          forecast_upper_80: number | null
+          forecast_upper_95: number | null
+          gap_interpolation_count: number | null
+          id: string
+          iso3: string
+          model_version: string
+          performance_index: number | null
+          stability_score: number | null
+          structural_break_flag: boolean | null
+          structural_break_p_value: number | null
+        }
+        Insert: {
+          alpha?: number | null
+          beta?: number | null
+          confidence_score?: number | null
+          country_name: string
+          created_at?: string
+          created_by?: string | null
+          data_quality_score?: number | null
+          data_stale_days?: number | null
+          domain: string
+          forecast_1y?: number | null
+          forecast_90d?: number | null
+          forecast_lower_80?: number | null
+          forecast_lower_95?: number | null
+          forecast_upper_80?: number | null
+          forecast_upper_95?: number | null
+          gap_interpolation_count?: number | null
+          id?: string
+          iso3: string
+          model_version: string
+          performance_index?: number | null
+          stability_score?: number | null
+          structural_break_flag?: boolean | null
+          structural_break_p_value?: number | null
+        }
+        Update: {
+          alpha?: number | null
+          beta?: number | null
+          confidence_score?: number | null
+          country_name?: string
+          created_at?: string
+          created_by?: string | null
+          data_quality_score?: number | null
+          data_stale_days?: number | null
+          domain?: string
+          forecast_1y?: number | null
+          forecast_90d?: number | null
+          forecast_lower_80?: number | null
+          forecast_lower_95?: number | null
+          forecast_upper_80?: number | null
+          forecast_upper_95?: number | null
+          gap_interpolation_count?: number | null
+          id?: string
+          iso3?: string
+          model_version?: string
+          performance_index?: number | null
+          stability_score?: number | null
+          structural_break_flag?: boolean | null
+          structural_break_p_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_archive_model_version_fkey"
+            columns: ["model_version"]
+            isOneToOne: false
+            referencedRelation: "model_registry"
+            referencedColumns: ["model_version"]
+          },
+        ]
+      }
+      forecast_outcomes: {
+        Row: {
+          absolute_error: number | null
+          bias: number | null
+          evaluated_at: string
+          forecast_archive_id: string
+          id: string
+          inside_80_band: boolean | null
+          inside_95_band: boolean | null
+          realized_date: string | null
+          realized_value: number | null
+          squared_error: number | null
+        }
+        Insert: {
+          absolute_error?: number | null
+          bias?: number | null
+          evaluated_at?: string
+          forecast_archive_id: string
+          id?: string
+          inside_80_band?: boolean | null
+          inside_95_band?: boolean | null
+          realized_date?: string | null
+          realized_value?: number | null
+          squared_error?: number | null
+        }
+        Update: {
+          absolute_error?: number | null
+          bias?: number | null
+          evaluated_at?: string
+          forecast_archive_id?: string
+          id?: string
+          inside_80_band?: boolean | null
+          inside_95_band?: boolean | null
+          realized_date?: string | null
+          realized_value?: number | null
+          squared_error?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_outcomes_forecast_archive_id_fkey"
+            columns: ["forecast_archive_id"]
+            isOneToOne: true
+            referencedRelation: "forecast_archive"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       geo_catalog: {
         Row: {
@@ -2896,6 +3108,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      model_registry: {
+        Row: {
+          alpha_default: number
+          beta_default: number
+          created_at: string
+          fragility_model_version: string
+          git_commit_hash: string | null
+          id: string
+          model_version: string
+          notes: string | null
+          release_date: string
+          status: string
+          structural_break_method: string
+          weight_vector_hash: string | null
+        }
+        Insert: {
+          alpha_default?: number
+          beta_default?: number
+          created_at?: string
+          fragility_model_version?: string
+          git_commit_hash?: string | null
+          id?: string
+          model_version: string
+          notes?: string | null
+          release_date?: string
+          status?: string
+          structural_break_method?: string
+          weight_vector_hash?: string | null
+        }
+        Update: {
+          alpha_default?: number
+          beta_default?: number
+          created_at?: string
+          fragility_model_version?: string
+          git_commit_hash?: string | null
+          id?: string
+          model_version?: string
+          notes?: string | null
+          release_date?: string
+          status?: string
+          structural_break_method?: string
+          weight_vector_hash?: string | null
+        }
+        Relationships: []
       }
       node_audit_trail: {
         Row: {
