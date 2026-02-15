@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, structuredLog, jsonResponse, errorResponse } from "../_shared/resilience.ts";
 
 const FN = "monitor-drift";
+const EWMA_LAMBDA = 0.2;
+const SPC_WINDOW = 30;
 
 serve(async (req) => {
   const cors = handleCors(req);
@@ -15,80 +17,106 @@ serve(async (req) => {
   );
 
   try {
-    structuredLog("info", FN, "Starting drift monitoring");
+    structuredLog("info", FN, "Starting SPC-based drift monitoring");
 
-    // 1. Fetch latest and previous calibration metrics
+    // 1. Fetch calibration metrics history (rolling window)
     const { data: metrics } = await supabase
       .from("calibration_metrics")
       .select("metric_name, metric_value, computed_at")
       .order("computed_at", { ascending: false })
-      .limit(50);
+      .limit(200);
 
     if (!metrics || metrics.length === 0) {
       return jsonResponse({ success: true, message: "No metrics to monitor" });
     }
 
-    // Group by metric_name, get latest vs previous
-    const byMetric: Record<string, { current: number; previous: number | null; computedAt: string }> = {};
+    // Group by metric_name with history
+    const byMetric: Record<string, number[]> = {};
+    const latestValues: Record<string, number> = {};
     for (const m of metrics) {
       if (!byMetric[m.metric_name]) {
-        byMetric[m.metric_name] = { current: m.metric_value, previous: null, computedAt: m.computed_at };
-      } else if (byMetric[m.metric_name].previous === null) {
-        byMetric[m.metric_name].previous = m.metric_value;
+        byMetric[m.metric_name] = [];
+        latestValues[m.metric_name] = m.metric_value;
       }
+      byMetric[m.metric_name].push(m.metric_value);
     }
 
     const alerts: any[] = [];
+    const spcObservations: any[] = [];
+    const killSwitchReasons: string[] = [];
 
-    // 2. Check RMSE spike (>30% increase = warning, >60% = critical)
-    const rmse = byMetric["rmse"];
-    if (rmse && rmse.previous !== null && rmse.previous > 0) {
-      const devPct = ((rmse.current - rmse.previous) / rmse.previous) * 100;
-      if (devPct > 30) {
+    // 2. SPC + EWMA evaluation for each key metric
+    const keyMetrics = ["rmse", "mape", "hit_rate_80", "hit_rate_95", "avg_bias"];
+
+    for (const metricName of keyMetrics) {
+      const history = byMetric[metricName];
+      if (!history || history.length < 5) continue;
+
+      const currentValue = latestValues[metricName];
+      const window = history.slice(0, SPC_WINDOW);
+      const n = window.length;
+      const rollingMean = window.reduce((s, v) => s + v, 0) / n;
+      const variance = window.reduce((s, v) => s + (v - rollingMean) ** 2, 0) / n;
+      const rollingStd = Math.sqrt(variance);
+
+      // EWMA
+      let ewma = window[window.length - 1];
+      for (let i = window.length - 2; i >= 0; i--) {
+        ewma = EWMA_LAMBDA * window[i] + (1 - EWMA_LAMBDA) * ewma;
+      }
+
+      const upperControl = rollingMean + 3 * rollingStd;
+      const lowerControl = rollingMean - 3 * rollingStd;
+      const outOfControl = rollingStd > 0 && (currentValue > upperControl || currentValue < lowerControl);
+
+      spcObservations.push({
+        metric_name: metricName,
+        model_version: "APE-V2.1",
+        observed_value: currentValue,
+        ewma_value: Math.round(ewma * 10000) / 10000,
+        rolling_mean: Math.round(rollingMean * 10000) / 10000,
+        rolling_std: Math.round(rollingStd * 10000) / 10000,
+        upper_control: Math.round(upperControl * 10000) / 10000,
+        lower_control: Math.round(lowerControl * 10000) / 10000,
+        out_of_control: outOfControl,
+      });
+
+      if (outOfControl) {
+        const severity = metricName === "rmse" || metricName === "hit_rate_80" ? "critical" : "warning";
         alerts.push({
-          alert_type: "rmse_spike",
+          alert_type: `spc_${metricName}`,
           model_version: "APE-V2.1",
-          metric_name: "rmse",
-          current_value: rmse.current,
-          baseline_value: rmse.previous,
-          deviation_pct: Math.round(devPct * 10) / 10,
-          severity: devPct > 60 ? "critical" : "warning",
-          details: { message: `RMSE increased ${devPct.toFixed(1)}% from ${rmse.previous} to ${rmse.current}` },
+          metric_name: metricName,
+          current_value: currentValue,
+          baseline_value: rollingMean,
+          deviation_pct: rollingStd > 0 ? Math.round(Math.abs(currentValue - rollingMean) / rollingStd * 100) / 100 : 0,
+          severity,
+          details: {
+            message: `${metricName} is statistically out of control (value=${currentValue}, μ=${rollingMean.toFixed(4)}, 3σ=[${lowerControl.toFixed(4)}, ${upperControl.toFixed(4)}])`,
+            ewma: ewma,
+            control_type: "EWMA_3sigma",
+          },
         });
+
+        // Kill-switch conditions
+        if (metricName === "rmse") killSwitchReasons.push("RMSE beyond 3σ control band");
+      }
+
+      // Specific kill-switch: hit80 < 60%
+      if (metricName === "hit_rate_80" && currentValue < 0.60) {
+        killSwitchReasons.push(`Hit80 at ${(currentValue * 100).toFixed(1)}%, below 60% threshold`);
+      }
+
+      // Calibration divergence check (EWMA drift from mean > 25%)
+      if (metricName === "hit_rate_80" && rollingMean > 0) {
+        const divergence = Math.abs(ewma - rollingMean) / rollingMean;
+        if (divergence > 0.25) {
+          killSwitchReasons.push(`Calibration divergence ${(divergence * 100).toFixed(1)}% > 25%`);
+        }
       }
     }
 
-    // 3. Check calibration divergence (hit rates dropping below expected)
-    const hit80 = byMetric["hit_rate_80"];
-    if (hit80 && hit80.current < 0.70) {
-      alerts.push({
-        alert_type: "calibration_divergence",
-        model_version: "APE-V2.1",
-        metric_name: "hit_rate_80",
-        current_value: hit80.current,
-        baseline_value: 0.80,
-        deviation_pct: Math.round(((0.80 - hit80.current) / 0.80) * 100 * 10) / 10,
-        severity: hit80.current < 0.55 ? "critical" : "warning",
-        details: { message: `80% band hit rate at ${(hit80.current * 100).toFixed(1)}%, expected ~80%` },
-      });
-    }
-
-    // 4. Check confidence inflation (avg bias consistently positive = overconfidence)
-    const bias = byMetric["avg_bias"];
-    if (bias && Math.abs(bias.current) > 5) {
-      alerts.push({
-        alert_type: "confidence_inflation",
-        model_version: "APE-V2.1",
-        metric_name: "avg_bias",
-        current_value: bias.current,
-        baseline_value: 0,
-        deviation_pct: Math.abs(bias.current) * 10,
-        severity: Math.abs(bias.current) > 10 ? "critical" : "warning",
-        details: { message: `Forecast bias at ${bias.current.toFixed(2)}, indicating ${bias.current > 0 ? 'under-prediction' : 'over-prediction'}` },
-      });
-    }
-
-    // 5. Check structural break frequency
+    // 3. Structural break frequency check
     const { count: recentBreaks } = await supabase
       .from("forecast_archive")
       .select("id", { count: "exact", head: true })
@@ -102,7 +130,10 @@ serve(async (req) => {
 
     if (totalRecent && totalRecent > 10 && recentBreaks) {
       const breakRate = recentBreaks / totalRecent;
-      if (breakRate > 0.3) {
+      if (breakRate > 0.60) {
+        killSwitchReasons.push(`Break rate ${(breakRate * 100).toFixed(0)}% > 60%`);
+      }
+      if (breakRate > 0.30) {
         alerts.push({
           alert_type: "break_frequency",
           model_version: "APE-V2.1",
@@ -110,13 +141,38 @@ serve(async (req) => {
           current_value: Math.round(breakRate * 100),
           baseline_value: 15,
           deviation_pct: Math.round(((breakRate * 100 - 15) / 15) * 100),
-          severity: breakRate > 0.5 ? "critical" : "warning",
-          details: { message: `${recentBreaks}/${totalRecent} forecasts have structural breaks (${(breakRate * 100).toFixed(0)}%)` },
+          severity: breakRate > 0.50 ? "critical" : "warning",
+          details: { message: `${recentBreaks}/${totalRecent} forecasts have structural breaks` },
         });
       }
     }
 
-    // 6. Insert alerts (dedup by type within 24h)
+    // 4. Insert SPC observations
+    if (spcObservations.length > 0) {
+      await supabase.from("spc_control_observations").insert(spcObservations);
+    }
+
+    // 5. Kill-switch activation
+    if (killSwitchReasons.length > 0) {
+      structuredLog("error", FN, `KILL-SWITCH triggered: ${killSwitchReasons.join("; ")}`);
+      // Set freeze_forecasts flag
+      await supabase.from("system_flags")
+        .update({ enabled: true })
+        .eq("flag_key", "freeze_forecasts");
+
+      alerts.push({
+        alert_type: "kill_switch_activated",
+        model_version: "APE-V2.1",
+        metric_name: "system_freeze",
+        current_value: killSwitchReasons.length,
+        baseline_value: 0,
+        deviation_pct: 100,
+        severity: "critical",
+        details: { message: "Automatic kill-switch activated", reasons: killSwitchReasons },
+      });
+    }
+
+    // 6. Dedup and insert alerts
     let inserted = 0;
     for (const alert of alerts) {
       const { data: existing } = await supabase
@@ -138,12 +194,25 @@ serve(async (req) => {
       function_name: FN,
       execution_time_ms: Date.now() - start,
       status: "success",
-      items_processed: alerts.length,
-      metadata: { alerts_found: alerts.length, alerts_inserted: inserted },
+      items_processed: spcObservations.length,
+      metadata: {
+        alerts_found: alerts.length,
+        alerts_inserted: inserted,
+        spc_observations: spcObservations.length,
+        kill_switch: killSwitchReasons.length > 0,
+        kill_reasons: killSwitchReasons,
+      },
     });
 
-    structuredLog("info", FN, `Drift check complete: ${alerts.length} alerts, ${inserted} new`, undefined, start);
-    return jsonResponse({ success: true, alerts_found: alerts.length, alerts_inserted: inserted });
+    structuredLog("info", FN, `SPC check complete: ${spcObservations.length} observations, ${alerts.length} alerts, kill=${killSwitchReasons.length > 0}`, undefined, start);
+    return jsonResponse({
+      success: true,
+      spc_observations: spcObservations.length,
+      alerts_found: alerts.length,
+      alerts_inserted: inserted,
+      kill_switch_activated: killSwitchReasons.length > 0,
+      kill_reasons: killSwitchReasons,
+    });
   } catch (error) {
     structuredLog("error", FN, (error as Error).message, undefined, start);
     return errorResponse(error);

@@ -1,8 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resilientCall, structuredLog, handleCors, corsHeaders, errorResponse, jsonResponse } from "../_shared/resilience.ts";
+import { resilientCall, structuredLog, handleCors, errorResponse, jsonResponse } from "../_shared/resilience.ts";
 
 const FN = "reconcile-forecasts";
+
+// SHA-256 hash utility
+async function sha256(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(data));
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 serve(async (req) => {
   const cors = handleCors(req);
@@ -16,6 +23,17 @@ serve(async (req) => {
 
   try {
     structuredLog("info", FN, "Starting forecast reconciliation");
+
+    // Check kill-switch
+    const { data: freezeFlag } = await supabase
+      .from("system_flags")
+      .select("enabled")
+      .eq("flag_key", "freeze_forecasts")
+      .limit(1);
+    if (freezeFlag?.[0]?.enabled) {
+      structuredLog("warn", FN, "Forecasts frozen by kill-switch, skipping reconciliation");
+      return jsonResponse({ success: true, message: "System frozen by kill-switch" });
+    }
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
@@ -95,7 +113,8 @@ serve(async (req) => {
           errors.push(`${forecast.iso3}/${forecast.domain}: ${insertErr.message}`);
         } else {
           reconciled++;
-          // Store residual for empirical distribution modeling
+          // Compute age for decay weighting
+          const forecastAge = Math.round((Date.now() - new Date(forecast.created_at).getTime()) / 86400000);
           residualsToInsert.push({
             model_version: forecast.model_version || "APE-V2.1",
             domain: forecast.domain,
@@ -104,6 +123,8 @@ serve(async (req) => {
             predicted_value: predicted,
             realized_value: realized,
             horizon_days: 90,
+            decay_weight: Math.round(Math.exp(-0.01 * forecastAge) * 10000) / 10000,
+            regime_flag: "normal",
           });
         }
       } catch (err) {
@@ -191,7 +212,7 @@ serve(async (req) => {
       }
 
       // Upsert calibration metrics
-      const metrics = [
+      const metricsList = [
         { metric_name: "mae", metric_value: Math.round(mae * 100) / 100 },
         { metric_name: "rmse", metric_value: Math.round(rmse * 100) / 100 },
         { metric_name: "nrmse", metric_value: Math.round(nrmse * 1000) / 1000 },
@@ -201,7 +222,7 @@ serve(async (req) => {
         { metric_name: "hit_rate_95", metric_value: Math.round(hit95 * 1000) / 1000 },
       ];
 
-      for (const m of metrics) {
+      for (const m of metricsList) {
         await supabase.from("calibration_metrics").upsert({
           model_version: "APE-V2.1",
           metric_name: m.metric_name,
@@ -212,7 +233,7 @@ serve(async (req) => {
         }, { onConflict: "model_version,metric_name" }).select();
       }
 
-      // Upsert calibration profile (locked per version)
+      // Upsert calibration profile (respect lock)
       if (plattFitted) {
         const { data: existingProfile } = await supabase
           .from("model_calibration_profiles")
@@ -235,6 +256,32 @@ serve(async (req) => {
             status: "active",
           }, { onConflict: "model_version" }).select();
         }
+      }
+
+      // === AUDIT HASH: cryptographic verification of residual dataset ===
+      const { data: allResiduals } = await supabase
+        .from("forecast_residuals")
+        .select("residual, domain, iso3, horizon_days")
+        .eq("model_version", "APE-V2.1")
+        .order("created_at", { ascending: true })
+        .limit(5000);
+
+      if (allResiduals && allResiduals.length > 0) {
+        const residualString = JSON.stringify(allResiduals);
+        const hash = await sha256(residualString);
+
+        await supabase.from("calibration_audit_hashes").insert({
+          model_version: "APE-V2.1",
+          residual_sample_hash: hash,
+          residual_count: allResiduals.length,
+          hash_algorithm: "SHA-256",
+          metadata: {
+            platt_a: plattA,
+            platt_b: plattB,
+            sample_size: n,
+            mae, rmse, hit80, hit95,
+          },
+        });
       }
     }
 
