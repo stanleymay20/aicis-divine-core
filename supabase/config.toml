@@ -415,3 +415,9 @@ verify_jwt = false
 
 [functions.cron-generate-weekly-brief]
 verify_jwt = false
+
+[functions.ingest-gdelt]
+verify_jwt = false
+
+[functions.compute-political-stability]
+verify_jwt = false
