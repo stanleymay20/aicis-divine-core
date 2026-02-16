@@ -16,6 +16,7 @@ interface CountryAggregate {
   total_breaks: number;
   domains_down: number;
   domains_up: number;
+  domain_count: number;
 }
 
 Deno.serve(async (req) => {
@@ -45,67 +46,20 @@ Deno.serve(async (req) => {
 
     const snapshotDate = latestRow.snapshot_date;
 
-    // 2. Pull all snapshots for the latest date
-    const { data: snapshots, error: snapErr } = await sb
-      .from("country_performance_snapshots")
-      .select("*")
-      .eq("snapshot_date", snapshotDate)
-      .limit(2000);
+    // 2. Use server-side SQL aggregation — 1 row per country, no truncation
+    const { data: countries, error: rpcErr } = await sb.rpc(
+      "aggregate_country_snapshots",
+      { _snapshot_date: snapshotDate }
+    );
 
-    if (snapErr || !snapshots?.length) {
-      throw new Error(snapErr?.message || "No snapshots found");
+    if (rpcErr || !countries?.length) {
+      throw new Error(rpcErr?.message || "No aggregated data returned");
     }
 
-    // 3. Aggregate by country
-    const countryMap = new Map<string, CountryAggregate>();
+    const typed = countries as CountryAggregate[];
 
-    for (const s of snapshots) {
-      const existing = countryMap.get(s.iso3) || {
-        iso3: s.iso3,
-        avg_risk: 0,
-        avg_momentum: 0,
-        avg_fragility: 0,
-        avg_performance: 0,
-        avg_confidence: 0,
-        total_breaks: 0,
-        domains_down: 0,
-        domains_up: 0,
-      };
-
-      const count = countryMap.has(s.iso3) ? 1 : 0; // we'll average later
-      existing.avg_risk += s.risk_pressure_score;
-      existing.avg_momentum += s.momentum_score;
-      existing.avg_fragility += s.systemic_fragility_score;
-      existing.avg_performance += s.performance_index;
-      existing.avg_confidence += s.confidence_score;
-      existing.total_breaks += s.structural_break_count;
-      if (s.forecast_direction === "down") existing.domains_down++;
-      if (s.forecast_direction === "up") existing.domains_up++;
-
-      countryMap.set(s.iso3, existing);
-    }
-
-    // Count domains per country for averaging
-    const domainCounts = new Map<string, number>();
-    for (const s of snapshots) {
-      domainCounts.set(s.iso3, (domainCounts.get(s.iso3) || 0) + 1);
-    }
-
-    const countries: CountryAggregate[] = [];
-    for (const [iso3, agg] of countryMap) {
-      const n = domainCounts.get(iso3) || 1;
-      countries.push({
-        ...agg,
-        avg_risk: +(agg.avg_risk / n).toFixed(1),
-        avg_momentum: +(agg.avg_momentum / n).toFixed(1),
-        avg_fragility: +(agg.avg_fragility / n).toFixed(1),
-        avg_performance: +(agg.avg_performance / n).toFixed(1),
-        avg_confidence: +(agg.avg_confidence / n).toFixed(1),
-      });
-    }
-
-    // 4. Rank: Top 5 Deteriorating (highest risk + negative momentum)
-    const deteriorating = [...countries]
+    // 3. Rank: Top 5 Deteriorating (highest risk + negative momentum + breaks)
+    const deteriorating = [...typed]
       .sort((a, b) => {
         const scoreA = a.avg_risk * 0.5 + Math.abs(Math.min(a.avg_momentum, 0)) * 0.3 + a.total_breaks * 0.2;
         const scoreB = b.avg_risk * 0.5 + Math.abs(Math.min(b.avg_momentum, 0)) * 0.3 + b.total_breaks * 0.2;
@@ -113,8 +67,8 @@ Deno.serve(async (req) => {
       })
       .slice(0, 5);
 
-    // 5. Rank: Top 5 Improving (positive momentum + low risk)
-    const improving = [...countries]
+    // 4. Rank: Top 5 Improving (positive momentum + low risk)
+    const improving = [...typed]
       .sort((a, b) => {
         const scoreA = Math.max(a.avg_momentum, 0) * 0.5 + (100 - a.avg_risk) * 0.3 + a.domains_up * 0.2;
         const scoreB = Math.max(b.avg_momentum, 0) * 0.5 + (100 - b.avg_risk) * 0.3 + b.domains_up * 0.2;
@@ -122,26 +76,25 @@ Deno.serve(async (req) => {
       })
       .slice(0, 5);
 
-    // 6. Highest fragility shift (top 5 by fragility)
-    const fragility = [...countries]
-      .sort((a, b) => a.avg_fragility - b.avg_fragility) // lower = more fragile
+    // 5. Highest fragility (lowest = most fragile)
+    const fragility = [...typed]
+      .sort((a, b) => a.avg_fragility - b.avg_fragility)
       .slice(0, 5);
 
-    // 7. Break density leaders
-    const breakLeaders = [...countries]
+    // 6. Break density leaders
+    const breakLeaders = [...typed]
       .sort((a, b) => b.total_breaks - a.total_breaks)
       .slice(0, 10);
 
-    // 8. Global stats
-    const totalCountries = countries.length;
-    const totalDomains = snapshots.length;
-    const avgMape = 13.0; // from calibration_metrics
+    // 7. Global stats
+    const totalCountries = typed.length;
+    const totalDomains = typed.reduce((s, c) => s + c.domain_count, 0);
     const avgConfidence = +(
-      countries.reduce((s, c) => s + c.avg_confidence, 0) / totalCountries
+      typed.reduce((s, c) => s + c.avg_confidence, 0) / totalCountries
     ).toFixed(1);
-    const totalBreaks = countries.reduce((s, c) => s + c.total_breaks, 0);
+    const totalBreaks = typed.reduce((s, c) => s + c.total_breaks, 0);
 
-    // 9. Get calibration MAPE if available
+    // 8. Get calibration MAPE
     const { data: calData } = await sb
       .from("calibration_metrics")
       .select("metric_value")
@@ -150,18 +103,19 @@ Deno.serve(async (req) => {
       .limit(1)
       .single();
 
-    const actualMape = calData?.metric_value ?? avgMape;
+    const actualMape = calData?.metric_value ?? 13.0;
 
-    // 10. Compose the brief
+    // 9. Compose sections
     const issueDate = new Date().toISOString().split("T")[0];
     const weekNum = getISOWeek(new Date());
 
     const sections = {
       executive_summary: {
         title: "Executive Summary",
-        content: `AICIS Global Structural Risk Brief — Week ${weekNum}, ${issueDate}. ` +
+        content:
+          `AICIS Global Structural Risk Brief — Week ${weekNum}, ${issueDate}. ` +
           `The engine processed ${totalCountries} countries across ${totalDomains} domain models. ` +
-          `Average MAPE: ${actualMape.toFixed(1)}%. Average confidence: ${avgConfidence}%. ` +
+          `Average MAPE: ${Number(actualMape).toFixed(1)}%. Average confidence: ${avgConfidence}%. ` +
           `Total structural breaks detected: ${totalBreaks}. ` +
           `System status: Nominal. Kill-switch: Not triggered.`,
       },
@@ -206,7 +160,7 @@ Deno.serve(async (req) => {
       confidence_assessment: {
         title: "Confidence Assessment",
         avg_confidence: avgConfidence,
-        mape: actualMape,
+        mape: Number(actualMape),
         note:
           avgConfidence < 40
             ? "Low confidence is expected during the statistical compounding phase (first 14-30 days). Residual depth is accumulating."
@@ -223,10 +177,9 @@ Deno.serve(async (req) => {
       },
     };
 
-    // 11. Generate markdown summary
     const summaryMd = generateMarkdown(sections, issueDate, weekNum);
 
-    // 12. Get next issue number
+    // 10. Get next issue number
     const { data: lastIssue } = await sb
       .from("weekly_briefs")
       .select("issue_number")
@@ -236,7 +189,7 @@ Deno.serve(async (req) => {
 
     const issueNumber = (lastIssue?.issue_number ?? 0) + 1;
 
-    // 13. Insert the brief
+    // 11. Insert
     const { data: inserted, error: insertErr } = await sb
       .from("weekly_briefs")
       .insert({
@@ -249,6 +202,7 @@ Deno.serve(async (req) => {
           snapshot_date: snapshotDate,
           engine_version: "APE-V2.1",
           generated_by: "generate-weekly-brief",
+          aggregation: "server-side SQL",
         },
         countries_covered: totalCountries,
         models_count: totalDomains,
@@ -269,6 +223,7 @@ Deno.serve(async (req) => {
         models_count: totalDomains,
         avg_mape: actualMape,
         avg_confidence: avgConfidence,
+        total_breaks: totalBreaks,
         id: inserted?.id,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -308,35 +263,26 @@ function generateMarkdown(
   lines.push(`# AICIS Global Structural Risk Brief`);
   lines.push(`**Week ${week} — ${date}**`);
   lines.push("");
-
-  // Executive Summary
   lines.push(`## ${sections.executive_summary.title}`);
   lines.push(sections.executive_summary.content);
   lines.push("");
 
-  // Deteriorating
   lines.push(`## ${sections.deteriorating.title}`);
   lines.push("| Rank | Country | Risk Pressure | Momentum | Fragility | Breaks |");
   lines.push("|------|---------|--------------|----------|-----------|--------|");
   sections.deteriorating.countries.forEach((c: any, i: number) => {
-    lines.push(
-      `| ${i + 1} | ${c.iso3} | ${c.risk_pressure} | ${c.momentum} | ${c.fragility} | ${c.breaks} |`
-    );
+    lines.push(`| ${i + 1} | ${c.iso3} | ${c.risk_pressure} | ${c.momentum} | ${c.fragility} | ${c.breaks} |`);
   });
   lines.push("");
 
-  // Improving
   lines.push(`## ${sections.improving.title}`);
   lines.push("| Rank | Country | Momentum | Risk Pressure | Performance | Domains ↑ |");
   lines.push("|------|---------|----------|--------------|-------------|-----------|");
   sections.improving.countries.forEach((c: any, i: number) => {
-    lines.push(
-      `| ${i + 1} | ${c.iso3} | ${c.momentum} | ${c.risk_pressure} | ${c.performance} | ${c.domains_rising} |`
-    );
+    lines.push(`| ${i + 1} | ${c.iso3} | ${c.momentum} | ${c.risk_pressure} | ${c.performance} | ${c.domains_rising} |`);
   });
   lines.push("");
 
-  // Fragility
   lines.push(`## ${sections.fragility_watch.title}`);
   lines.push("| Country | Fragility Score | Risk Pressure | Breaks |");
   lines.push("|---------|----------------|--------------|--------|");
@@ -345,7 +291,6 @@ function generateMarkdown(
   });
   lines.push("");
 
-  // Break Density
   lines.push(`## ${sections.break_density.title}`);
   lines.push("| Country | Total Breaks | Confidence |");
   lines.push("|---------|-------------|------------|");
@@ -354,16 +299,12 @@ function generateMarkdown(
   });
   lines.push("");
 
-  // Confidence
   lines.push(`## ${sections.confidence_assessment.title}`);
-  lines.push(
-    `Average Confidence: **${sections.confidence_assessment.avg_confidence}%** | MAPE: **${sections.confidence_assessment.mape.toFixed(1)}%**`
-  );
+  lines.push(`Average Confidence: **${sections.confidence_assessment.avg_confidence}%** | MAPE: **${sections.confidence_assessment.mape.toFixed(1)}%**`);
   lines.push("");
   lines.push(`> ${sections.confidence_assessment.note}`);
   lines.push("");
 
-  // Methodology
   lines.push(`---`);
   lines.push(`*${sections.methodology.content}*`);
 
