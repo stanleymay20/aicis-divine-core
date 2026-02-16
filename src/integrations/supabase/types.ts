@@ -1309,6 +1309,13 @@ export type Database = {
             referencedRelation: "accountability_nodes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "data_access_control_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       data_collection_triggers: {
@@ -1500,6 +1507,13 @@ export type Database = {
             referencedRelation: "accountability_nodes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "data_sharing_agreements_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       data_source_log: {
@@ -1587,6 +1601,13 @@ export type Database = {
             columns: ["node_id"]
             isOneToOne: false
             referencedRelation: "accountability_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_use_agreements_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3276,6 +3297,13 @@ export type Database = {
             referencedRelation: "accountability_nodes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ledger_entries_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ledger_root_hashes: {
@@ -3523,6 +3551,13 @@ export type Database = {
             columns: ["node_id"]
             isOneToOne: false
             referencedRelation: "accountability_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_audit_trail_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "accountability_nodes_public"
             referencedColumns: ["id"]
           },
         ]
@@ -5597,7 +5632,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      accountability_nodes_public: {
+        Row: {
+          country: string | null
+          id: string | null
+          joined_at: string | null
+          jurisdiction: string | null
+          last_active_at: string | null
+          metadata: Json | null
+          org_name: string | null
+          org_type: Database["public"]["Enums"]["org_type"] | null
+          verified: boolean | null
+        }
+        Insert: {
+          country?: string | null
+          id?: string | null
+          joined_at?: string | null
+          jurisdiction?: string | null
+          last_active_at?: string | null
+          metadata?: Json | null
+          org_name?: string | null
+          org_type?: Database["public"]["Enums"]["org_type"] | null
+          verified?: boolean | null
+        }
+        Update: {
+          country?: string | null
+          id?: string | null
+          joined_at?: string | null
+          jurisdiction?: string | null
+          last_active_at?: string | null
+          metadata?: Json | null
+          org_name?: string | null
+          org_type?: Database["public"]["Enums"]["org_type"] | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       aggregate_country_snapshots: {
