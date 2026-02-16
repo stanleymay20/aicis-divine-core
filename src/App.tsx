@@ -2,40 +2,53 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense } from "react";
-
-const EnterpriseGovernance = lazy(() => import("./pages/EnterpriseGovernance"));
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { IntelligenceMemoryProvider } from "@/contexts/IntelligenceMemoryContext";
+import { Loader2 } from "lucide-react";
+
+// Only eager-load the landing page and auth — everything else is lazy
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
-import CitizenPortal from "./pages/CitizenPortal";
-import CountryDeepDivePage from "./pages/CountryDeepDivePage";
-import AICISCommandCenter from "./pages/AICISCommandCenter";
-import Debug from "./pages/Debug";
-import SystemHealth from "./pages/SystemHealth";
-import AdminDashboard from "./pages/AdminDashboard";
-import GovernanceHub from "./pages/GovernanceHub";
-import PredictionsCenter from "./pages/PredictionsCenter";
-import CompliancePortal from "./pages/CompliancePortal";
-import FederationHub from "./pages/FederationHub";
-import Ethics from "./pages/Ethics";
 import NotFound from "./pages/NotFound";
-import SecurityDashboard from "./pages/SecurityDashboard";
-import HealthDashboard from "./pages/HealthDashboard";
-import ComparePage from "./pages/ComparePage";
-import IntelligenceThread from "./pages/IntelligenceThread";
-import MethodologyPage from "./pages/MethodologyPage";
+
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const CitizenPortal = lazy(() => import("./pages/CitizenPortal"));
+const CountryDeepDivePage = lazy(() => import("./pages/CountryDeepDivePage"));
+const AICISCommandCenter = lazy(() => import("./pages/AICISCommandCenter"));
+const Debug = lazy(() => import("./pages/Debug"));
+const SystemHealth = lazy(() => import("./pages/SystemHealth"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const GovernanceHub = lazy(() => import("./pages/GovernanceHub"));
+const PredictionsCenter = lazy(() => import("./pages/PredictionsCenter"));
+const CompliancePortal = lazy(() => import("./pages/CompliancePortal"));
+const FederationHub = lazy(() => import("./pages/FederationHub"));
+const Ethics = lazy(() => import("./pages/Ethics"));
+const SecurityDashboard = lazy(() => import("./pages/SecurityDashboard"));
+const HealthDashboard = lazy(() => import("./pages/HealthDashboard"));
+const ComparePage = lazy(() => import("./pages/ComparePage"));
+const IntelligenceThread = lazy(() => import("./pages/IntelligenceThread"));
+const MethodologyPage = lazy(() => import("./pages/MethodologyPage"));
+const EnterpriseGovernance = lazy(() => import("./pages/EnterpriseGovernance"));
 const CalibrationDashboard = lazy(() => import("./pages/CalibrationDashboard"));
 const GovernanceLegal = lazy(() => import("./pages/GovernanceLegal"));
 const ReadinessReport = lazy(() => import("./pages/ReadinessReport"));
 const CompareModels = lazy(() => import("./pages/CompareModels"));
 const OperationalDashboard = lazy(() => import("./pages/OperationalDashboard"));
 
+const LazyFallback = () => (
+  <div className="flex items-center justify-center min-h-screen bg-background">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
+
 const queryClient = new QueryClient();
+
+const Lazy = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<LazyFallback />}>{children}</Suspense>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -47,31 +60,31 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/citizen-portal" element={<CitizenPortal />} />
-            <Route path="/deepdive/:iso3" element={<CountryDeepDivePage />} />
-            <Route path="/command" element={<AICISCommandCenter />} />
-            <Route path="/debug" element={<Debug />} />
-            <Route path="/system-health" element={<SystemHealth />} />
-            <Route path="/health" element={<HealthDashboard />} />
-            <Route path="/security" element={<SecurityDashboard />} />
-            <Route path="/intelligence" element={<IntelligenceThread />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/governance" element={<GovernanceHub />} />
-            <Route path="/predictions" element={<PredictionsCenter />} />
-            <Route path="/compliance" element={<CompliancePortal />} />
-            <Route path="/federation" element={<FederationHub />} />
-            <Route path="/compare" element={<ComparePage />} />
-            <Route path="/methodology" element={<MethodologyPage />} />
-            <Route path="/enterprise-governance" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><EnterpriseGovernance /></Suspense>} />
-            <Route path="/calibration" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><CalibrationDashboard /></Suspense>} />
-            <Route path="/governance-legal" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><GovernanceLegal /></Suspense>} />
-            <Route path="/readiness-report" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><ReadinessReport /></Suspense>} />
-            <Route path="/compare-models" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><CompareModels /></Suspense>} />
-            <Route path="/operations" element={<Suspense fallback={<div className="p-8 text-center">Loading...</div>}><OperationalDashboard /></Suspense>} />
-            <Route path="/ethics" element={<Ethics />} />
+            <Route path="/onboarding" element={<Lazy><Onboarding /></Lazy>} />
+            <Route path="/citizen-portal" element={<Lazy><CitizenPortal /></Lazy>} />
+            <Route path="/deepdive/:iso3" element={<Lazy><CountryDeepDivePage /></Lazy>} />
+            <Route path="/command" element={<Lazy><AICISCommandCenter /></Lazy>} />
+            <Route path="/debug" element={<Lazy><Debug /></Lazy>} />
+            <Route path="/system-health" element={<Lazy><SystemHealth /></Lazy>} />
+            <Route path="/health" element={<Lazy><HealthDashboard /></Lazy>} />
+            <Route path="/security" element={<Lazy><SecurityDashboard /></Lazy>} />
+            <Route path="/intelligence" element={<Lazy><IntelligenceThread /></Lazy>} />
+            <Route path="/terms" element={<Lazy><Terms /></Lazy>} />
+            <Route path="/privacy" element={<Lazy><Privacy /></Lazy>} />
+            <Route path="/admin" element={<Lazy><AdminDashboard /></Lazy>} />
+            <Route path="/governance" element={<Lazy><GovernanceHub /></Lazy>} />
+            <Route path="/predictions" element={<Lazy><PredictionsCenter /></Lazy>} />
+            <Route path="/compliance" element={<Lazy><CompliancePortal /></Lazy>} />
+            <Route path="/federation" element={<Lazy><FederationHub /></Lazy>} />
+            <Route path="/compare" element={<Lazy><ComparePage /></Lazy>} />
+            <Route path="/methodology" element={<Lazy><MethodologyPage /></Lazy>} />
+            <Route path="/enterprise-governance" element={<Lazy><EnterpriseGovernance /></Lazy>} />
+            <Route path="/calibration" element={<Lazy><CalibrationDashboard /></Lazy>} />
+            <Route path="/governance-legal" element={<Lazy><GovernanceLegal /></Lazy>} />
+            <Route path="/readiness-report" element={<Lazy><ReadinessReport /></Lazy>} />
+            <Route path="/compare-models" element={<Lazy><CompareModels /></Lazy>} />
+            <Route path="/operations" element={<Lazy><OperationalDashboard /></Lazy>} />
+            <Route path="/ethics" element={<Lazy><Ethics /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
