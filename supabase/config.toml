@@ -409,3 +409,9 @@ verify_jwt = false
 
 [functions.aicis-intelligence]
 verify_jwt = false
+
+[functions.generate-weekly-brief]
+verify_jwt = false
+
+[functions.cron-generate-weekly-brief]
+verify_jwt = false

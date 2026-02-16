@@ -5412,6 +5412,54 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_briefs: {
+        Row: {
+          avg_confidence: number | null
+          avg_mape: number | null
+          brief_date: string
+          countries_covered: number
+          created_at: string
+          generated_at: string
+          id: string
+          issue_number: number
+          metadata: Json | null
+          models_count: number
+          sections: Json
+          summary_md: string
+          title: string
+        }
+        Insert: {
+          avg_confidence?: number | null
+          avg_mape?: number | null
+          brief_date?: string
+          countries_covered?: number
+          created_at?: string
+          generated_at?: string
+          id?: string
+          issue_number: number
+          metadata?: Json | null
+          models_count?: number
+          sections?: Json
+          summary_md: string
+          title: string
+        }
+        Update: {
+          avg_confidence?: number | null
+          avg_mape?: number | null
+          brief_date?: string
+          countries_covered?: number
+          created_at?: string
+          generated_at?: string
+          id?: string
+          issue_number?: number
+          metadata?: Json | null
+          models_count?: number
+          sections?: Json
+          summary_md?: string
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
