@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import AICISInterface from '@/components/AICISInterface';
+import { AICISLayout } from '@/components/aicis/AICISLayout';
 import { Loader2 } from 'lucide-react';
 
 export default function AICISCommandCenter() {
@@ -27,8 +28,10 @@ export default function AICISCommandCenter() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <AICISInterface />
-    </div>
+    <AICISLayout>
+      <div className="container mx-auto py-8 px-4">
+        <AICISInterface />
+      </div>
+    </AICISLayout>
   );
 }
