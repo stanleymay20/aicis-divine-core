@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import CountryDeepDive from '@/components/CountryDeepDive';
+import { AICISLayout } from '@/components/aicis/AICISLayout';
 import { Loader2 } from 'lucide-react';
 
 export default function CountryDeepDivePage() {
@@ -65,5 +66,9 @@ export default function CountryDeepDivePage() {
     );
   }
 
-  return <CountryDeepDive {...data} />;
+  return (
+    <AICISLayout>
+      <CountryDeepDive {...data} />
+    </AICISLayout>
+  );
 }

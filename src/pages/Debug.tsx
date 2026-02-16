@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Activity, Database, Zap, AlertCircle } from 'lucide-react';
+import { AICISLayout } from '@/components/aicis/AICISLayout';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SystemStatus {
@@ -82,6 +83,7 @@ export default function Debug() {
   if (!session) return null;
 
   return (
+    <AICISLayout>
     <div className="container mx-auto py-8 px-4">
       <div className="space-y-6">
         <div>
@@ -160,5 +162,6 @@ export default function Debug() {
         )}
       </div>
     </div>
+    </AICISLayout>
   );
 }
