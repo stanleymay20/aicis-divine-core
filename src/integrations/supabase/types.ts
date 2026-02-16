@@ -1991,6 +1991,39 @@ export type Database = {
         }
         Relationships: []
       }
+      election_calendar: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          description: string | null
+          election_date: string
+          election_type: string
+          id: string
+          iso3: string
+          source: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          election_date: string
+          election_type: string
+          id?: string
+          iso3: string
+          source?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          election_date?: string
+          election_type?: string
+          id?: string
+          iso3?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
       energy_grid: {
         Row: {
           capacity: number
@@ -3882,6 +3915,108 @@ export type Database = {
           rmse?: number
           run_at?: string
           stability_score?: number
+        }
+        Relationships: []
+      }
+      political_events: {
+        Row: {
+          avg_tone: number | null
+          created_at: string
+          event_count: number
+          event_date: string
+          event_type: string
+          goldstein_scale: number | null
+          id: string
+          iso3: string
+          raw_payload: Json | null
+          source: string
+          source_url: string | null
+        }
+        Insert: {
+          avg_tone?: number | null
+          created_at?: string
+          event_count?: number
+          event_date: string
+          event_type: string
+          goldstein_scale?: number | null
+          id?: string
+          iso3: string
+          raw_payload?: Json | null
+          source?: string
+          source_url?: string | null
+        }
+        Update: {
+          avg_tone?: number | null
+          created_at?: string
+          event_count?: number
+          event_date?: string
+          event_type?: string
+          goldstein_scale?: number | null
+          id?: string
+          iso3?: string
+          raw_payload?: Json | null
+          source?: string
+          source_url?: string | null
+        }
+        Relationships: []
+      }
+      political_stability_scores: {
+        Row: {
+          confidence_score: number | null
+          conflict_density: number | null
+          created_at: string
+          days_to_next_election: number | null
+          election_volatility_risk: number | null
+          id: string
+          iso3: string
+          mode: string
+          model_version: string
+          protest_momentum: number | null
+          protest_momentum_tstat: number | null
+          raw_metrics: Json | null
+          score_date: string
+          stability_score: number
+          structural_break_flag: boolean | null
+          structural_break_pvalue: number | null
+          volatility_index: number | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          conflict_density?: number | null
+          created_at?: string
+          days_to_next_election?: number | null
+          election_volatility_risk?: number | null
+          id?: string
+          iso3: string
+          mode?: string
+          model_version?: string
+          protest_momentum?: number | null
+          protest_momentum_tstat?: number | null
+          raw_metrics?: Json | null
+          score_date: string
+          stability_score: number
+          structural_break_flag?: boolean | null
+          structural_break_pvalue?: number | null
+          volatility_index?: number | null
+        }
+        Update: {
+          confidence_score?: number | null
+          conflict_density?: number | null
+          created_at?: string
+          days_to_next_election?: number | null
+          election_volatility_risk?: number | null
+          id?: string
+          iso3?: string
+          mode?: string
+          model_version?: string
+          protest_momentum?: number | null
+          protest_momentum_tstat?: number | null
+          raw_metrics?: Json | null
+          score_date?: string
+          stability_score?: number
+          structural_break_flag?: boolean | null
+          structural_break_pvalue?: number | null
+          volatility_index?: number | null
         }
         Relationships: []
       }
