@@ -5465,6 +5465,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aggregate_country_snapshots: {
+        Args: { _snapshot_date: string }
+        Returns: {
+          avg_confidence: number
+          avg_fragility: number
+          avg_momentum: number
+          avg_performance: number
+          avg_risk: number
+          domain_count: number
+          domains_down: number
+          domains_up: number
+          iso3: string
+          total_breaks: number
+        }[]
+      }
       check_ip_access: {
         Args: { _ip_address: unknown; _org_id: string }
         Returns: boolean
