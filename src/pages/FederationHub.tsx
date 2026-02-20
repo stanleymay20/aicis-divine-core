@@ -121,7 +121,7 @@ const FederationHub = () => {
           </div>
         </div>
         <Tabs defaultValue="peers">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="w-full justify-start overflow-x-auto flex-nowrap mb-6">
             <TabsTrigger value="peers">
               <Server className="w-4 h-4 mr-2" />
               Peers
@@ -209,11 +209,11 @@ const FederationHub = () => {
                     {nodes?.map((node: any) => (
                       <div key={node.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${node.verified ? 'bg-green-500/20' : 'bg-yellow-500/20'}`}>
+                          <div className={`p-2 rounded-full ${node.verified ? 'bg-success/20' : 'bg-warning/20'}`}>
                             {node.verified ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <CheckCircle className="h-4 w-4 text-success" />
                             ) : (
-                              <Lock className="h-4 w-4 text-yellow-500" />
+                              <Lock className="h-4 w-4 text-warning" />
                             )}
                           </div>
                           <div>

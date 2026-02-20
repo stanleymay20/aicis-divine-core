@@ -129,7 +129,7 @@ const GovernanceHub = () => {
         </ModeAwareSection>
 
         <Tabs defaultValue="proposals">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="w-full justify-start overflow-x-auto flex-nowrap mb-6">
             <TabsTrigger value="proposals"><Vote className="w-4 h-4 mr-2" />Proposals</TabsTrigger>
             <TabsTrigger value="create"><Plus className="w-4 h-4 mr-2" />Create</TabsTrigger>
             <TabsTrigger value="scenarios"><Beaker className="w-4 h-4 mr-2" />Scenarios</TabsTrigger>

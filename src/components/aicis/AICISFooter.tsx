@@ -88,7 +88,7 @@ export const AICISFooter = () => {
   return (
     <TooltipProvider>
       <Collapsible open={expanded} onOpenChange={setExpanded}>
-        <footer className="h-8 bg-card/95 backdrop-blur-xl border-t border-primary/20 flex items-center justify-between px-4 z-40 shrink-0">
+        <footer role="contentinfo" aria-label="Data provenance and system status" className="h-8 bg-card/95 backdrop-blur-xl border-t border-primary/20 flex items-center justify-between px-4 z-40 shrink-0">
           {/* Left: Data Sources Summary */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
