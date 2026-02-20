@@ -106,7 +106,7 @@ export const AICISTopBar = () => {
 
   return (
     <TooltipProvider>
-      <header className="h-12 bg-card/95 backdrop-blur-xl border-b border-primary/20 flex items-center justify-between px-4 z-50 shrink-0">
+      <header role="banner" aria-label="AICIS global status bar" className="h-12 bg-card/95 backdrop-blur-xl border-b border-primary/20 flex items-center justify-between px-4 z-50 shrink-0">
         {/* Left: Back Button + Logo & Title */}
         <div className="flex items-center gap-3">
           {/* Universal Back Button */}
@@ -118,6 +118,7 @@ export const AICISTopBar = () => {
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => navigate(-1)}
+                  aria-label="Go back to previous page"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -240,6 +241,7 @@ export const AICISTopBar = () => {
             variant="ghost"
             size="icon"
             className="relative h-8 w-8"
+            aria-label={`Alerts${criticalAlerts > 0 ? `, ${criticalAlerts} critical` : ''}`}
             onClick={() => navigate("/")}
           >
             <Bell className="h-4 w-4" />
@@ -253,7 +255,7 @@ export const AICISTopBar = () => {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="User menu">
                 <User className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

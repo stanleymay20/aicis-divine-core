@@ -201,7 +201,7 @@ const AdminDashboard = () => {
 
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsList className="w-full justify-start overflow-x-auto flex-nowrap mb-6">
             <TabsTrigger value="overview">
               <Activity className="w-4 h-4 mr-2" />
               Overview
@@ -325,7 +325,7 @@ const AdminDashboard = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {systemHealth?.map((division) => (
-                <Card key={division.id} className={`${division.status === 'active' ? 'border-green-500/30' : 'border-destructive/30'}`}>
+                <Card key={division.id} className={`${division.status === 'active' ? 'border-success/30' : 'border-destructive/30'}`}>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold capitalize">{division.division_key}</h3>
@@ -402,7 +402,7 @@ const AdminDashboard = () => {
                       <div key={log.id} className="flex items-start gap-3 p-3 border rounded-lg">
                         <div className={`p-2 rounded-full ${
                           log.severity === 'error' ? 'bg-destructive/20' : 
-                          log.severity === 'warn' ? 'bg-yellow-500/20' : 'bg-primary/20'
+                          log.severity === 'warn' ? 'bg-warning/20' : 'bg-primary/20'
                         }`}>
                           {log.severity === 'error' ? (
                             <AlertTriangle className="h-4 w-4 text-destructive" />

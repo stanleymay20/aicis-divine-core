@@ -14,11 +14,10 @@ import {
   Landmark,
   Swords,
   HeartPulse,
-  Wheat,
-  Zap,
   TrendingUp,
-  GraduationCap,
-  CloudSun,
+  Zap,
+  FileCheck,
+  Shield,
   Scale,
   Activity,
   ChevronLeft,
@@ -45,8 +44,8 @@ const navigationItems = [
   { id: "health", label: "Health", icon: HeartPulse, path: "/health" },
   { id: "predictions", label: "Predictions", icon: TrendingUp, path: "/predictions" },
   { id: "federation", label: "Federation", icon: Zap, path: "/federation" },
-  { id: "compliance", label: "Compliance", icon: GraduationCap, path: "/compliance" },
-  { id: "admin", label: "Admin", icon: CloudSun, path: "/admin" },
+  { id: "compliance", label: "Compliance", icon: FileCheck, path: "/compliance" },
+  { id: "admin", label: "Admin", icon: Shield, path: "/admin" },
   { id: "ethics", label: "AI Ethics & SDGs", icon: Scale, path: "/ethics" },
   { id: "system", label: "System Health", icon: Activity, path: "/system-health" },
 ];
@@ -73,10 +72,14 @@ export const AICISSidebar = ({ collapsed, onToggle, activeSection, onSectionChan
 
   return (
     <TooltipProvider>
-      <aside className={cn(
-        "fixed left-0 top-12 bottom-8 z-40 bg-card/95 backdrop-blur-xl border-r border-primary/20 transition-all duration-300 hidden md:flex flex-col",
-        collapsed ? "w-16" : "w-56"
-      )}>
+      <aside 
+        role="navigation"
+        aria-label="Main navigation"
+        className={cn(
+          "fixed left-0 top-12 bottom-8 z-40 bg-card/95 backdrop-blur-xl border-r border-primary/20 transition-all duration-300 hidden md:flex flex-col",
+          collapsed ? "w-16" : "w-56"
+        )}
+      >
         {/* Toggle Button */}
         <Button
           variant="ghost"
@@ -148,6 +151,7 @@ export const AICISSidebar = ({ collapsed, onToggle, activeSection, onSectionChan
       <Button
         variant="ghost"
         size="icon"
+        aria-label={collapsed ? "Open navigation menu" : "Close navigation menu"}
         className="fixed left-2 top-14 z-50 md:hidden h-10 w-10 bg-card/90 border border-border"
         onClick={onToggle}
       >

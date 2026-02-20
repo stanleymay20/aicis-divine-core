@@ -139,7 +139,7 @@ const CompliancePortal = () => {
           </div>
         </div>
         <Tabs defaultValue="rights">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="w-full justify-start overflow-x-auto flex-nowrap mb-6">
             <TabsTrigger value="rights">
               <User className="w-4 h-4 mr-2" />
               My Rights
@@ -269,11 +269,11 @@ const CompliancePortal = () => {
                         <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center gap-3">
                             {request.status === "completed" ? (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
+                              <CheckCircle className="h-5 w-5 text-success" />
                             ) : request.status === "failed" ? (
                               <AlertTriangle className="h-5 w-5 text-destructive" />
                             ) : (
-                              <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
+                              <Clock className="h-5 w-5 text-warning animate-pulse" />
                             )}
                             <div>
                               <p className="font-medium">Data Export</p>

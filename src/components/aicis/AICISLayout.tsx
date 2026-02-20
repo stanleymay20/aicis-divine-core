@@ -41,10 +41,14 @@ export const AICISLayout = ({ children }: AICISLayoutProps) => {
         />
 
         {/* Main Intelligence View */}
-        <main className={cn(
-          "flex-1 overflow-auto transition-all duration-300",
-          sidebarCollapsed ? "ml-0 md:ml-16" : "ml-0 md:ml-56"
-        )}>
+        <main 
+          id="main-content"
+          role="main"
+          className={cn(
+            "flex-1 overflow-auto transition-all duration-300",
+            sidebarCollapsed ? "ml-0 md:ml-16" : "ml-0 md:ml-56"
+          )}
+        >
           {children}
         </main>
       </div>

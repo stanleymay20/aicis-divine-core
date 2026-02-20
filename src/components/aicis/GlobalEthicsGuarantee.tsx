@@ -125,6 +125,7 @@ export const EthicsFooterStatement = ({ className }: { className?: string }) => 
       <button 
         className="text-primary hover:underline"
         onClick={() => navigate('/ethics')}
+        aria-label="View AICIS Ethics Charter"
       >
         Ethics Charter
       </button>
