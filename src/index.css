@@ -244,12 +244,15 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+/* Cyber gradient utility for buttons */
+.gradient-cyber {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+}
 
-  body {
-    @apply bg-background text-foreground;
-  }
+.glow-cyber {
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+}
+
+.text-glow-cyber {
+  text-shadow: 0 0 10px hsl(var(--primary) / 0.6);
 }

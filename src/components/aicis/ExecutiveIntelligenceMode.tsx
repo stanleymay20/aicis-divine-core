@@ -227,7 +227,7 @@ export const ExecutiveIntelligenceMode = () => {
   const getPriorityColor = (priority: "critical" | "high" | "medium") => {
     return {
       critical: "bg-destructive/20 text-destructive border-destructive/30",
-      high: "bg-orange-500/20 text-orange-500 border-orange-500/30",
+      high: "bg-warning/20 text-warning border-warning/30",
       medium: "bg-warning/20 text-warning border-warning/30",
     }[priority];
   };

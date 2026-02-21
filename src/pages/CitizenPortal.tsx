@@ -44,7 +44,7 @@ export default function CitizenPortal() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-500" />
+                  <AlertTriangle className="h-5 w-5 text-warning" />
                   Live Global Alerts
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
@@ -59,7 +59,7 @@ export default function CitizenPortal() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-purple-500" />
+                  <Brain className="h-5 w-5 text-accent" />
                   Predictive Forecasts
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
@@ -113,7 +113,7 @@ export default function CitizenPortal() {
         </div>
 
         {/* Bottom Banner */}
-        <Card className="mt-6 bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
+        <Card className="mt-6 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
           <CardContent className="py-6">
             <div className="text-center space-y-2">
               <h3 className="text-xl font-semibold">
