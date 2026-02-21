@@ -101,7 +101,7 @@ export const EnergyPanel = () => {
                   <span className="text-muted-foreground">Stability:</span>
                   <span className={`font-medium ${
                     Number(record.stability_index) >= 90 ? 'text-chart-2' :
-                    Number(record.stability_index) >= 70 ? 'text-yellow-500' :
+                    Number(record.stability_index) >= 70 ? 'text-warning' :
                     'text-destructive'
                   }`}>
                     {Number(record.stability_index).toFixed(1)}%

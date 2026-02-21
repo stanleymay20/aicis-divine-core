@@ -15,7 +15,7 @@ const getStatusIcon = (status: string) => {
     case "active":
       return <Activity className="w-4 h-4 text-primary animate-pulse" />;
     case "ready":
-      return <Brain className="w-4 h-4 text-cyan-400" />;
+      return <Brain className="w-4 h-4 text-accent" />;
     default:
       return <AlertTriangle className="w-4 h-4 text-warning" />;
   }

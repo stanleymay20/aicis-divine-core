@@ -70,9 +70,9 @@ export const TrustPortal = () => {
   };
 
   const getMetricColor = (value: number) => {
-    if (value >= 95) return 'text-green-500';
-    if (value >= 85) return 'text-yellow-500';
-    return 'text-red-500';
+    if (value >= 95) return 'text-success';
+    if (value >= 85) return 'text-warning';
+    return 'text-destructive';
   };
 
   return (
@@ -99,7 +99,7 @@ export const TrustPortal = () => {
             
             return (
               <Card key={type} className="relative overflow-hidden">
-                <div className={`absolute top-0 right-0 w-32 h-32 ${value >= 95 ? 'bg-green-500/10' : value >= 85 ? 'bg-yellow-500/10' : 'bg-red-500/10'} rounded-full blur-3xl -mr-16 -mt-16`} />
+                <div className={`absolute top-0 right-0 w-32 h-32 ${value >= 95 ? 'bg-success/10' : value >= 85 ? 'bg-warning/10' : 'bg-destructive/10'} rounded-full blur-3xl -mr-16 -mt-16`} />
                 
                 <CardHeader className="relative">
                   <CardTitle className="flex items-center justify-between text-sm font-medium">
@@ -213,7 +213,7 @@ export const TrustPortal = () => {
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Data Breaches</div>
-                <div className={`text-2xl font-bold ${latestReport.data_breaches_count === 0 ? 'text-green-500' : 'text-red-500'}`}>
+                <div className={`text-2xl font-bold ${latestReport.data_breaches_count === 0 ? 'text-success' : 'text-destructive'}`}>
                   {latestReport.data_breaches_count || 0}
                 </div>
               </div>

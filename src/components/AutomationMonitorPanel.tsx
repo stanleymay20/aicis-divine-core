@@ -122,13 +122,13 @@ export function AutomationMonitorPanel() {
                 <CardContent className="pt-4">
                   <div className="flex items-start gap-3">
                     {log.status === "success" && (
-                      <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                      <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
                     )}
                     {log.status === "error" && (
-                      <XCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                      <XCircle className="h-5 w-5 text-destructive mt-0.5" />
                     )}
                     {log.status === "running" && (
-                      <Loader2 className="h-5 w-5 text-yellow-500 animate-spin mt-0.5" />
+                      <Loader2 className="h-5 w-5 text-warning animate-spin mt-0.5" />
                     )}
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">

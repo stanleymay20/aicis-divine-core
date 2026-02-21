@@ -152,7 +152,7 @@ export const SecurityConflictView = () => {
 
   const getSeverityColor = (severity: number) => {
     if (severity >= 8) return "text-destructive border-destructive/30 bg-destructive/10";
-    if (severity >= 6) return "text-orange-500 border-orange-500/30 bg-orange-500/10";
+    if (severity >= 6) return "text-warning border-warning/30 bg-warning/10";
     if (severity >= 4) return "text-warning border-warning/30 bg-warning/10";
     return "text-muted-foreground border-border bg-muted/10";
   };
@@ -217,10 +217,10 @@ export const SecurityConflictView = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-orange-500/30">
+        <Card className="border-warning/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2 text-orange-500">
+              <div className="flex items-center gap-2 text-warning">
                 <Skull className="h-4 w-4" />
                 <span className="text-xs uppercase">Total Incidents</span>
               </div>

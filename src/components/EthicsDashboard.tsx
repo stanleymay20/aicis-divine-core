@@ -46,9 +46,9 @@ export default function EthicsDashboard() {
   };
 
   const getBiasCategory = (biasScore: number) => {
-    if (biasScore < 5) return { label: 'Low', color: 'text-green-600' };
-    if (biasScore < 15) return { label: 'Medium', color: 'text-yellow-600' };
-    return { label: 'High', color: 'text-red-600' };
+    if (biasScore < 5) return { label: 'Low', color: 'text-success' };
+    if (biasScore < 15) return { label: 'Medium', color: 'text-warning' };
+    return { label: 'High', color: 'text-destructive' };
   };
 
   const trustScore = calculateTrustScore();
@@ -91,7 +91,7 @@ export default function EthicsDashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-muted-foreground">Total Decisions</h3>
-            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <CheckCircle2 className="w-5 h-5 text-success" />
           </div>
           <div className="text-3xl font-bold">{decisions?.length || 0}</div>
           <p className="text-xs text-muted-foreground mt-2">Logged decisions</p>
@@ -100,7 +100,7 @@ export default function EthicsDashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-muted-foreground">Ethics Cases</h3>
-            <AlertTriangle className="w-5 h-5 text-orange-600" />
+            <AlertTriangle className="w-5 h-5 text-warning" />
           </div>
           <div className="text-3xl font-bold">{ethicsCases?.length || 0}</div>
           <p className="text-xs text-muted-foreground mt-2">Active appeals</p>
@@ -109,7 +109,7 @@ export default function EthicsDashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-muted-foreground">Avg Bias Score</h3>
-            <Scale className="w-5 h-5 text-blue-600" />
+            <Scale className="w-5 h-5 text-primary" />
           </div>
           <div className="text-3xl font-bold">
             {decisions?.length 

@@ -60,10 +60,10 @@ export const NotificationsCenter = () => {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "success": return "text-green-500 bg-green-500/10";
-      case "warning": return "text-yellow-500 bg-yellow-500/10";
-      case "error": return "text-red-500 bg-red-500/10";
-      default: return "text-blue-500 bg-blue-500/10";
+      case "success": return "text-success bg-success/10";
+      case "warning": return "text-warning bg-warning/10";
+      case "error": return "text-destructive bg-destructive/10";
+      default: return "text-primary bg-primary/10";
     }
   };
 

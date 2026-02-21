@@ -121,7 +121,7 @@ export default function SDGDashboard() {
                   </div>
 
                   {progressValue < 50 && (
-                    <div className="flex items-center gap-1 text-xs text-orange-600">
+                    <div className="flex items-center gap-1 text-xs text-warning">
                       <AlertCircle className="w-3 h-3" />
                       <span>Needs attention</span>
                     </div>

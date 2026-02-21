@@ -82,7 +82,7 @@ function getVerificationConfig(level: VerificationLevel) {
     unverified: {
       label: "Unverified",
       description: "Limited source verification",
-      color: "bg-orange-500/20 text-orange-500 border-orange-500/30",
+      color: "bg-warning/20 text-warning border-warning/30",
       icon: ShieldAlert,
     },
     unknown: {
@@ -110,12 +110,12 @@ function getSourceTypeLabel(type: SourceInfo["type"]) {
 
 function getSourceTypeColor(type: SourceInfo["type"]) {
   const colors: Record<SourceInfo["type"], string> = {
-    media: "bg-blue-500/20 text-blue-500 border-blue-500/30",
-    satellite: "bg-purple-500/20 text-purple-500 border-purple-500/30",
-    government: "bg-green-500/20 text-green-500 border-green-500/30",
-    ngo: "bg-orange-500/20 text-orange-500 border-orange-500/30",
-    academic: "bg-cyan-500/20 text-cyan-500 border-cyan-500/30",
-    aggregator: "bg-gray-500/20 text-gray-500 border-gray-500/30",
+    media: "bg-primary/20 text-primary border-primary/30",
+    satellite: "bg-accent/20 text-accent border-accent/30",
+    government: "bg-success/20 text-success border-success/30",
+    ngo: "bg-warning/20 text-warning border-warning/30",
+    academic: "bg-secondary/20 text-secondary border-secondary/30",
+    aggregator: "bg-muted/20 text-muted-foreground border-muted/20",
   };
   return colors[type];
 }
@@ -205,7 +205,7 @@ export const VerificationDot = ({ score, className }: { score: number; className
   const colors = {
     highly_verified: "bg-success",
     partially_verified: "bg-warning",
-    unverified: "bg-orange-500",
+    unverified: "bg-warning",
     unknown: "bg-muted-foreground",
   };
   

@@ -45,9 +45,9 @@ export const PredictiveIntelligence = () => {
   };
 
   const getTrendIcon = (forecast: any) => {
-    if (forecast?.trend === 'increasing') return <TrendingUp className="h-4 w-4 text-green-500" />;
-    if (forecast?.trend === 'decreasing') return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Activity className="h-4 w-4 text-yellow-500" />;
+    if (forecast?.trend === 'increasing') return <TrendingUp className="h-4 w-4 text-success" />;
+    if (forecast?.trend === 'decreasing') return <TrendingDown className="h-4 w-4 text-destructive" />;
+    return <Activity className="h-4 w-4 text-warning" />;
   };
 
   return (

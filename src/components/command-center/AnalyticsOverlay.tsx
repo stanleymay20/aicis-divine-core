@@ -79,21 +79,21 @@ export const AnalyticsOverlay = ({ isOpen, onClose, selectedCountry }: Analytics
           value: avgHealth.toFixed(1),
           change: -1.5,
           icon: Heart,
-          color: "text-pink-500"
+          color: "text-primary"
         },
         {
           label: "Food Security",
           value: (100 - avgFood).toFixed(1) + "%",
           change: 0.8,
           icon: Utensils,
-          color: "text-amber-500"
+          color: "text-warning"
         },
         {
           label: "Energy Stability",
           value: (100 - avgEnergy).toFixed(1) + "%",
           change: 1.2,
           icon: Zap,
-          color: "text-yellow-500"
+          color: "text-warning"
         },
         {
           label: "Active Divisions",

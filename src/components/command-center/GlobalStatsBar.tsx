@@ -63,7 +63,7 @@ export const GlobalStatsBar = () => {
           value: `${(100 - avgHealth).toFixed(0)}%`,
           change: 1.5,
           icon: Heart,
-          color: "text-pink-500",
+          color: "text-primary",
         },
         {
           id: "food",
@@ -71,7 +71,7 @@ export const GlobalStatsBar = () => {
           value: `${(100 - avgFood).toFixed(0)}%`,
           change: 0.8,
           icon: Utensils,
-          color: "text-amber-500",
+          color: "text-warning",
         },
         {
           id: "energy",
@@ -79,7 +79,7 @@ export const GlobalStatsBar = () => {
           value: `${(100 - avgEnergy).toFixed(0)}%`,
           change: 2.1,
           icon: Zap,
-          color: "text-yellow-500",
+          color: "text-warning",
         },
         {
           id: "climate",
@@ -87,7 +87,7 @@ export const GlobalStatsBar = () => {
           value: `${(100 - avgClimate).toFixed(0)}%`,
           change: -0.5,
           icon: CloudRain,
-          color: "text-cyan-500",
+          color: "text-accent",
         },
         {
           id: "incidents",

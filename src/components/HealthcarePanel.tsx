@@ -98,9 +98,9 @@ export const HealthcarePanel = () => {
                 <span className="text-xs text-muted-foreground">Cases: {record.affected_count}</span>
                 <span className={`text-xs font-medium ${
                   record.risk_level === 'critical' ? 'text-destructive' :
-                  record.risk_level === 'high' ? 'text-orange-500' :
-                  record.risk_level === 'medium' ? 'text-yellow-500' :
-                  'text-green-500'
+                  record.risk_level === 'high' ? 'text-warning' :
+                  record.risk_level === 'medium' ? 'text-accent' :
+                  'text-success'
                 }`}>
                   {record.risk_level}
                 </span>

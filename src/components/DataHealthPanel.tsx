@@ -145,18 +145,18 @@ export const DataHealthPanel = () => {
 
   const getFreshnessIcon = (freshness: string) => {
     switch (freshness) {
-      case 'fresh': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-      case 'stale': return <Activity className="w-4 h-4 text-yellow-500" />;
-      case 'critical': return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'fresh': return <CheckCircle2 className="w-4 h-4 text-success" />;
+      case 'stale': return <Activity className="w-4 h-4 text-warning" />;
+      case 'critical': return <AlertTriangle className="w-4 h-4 text-destructive" />;
       default: return null;
     }
   };
 
   const getFreshnessColor = (freshness: string) => {
     switch (freshness) {
-      case 'fresh': return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'stale': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      case 'critical': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'fresh': return 'bg-success/10 text-success border-success/20';
+      case 'stale': return 'bg-warning/10 text-warning border-warning/20';
+      case 'critical': return 'bg-destructive/10 text-destructive border-destructive/20';
       default: return '';
     }
   };

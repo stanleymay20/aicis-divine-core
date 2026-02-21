@@ -18,7 +18,7 @@ const SeverityBadge = ({ severity }: { severity: string }) => {
   const config = {
     low: { color: "bg-success/20 text-success border-success/30", label: "LOW" },
     medium: { color: "bg-warning/20 text-warning border-warning/30", label: "MEDIUM" },
-    high: { color: "bg-orange-500/20 text-orange-500 border-orange-500/30", label: "HIGH" },
+    high: { color: "bg-warning/20 text-warning border-warning/30", label: "HIGH" },
     critical: { color: "bg-destructive/20 text-destructive border-destructive/30 animate-pulse", label: "CRITICAL" },
   };
   
@@ -74,7 +74,7 @@ const DashboardCardComponent = ({ card }: { card: DashboardCard }) => {
                 "w-2 h-2 rounded-full",
                 card.riskLevel === "low" && "bg-success",
                 card.riskLevel === "medium" && "bg-warning",
-                card.riskLevel === "high" && "bg-orange-500",
+                card.riskLevel === "high" && "bg-warning",
                 card.riskLevel === "critical" && "bg-destructive animate-pulse"
               )} />
             )}
