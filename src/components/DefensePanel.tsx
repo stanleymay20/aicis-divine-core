@@ -53,8 +53,8 @@ export const DefensePanel = () => {
 
   const getThreatColor = (level: number) => {
     if (level >= 7) return "text-destructive";
-    if (level >= 4) return "text-yellow-500";
-    return "text-green-500";
+    if (level >= 4) return "text-warning";
+    return "text-success";
   };
 
   return (

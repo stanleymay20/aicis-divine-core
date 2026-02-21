@@ -99,15 +99,15 @@ export const EventBusMonitor = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Radio className={`h-5 w-5 ${isConnected ? 'text-green-500 animate-pulse' : 'text-gray-500'}`} />
+            <Radio className={`h-5 w-5 ${isConnected ? 'text-success animate-pulse' : 'text-muted-foreground'}`} />
             <CardTitle>Inter-Division Event Bus</CardTitle>
           </div>
           {isConnected ? (
-            <Badge variant="outline" className="text-green-500 border-green-500">
+            <Badge variant="outline" className="text-success border-success">
               ● LIVE
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-gray-500">
+            <Badge variant="outline" className="text-muted-foreground">
               ○ Connecting
             </Badge>
           )}

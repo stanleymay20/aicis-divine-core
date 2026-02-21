@@ -58,11 +58,11 @@ export const NodeFederationPanel = () => {
 
   const getNodeColor = (type: string) => {
     switch (type) {
-      case 'global': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
-      case 'national': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'institutional': return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'individual': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+      case 'global': return 'bg-accent/10 text-accent border-accent/20';
+      case 'national': return 'bg-primary/10 text-primary border-primary/20';
+      case 'institutional': return 'bg-success/10 text-success border-success/20';
+      case 'individual': return 'bg-warning/10 text-warning border-warning/20';
+      default: return 'bg-muted/10 text-muted-foreground border-muted/20';
     }
   };
 
@@ -89,7 +89,7 @@ export const NodeFederationPanel = () => {
                   {getNodeIcon(node.org_type)}
                   <h4 className="font-semibold">{node.org_name}</h4>
                   {node.verified && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
@@ -127,25 +127,25 @@ export const NodeFederationPanel = () => {
       <CardContent>
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="text-center p-3 rounded-lg border">
-            <div className="text-2xl font-bold text-purple-500">
+            <div className="text-2xl font-bold text-accent">
               {nodesByType.global.length}
             </div>
             <div className="text-xs text-muted-foreground">Global</div>
           </div>
           <div className="text-center p-3 rounded-lg border">
-            <div className="text-2xl font-bold text-blue-500">
+            <div className="text-2xl font-bold text-primary">
               {nodesByType.national.length}
             </div>
             <div className="text-xs text-muted-foreground">National</div>
           </div>
           <div className="text-center p-3 rounded-lg border">
-            <div className="text-2xl font-bold text-green-500">
+            <div className="text-2xl font-bold text-success">
               {nodesByType.institutional.length}
             </div>
             <div className="text-xs text-muted-foreground">Institutional</div>
           </div>
           <div className="text-center p-3 rounded-lg border">
-            <div className="text-2xl font-bold text-yellow-500">
+            <div className="text-2xl font-bold text-warning">
               {nodesByType.individual.length}
             </div>
             <div className="text-xs text-muted-foreground">Individual</div>

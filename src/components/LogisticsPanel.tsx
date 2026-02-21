@@ -104,7 +104,7 @@ export const LogisticsPanel = () => {
                     <span className="text-muted-foreground">Delay Index:</span>
                     <span className={`font-medium ${
                       Number(record.delay_index) < 10 ? 'text-chart-2' :
-                      Number(record.delay_index) < 30 ? 'text-yellow-500' :
+                      Number(record.delay_index) < 30 ? 'text-warning' :
                       'text-destructive'
                     }`}>
                       {Number(record.delay_index).toFixed(1)}

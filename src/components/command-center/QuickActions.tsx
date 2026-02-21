@@ -14,10 +14,10 @@ interface QuickActionsProps {
 export const QuickActions = ({ onAction, activeLayer }: QuickActionsProps) => {
   const layers = [
     { id: "vulnerability", icon: Shield, label: "Risk", color: "text-destructive" },
-    { id: "health", icon: Heart, label: "Health", color: "text-pink-500" },
-    { id: "food", icon: Utensils, label: "Food", color: "text-amber-500" },
-    { id: "energy", icon: Zap, label: "Energy", color: "text-yellow-500" },
-    { id: "incidents", icon: AlertTriangle, label: "Incidents", color: "text-orange-500" },
+    { id: "health", icon: Heart, label: "Health", color: "text-primary" },
+    { id: "food", icon: Utensils, label: "Food", color: "text-warning" },
+    { id: "energy", icon: Zap, label: "Energy", color: "text-warning" },
+    { id: "incidents", icon: AlertTriangle, label: "Incidents", color: "text-warning" },
   ];
 
   const actions = [

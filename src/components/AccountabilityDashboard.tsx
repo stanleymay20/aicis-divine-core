@@ -74,25 +74,25 @@ export const AccountabilityDashboard = () => {
 
   const getOrgTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      government: 'bg-blue-500',
-      ngo: 'bg-green-500',
-      agency: 'bg-purple-500',
-      academic: 'bg-orange-500',
-      private: 'bg-gray-500'
+      government: 'bg-primary',
+      ngo: 'bg-success',
+      agency: 'bg-accent',
+      academic: 'bg-warning',
+      private: 'bg-muted-foreground'
     };
-    return colors[type] || 'bg-gray-500';
+    return colors[type] || 'bg-muted-foreground';
   };
 
   const getEntryTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      ethics: 'bg-purple-500',
-      sdg: 'bg-green-500',
-      finance: 'bg-blue-500',
-      policy: 'bg-yellow-500',
-      crisis: 'bg-red-500',
-      compliance: 'bg-indigo-500'
+      ethics: 'bg-accent',
+      sdg: 'bg-success',
+      finance: 'bg-primary',
+      policy: 'bg-warning',
+      crisis: 'bg-destructive',
+      compliance: 'bg-secondary'
     };
-    return colors[type] || 'bg-gray-500';
+    return colors[type] || 'bg-muted-foreground';
   };
 
   // Calculate integrity score from verified ledger entries
@@ -152,7 +152,7 @@ export const AccountabilityDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Integrity Score</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{integrityScore}%</div>
@@ -208,7 +208,7 @@ export const AccountabilityDashboard = () => {
                       {node.org_type}
                     </Badge>
                     {node.verified && (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-4 w-4 text-success" />
                     )}
                   </div>
                 </div>
@@ -254,9 +254,9 @@ export const AccountabilityDashboard = () => {
                       {new Date(entry.timestamp).toLocaleString()}
                     </span>
                     {entry.verified ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <CheckCircle className="h-4 w-4 text-success" />
                     ) : (
-                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                      <AlertTriangle className="h-4 w-4 text-warning" />
                     )}
                   </div>
                 </div>

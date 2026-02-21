@@ -66,11 +66,11 @@ export default function EconomyPanel() {
     switch (txType) {
       case "reward":
       case "mint":
-        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Reward</Badge>;
+        return <Badge className="bg-success/20 text-success border-success/30">Reward</Badge>;
       case "transfer_in":
-        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">In</Badge>;
+        return <Badge className="bg-primary/20 text-primary border-primary/30">In</Badge>;
       case "transfer_out":
-        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Out</Badge>;
+        return <Badge className="bg-warning/20 text-warning border-warning/30">Out</Badge>;
       case "burn":
       case "lock":
         return <Badge variant="destructive">Lock</Badge>;
@@ -106,13 +106,13 @@ export default function EconomyPanel() {
         </div>
         <div className="p-3 rounded-lg border bg-card/30">
           <div className="text-xs text-muted-foreground">Available</div>
-          <div className="text-xl font-bold text-green-400">
+          <div className="text-xl font-bold text-success">
             {totalAvailable.toFixed(2)} SC
           </div>
         </div>
         <div className="p-3 rounded-lg border bg-card/30">
           <div className="text-xs text-muted-foreground">Locked</div>
-          <div className="text-xl font-bold text-orange-400">
+          <div className="text-xl font-bold text-warning">
             {totalLocked.toFixed(2)} SC
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function EconomyPanel() {
                     {Number(wallet.balance).toFixed(2)} SC
                   </span>
                   {Number(wallet.locked) > 0 && (
-                    <span className="text-xs text-orange-400">
+                    <span className="text-xs text-warning">
                       ({Number(wallet.locked).toFixed(2)} locked)
                     </span>
                   )}
@@ -173,9 +173,9 @@ export default function EconomyPanel() {
                 </div>
                 <div className="flex items-center gap-1">
                   {tx.tx_type.includes("in") || tx.tx_type === "reward" || tx.tx_type === "mint" ? (
-                    <ArrowUpRight className="w-4 h-4 text-green-400" />
+                    <ArrowUpRight className="w-4 h-4 text-success" />
                   ) : (
-                    <ArrowDownRight className="w-4 h-4 text-orange-400" />
+                    <ArrowDownRight className="w-4 h-4 text-warning" />
                   )}
                   <span className="font-medium">
                     {Number(tx.amount).toFixed(2)} SC

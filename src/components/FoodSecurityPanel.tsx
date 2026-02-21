@@ -102,9 +102,9 @@ export const FoodSecurityPanel = () => {
               </div>
               <span className={`text-xs font-medium ${
                 record.alert_level === 'critical' ? 'text-destructive' :
-                record.alert_level === 'high' ? 'text-orange-500' :
-                record.alert_level === 'medium' ? 'text-yellow-500' :
-                'text-green-500'
+                record.alert_level === 'high' ? 'text-warning' :
+                record.alert_level === 'medium' ? 'text-accent' :
+                'text-success'
               }`}>
                 {record.alert_level}
               </span>

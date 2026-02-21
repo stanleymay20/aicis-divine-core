@@ -35,9 +35,9 @@ interface SmallNationGuidanceProps {
 
 const priorityColors = {
   critical: "bg-destructive text-destructive-foreground",
-  high: "bg-orange-500/20 text-orange-400 border-orange-500/50",
-  medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
-  low: "bg-green-500/20 text-green-400 border-green-500/50"
+  high: "bg-warning/20 text-warning border-warning/50",
+  medium: "bg-accent/20 text-accent border-accent/50",
+  low: "bg-success/20 text-success border-success/50"
 };
 
 const priorityIcons = {

@@ -62,19 +62,19 @@ export default function PolicyCompliancePanel() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-muted-foreground">User Consents</h3>
-            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <CheckCircle2 className="w-5 h-5 text-success" />
           </div>
           <div className="text-3xl font-bold">{activeConsents}</div>
           <p className="text-xs text-muted-foreground mt-2">Active consents</p>
           {revokedConsents > 0 && (
-            <p className="text-xs text-orange-600 mt-1">{revokedConsents} revoked</p>
+            <p className="text-xs text-warning mt-1">{revokedConsents} revoked</p>
           )}
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-muted-foreground">Retention Policies</h3>
-            <Clock className="w-5 h-5 text-blue-600" />
+            <Clock className="w-5 h-5 text-primary" />
           </div>
           <div className="text-3xl font-bold">{retentionPolicies?.length || 0}</div>
           <p className="text-xs text-muted-foreground mt-2">Active policies</p>
@@ -83,7 +83,7 @@ export default function PolicyCompliancePanel() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-muted-foreground">Data Classification</h3>
-            <Shield className="w-5 h-5 text-purple-600" />
+            <Shield className="w-5 h-5 text-accent" />
           </div>
           <div className="text-3xl font-bold capitalize">
             {federationPolicies?.data_classification || 'Public'}
@@ -121,7 +121,7 @@ export default function PolicyCompliancePanel() {
         <h3 className="text-lg font-semibold mb-4">Data Sovereignty & Federation</h3>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
             <div>
               <div className="font-medium">Data Minimization</div>
               <div className="text-sm text-muted-foreground">
@@ -131,7 +131,7 @@ export default function PolicyCompliancePanel() {
           </div>
 
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
             <div>
               <div className="font-medium">Encryption at Rest</div>
               <div className="text-sm text-muted-foreground">
@@ -141,7 +141,7 @@ export default function PolicyCompliancePanel() {
           </div>
 
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
             <div>
               <div className="font-medium">Audit Trail</div>
               <div className="text-sm text-muted-foreground">
@@ -152,7 +152,7 @@ export default function PolicyCompliancePanel() {
 
           {federationPolicies?.jurisdiction && (
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+              <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
               <div>
                 <div className="font-medium">Jurisdiction</div>
                 <div className="text-sm text-muted-foreground">
@@ -165,12 +165,12 @@ export default function PolicyCompliancePanel() {
       </Card>
 
       {/* GDPR Compliance Status */}
-      <Card className="p-6 border-green-200 bg-green-50 dark:bg-green-950/20">
+      <Card className="p-6 border-success/20 bg-success/5">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="w-6 h-6 text-green-600" />
+          <CheckCircle2 className="w-6 h-6 text-success" />
           <div>
-            <div className="font-semibold text-green-900 dark:text-green-100">GDPR Compliant</div>
-            <div className="text-sm text-green-700 dark:text-green-300 mt-1">
+            <div className="font-semibold text-foreground">GDPR Compliant</div>
+            <div className="text-sm text-muted-foreground mt-1">
               This system implements GDPR Article 5 (data minimization), Article 13-15 (informed consent), 
               Article 17 (right to erasure), and Article 32 (security measures).
             </div>

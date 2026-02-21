@@ -173,7 +173,7 @@ export const LiveCriticalAlerts = ({ onAlertClick, maxHeight = "400px" }: LiveCr
                   className={cn(
                     "p-3 rounded-lg border cursor-pointer transition-all hover:bg-muted/50",
                     isCritical && "border-destructive/50 bg-destructive/5",
-                    isHigh && !isCritical && "border-orange-500/50 bg-orange-500/5",
+                    isHigh && !isCritical && "border-warning/50 bg-warning/5",
                     !isHigh && !isCritical && "border-warning/50 bg-warning/5",
                     alert.acknowledged && "opacity-60"
                   )}
@@ -187,7 +187,7 @@ export const LiveCriticalAlerts = ({ onAlertClick, maxHeight = "400px" }: LiveCr
                           className={cn(
                             "text-[10px] shrink-0",
                             isCritical && "border-destructive text-destructive",
-                            isHigh && !isCritical && "border-orange-500 text-orange-500"
+                            isHigh && !isCritical && "border-warning text-warning"
                           )}
                         >
                           {alert.level?.toUpperCase() || (isCritical ? "CRITICAL" : "HIGH")}
