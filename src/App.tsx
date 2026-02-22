@@ -38,6 +38,7 @@ const ReadinessReport = lazy(() => import("./pages/ReadinessReport"));
 const CompareModels = lazy(() => import("./pages/CompareModels"));
 const OperationalDashboard = lazy(() => import("./pages/OperationalDashboard"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const WeeklyBriefs = lazy(() => import("./pages/WeeklyBriefs"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -87,6 +88,7 @@ const App = () => (
             <Route path="/operations" element={<Lazy><OperationalDashboard /></Lazy>} />
             <Route path="/ethics" element={<Lazy><Ethics /></Lazy>} />
             <Route path="/reset-password" element={<Lazy><ResetPassword /></Lazy>} />
+            <Route path="/weekly-briefs" element={<Lazy><WeeklyBriefs /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

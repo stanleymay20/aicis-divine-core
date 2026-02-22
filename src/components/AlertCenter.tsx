@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, AlertTriangle, AlertCircle, Info } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle2, Trash2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -19,6 +20,8 @@ interface Alert {
 }
 
 export const AlertCenter = () => {
+  const queryClient = useQueryClient();
+
   const { data: alerts = [], refetch } = useQuery({
     queryKey: ['alerts'],
     queryFn: async () => {
@@ -31,6 +34,31 @@ export const AlertCenter = () => {
       if (error) throw error;
       return data as Alert[];
     }
+  });
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('alerts')
+        .update({ acknowledged: true, acknowledged_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alerts'] }),
+  });
+
+  const acknowledgeAllMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('alerts')
+        .update({ acknowledged: true, acknowledged_at: new Date().toISOString() })
+        .eq('acknowledged', false);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      toast.success('All alerts acknowledged');
+    },
   });
 
   // Real-time subscriptions
@@ -103,7 +131,7 @@ export const AlertCenter = () => {
           <Bell className="h-5 w-5 text-primary" />
           Global Alert Center
         </CardTitle>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           {criticalCount > 0 && (
             <Badge variant="destructive" className="animate-pulse">
               {criticalCount} Critical
@@ -113,6 +141,18 @@ export const AlertCenter = () => {
             <Badge variant="destructive">
               {highCount} High
             </Badge>
+          )}
+          {(criticalCount + highCount > 0) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => acknowledgeAllMutation.mutate()}
+              disabled={acknowledgeAllMutation.isPending}
+              className="text-xs"
+            >
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Ack All
+            </Button>
           )}
         </div>
       </CardHeader>
@@ -155,6 +195,17 @@ export const AlertCenter = () => {
                         {new Date(alert.created_at).toLocaleString()}
                       </p>
                     </div>
+                    {!alert.acknowledged && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => acknowledgeMutation.mutate(alert.id)}
+                        disabled={acknowledgeMutation.isPending}
+                        className="shrink-0"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))
