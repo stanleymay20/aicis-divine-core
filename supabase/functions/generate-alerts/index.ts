@@ -75,13 +75,13 @@ serve(async (req) => {
       });
     }
 
-    // De-duplicate and insert
+    // De-duplicate with 7-day window (prevents daily re-triggering)
     let inserted = 0;
     for (const alert of alerts) {
       const { data: existing } = await supabase
         .from('alerts').select('id')
         .eq('title', alert.title)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .limit(1);
 
       if (!existing || existing.length === 0) {
