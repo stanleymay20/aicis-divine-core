@@ -1,190 +1,150 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resilientCall, structuredLog, handleCors, corsHeaders, errorResponse, jsonResponse } from "../_shared/resilience.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const FN = "detect-global-anomalies";
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  const start = Date.now();
+
   try {
+    // Use service_role_key so cron can invoke without user auth
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
+    structuredLog('info', FN, 'Starting global anomaly detection');
+    const anomalies: any[] = [];
 
-    console.log("Detecting global anomalies across all divisions...");
+    // Finance anomalies
+    await resilientCall(`${FN}:finance`, async () => {
+      const { data: recentFinance } = await supabase
+        .from('finance_data')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-    const anomalies = [];
+      if (recentFinance && recentFinance.length > 10) {
+        const values = recentFinance.slice(0, 10).map(r => Number(r.value));
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        const stdDev = Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / values.length);
+        const latest = values[0];
 
-    // Finance: Detect unusual price movements
-    const { data: recentRevenue } = await supabase
-      .from('revenue_streams')
-      .select('*')
-      .order('captured_at', { ascending: false })
-      .limit(50);
-
-    if (recentRevenue && recentRevenue.length > 10) {
-      const avgRevenue = recentRevenue.slice(0, 10).reduce((sum, r) => sum + Number(r.amount), 0) / 10;
-      const stdDev = Math.sqrt(
-        recentRevenue.slice(0, 10).reduce((sum, r) => sum + Math.pow(Number(r.amount) - avgRevenue, 2), 0) / 10
-      );
-      
-      const latestRevenue = Number(recentRevenue[0].amount);
-      if (Math.abs(latestRevenue - avgRevenue) > 2 * stdDev) {
-        anomalies.push({
-          anomaly_type: 'revenue_spike',
-          division: 'finance',
-          severity: latestRevenue > avgRevenue ? 'medium' : 'high',
-          description: `Unusual revenue ${latestRevenue > avgRevenue ? 'increase' : 'decrease'} detected: ${latestRevenue.toFixed(2)} vs avg ${avgRevenue.toFixed(2)}`,
-          metrics: { current: latestRevenue, average: avgRevenue, std_dev: stdDev },
-          baseline_metrics: { average: avgRevenue },
-          deviation_percentage: ((latestRevenue - avgRevenue) / avgRevenue * 100).toFixed(2)
-        });
-      }
-    }
-
-    // Energy: Detect grid instability
-    const { data: recentEnergy } = await supabase
-      .from('energy_grid')
-      .select('*')
-      .lt('stability_index', 75)
-      .order('updated_at', { ascending: false })
-      .limit(10);
-
-    if (recentEnergy && recentEnergy.length > 3) {
-      anomalies.push({
-        anomaly_type: 'grid_instability',
-        division: 'energy',
-        severity: 'high',
-        description: `${recentEnergy.length} regions experiencing grid instability`,
-        metrics: { affected_regions: recentEnergy.length, regions: recentEnergy.map(e => e.region) },
-        baseline_metrics: { expected_stability: 95 },
-        deviation_percentage: null
-      });
-    }
-
-    // Health: Detect disease outbreak acceleration
-    const { data: recentHealth } = await supabase
-      .from('health_data')
-      .select('*')
-      .order('updated_at', { ascending: false })
-      .limit(20);
-
-    if (recentHealth && recentHealth.length > 5) {
-      const diseaseGroups: any = {};
-      recentHealth.forEach(h => {
-        if (!diseaseGroups[h.disease]) diseaseGroups[h.disease] = [];
-        diseaseGroups[h.disease].push(h.affected_count);
-      });
-
-      for (const [disease, counts] of Object.entries<number[]>(diseaseGroups)) {
-        if (counts.length >= 2) {
-          const recent = counts[0];
-          const previous = counts[1];
-          const growthRate = ((recent - previous) / previous) * 100;
-
-          if (growthRate > 50) {
-            anomalies.push({
-              anomaly_type: 'outbreak_acceleration',
-              division: 'health',
-              severity: 'critical',
-              description: `Rapid ${disease} outbreak growth detected: ${growthRate.toFixed(1)}% increase`,
-              metrics: { disease, current_cases: recent, previous_cases: previous, growth_rate: growthRate },
-              baseline_metrics: { previous_cases: previous },
-              deviation_percentage: growthRate.toFixed(2)
-            });
-          }
+        if (stdDev > 0 && Math.abs(latest - avg) > 2 * stdDev) {
+          anomalies.push({
+            anomaly_type: 'finance_spike',
+            division: 'finance',
+            severity: latest > avg ? 'medium' : 'high',
+            description: `Unusual finance movement: ${latest.toFixed(2)} vs avg ${avg.toFixed(2)}`,
+            metrics: { current: latest, average: avg, std_dev: stdDev },
+            baseline_metrics: { average: avg },
+            deviation_percentage: ((latest - avg) / avg * 100).toFixed(2)
+          });
         }
       }
-    }
+    }, { timeoutMs: 10000 }).catch(e => structuredLog('warn', FN, `Finance anomaly check failed: ${(e as Error).message}`));
 
-    // Food: Detect supply chain disruption
-    const { data: recentFood } = await supabase
-      .from('food_security')
-      .select('*')
-      .order('updated_at', { ascending: false })
-      .limit(20);
+    // Energy anomalies
+    await resilientCall(`${FN}:energy`, async () => {
+      const { data: recentEnergy } = await supabase
+        .from('energy_grid')
+        .select('*')
+        .lt('stability_index', 75)
+        .order('updated_at', { ascending: false })
+        .limit(10);
 
-    if (recentFood && recentFood.length > 5) {
-      const criticalSupply = recentFood.filter(f => f.supply_days && f.supply_days < 30);
-      if (criticalSupply.length > 3) {
+      if (recentEnergy && recentEnergy.length > 3) {
         anomalies.push({
-          anomaly_type: 'supply_shortage',
-          division: 'food',
+          anomaly_type: 'grid_instability',
+          division: 'energy',
           severity: 'high',
-          description: `${criticalSupply.length} regions with critical food supply (<30 days)`,
-          metrics: { affected_regions: criticalSupply.length, regions: criticalSupply.map(f => f.region) },
-          baseline_metrics: { expected_supply_days: 90 },
+          description: `${recentEnergy.length} regions experiencing grid instability`,
+          metrics: { affected_regions: recentEnergy.length },
+          baseline_metrics: { expected_stability: 95 },
           deviation_percentage: null
         });
       }
-    }
+    }, { timeoutMs: 10000 }).catch(e => structuredLog('warn', FN, `Energy anomaly check failed: ${(e as Error).message}`));
 
-    // Crisis: Detect surge in active events
-    const { count: activeCrises } = await supabase
-      .from('crisis_events')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active');
+    // Health anomalies
+    await resilientCall(`${FN}:health`, async () => {
+      const { data: recentHealth } = await supabase
+        .from('health_metrics')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-    if (activeCrises && activeCrises > 5) {
-      anomalies.push({
-        anomaly_type: 'crisis_surge',
-        division: 'crisis',
-        severity: 'critical',
-        description: `Unusual number of active crisis events: ${activeCrises}`,
-        metrics: { active_count: activeCrises },
-        baseline_metrics: { expected_active: 2 },
-        deviation_percentage: ((activeCrises - 2) / 2 * 100).toFixed(2)
-      });
-    }
+      if (recentHealth && recentHealth.length > 10) {
+        const byMetric = new Map<string, number[]>();
+        recentHealth.forEach((h: any) => {
+          const key = h.metric_name || 'unknown';
+          if (!byMetric.has(key)) byMetric.set(key, []);
+          byMetric.get(key)!.push(Number(h.value) || 0);
+        });
+
+        for (const [metric, values] of byMetric) {
+          if (values.length >= 3) {
+            const avg = values.reduce((a, b) => a + b, 0) / values.length;
+            const latest = values[0];
+            const growthRate = avg > 0 ? ((latest - avg) / avg) * 100 : 0;
+            if (Math.abs(growthRate) > 50) {
+              anomalies.push({
+                anomaly_type: 'health_metric_spike',
+                division: 'health',
+                severity: Math.abs(growthRate) > 100 ? 'critical' : 'high',
+                description: `${metric}: ${growthRate.toFixed(1)}% deviation from baseline`,
+                metrics: { metric, current: latest, average: avg, growth_rate: growthRate },
+                baseline_metrics: { average: avg },
+                deviation_percentage: growthRate.toFixed(2)
+              });
+            }
+          }
+        }
+      }
+    }, { timeoutMs: 10000 }).catch(e => structuredLog('warn', FN, `Health anomaly check failed: ${(e as Error).message}`));
+
+    // Crisis surge check
+    await resilientCall(`${FN}:crisis`, async () => {
+      const { count: activeCrises } = await supabase
+        .from('crisis_events')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['active', 'escalated', 'monitoring']);
+
+      if (activeCrises && activeCrises > 5) {
+        anomalies.push({
+          anomaly_type: 'crisis_surge',
+          division: 'crisis',
+          severity: 'critical',
+          description: `${activeCrises} active crisis events (threshold: 5)`,
+          metrics: { active_count: activeCrises },
+          baseline_metrics: { expected_active: 2 },
+          deviation_percentage: ((activeCrises - 2) / 2 * 100).toFixed(2)
+        });
+      }
+    }, { timeoutMs: 10000 }).catch(e => structuredLog('warn', FN, `Crisis anomaly check failed: ${(e as Error).message}`));
 
     // Insert anomalies
     if (anomalies.length > 0) {
       for (const anomaly of anomalies) {
-        await supabase.from('anomaly_detections').insert(anomaly);
-      }
-
-      // Notify about critical anomalies
-      const criticalAnomalies = anomalies.filter(a => a.severity === 'critical');
-      for (const anomaly of criticalAnomalies) {
-        await supabase.from('notifications').insert({
-          type: 'alert',
-          title: `Critical Anomaly: ${anomaly.anomaly_type}`,
-          message: anomaly.description,
-          division: anomaly.division,
-          user_id: user.id
-        });
+        const { error } = await supabase.from('anomaly_detections').insert(anomaly);
+        if (error) structuredLog('warn', FN, `Anomaly insert failed: ${error.message}`);
       }
     }
 
-    await supabase.from('system_logs').insert({
-      level: anomalies.some(a => a.severity === 'critical') ? 'error' : 'warning',
-      category: 'anomaly_detection',
-      message: `Detected ${anomalies.length} anomalies`,
-      metadata: { anomaly_count: anomalies.length }
+    await supabase.from('automation_logs').insert({
+      job_name: FN,
+      status: 'success',
+      message: `Detected ${anomalies.length} anomalies`
     });
 
-    return new Response(
-      JSON.stringify({ 
-        ok: true, 
-        message: "Anomaly detection complete",
-        anomalies_count: anomalies.length,
-        anomalies 
-      }), 
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    structuredLog('info', FN, `Complete: ${anomalies.length} anomalies`, undefined, start);
+    return jsonResponse({ ok: true, anomalies_count: anomalies.length, anomalies });
   } catch (e) {
-    console.error("detect-global-anomalies error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), 
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    structuredLog('error', FN, (e as Error).message, undefined, start);
+    return errorResponse(e);
   }
 });

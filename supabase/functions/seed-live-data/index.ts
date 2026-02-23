@@ -68,6 +68,7 @@ serve(async (req) => {
           region: event.title.split(" - ")[0] || "Global", severity, status: "monitoring",
           details_md: `## ${event.title}\n\n${event.description || "Active natural event detected by NASA EONET."}`,
           opened_at: event.geometry[0]?.date || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         }, { onConflict: "id" });
         if (!crisisError) results.crises++;
 
@@ -169,6 +170,7 @@ serve(async (req) => {
           severity: Math.min(Math.round(mag), 10), status: "monitoring",
           details_md: `## Magnitude ${mag} Earthquake\n\n**Location:** ${place}\n**Depth:** ${coords[2]} km`,
           opened_at: new Date(quake.properties.time).toISOString(),
+          updated_at: new Date().toISOString(),
         }, { onConflict: "id" });
         if (!crisisError) results.crises++;
 

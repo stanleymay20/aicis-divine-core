@@ -1,175 +1,125 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resilientCall, structuredLog, handleCors, corsHeaders, errorResponse, jsonResponse } from "../_shared/resilience.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const FN = "fetch-governance-global";
+const TIMEOUT_MS = 15000;
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  const start = Date.now();
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const NEWSAPI_KEY = Deno.env.get("NEWSAPI_KEY");
+    structuredLog('info', FN, 'Starting governance data collection');
     const results: { governance: number; errors: string[] } = { governance: 0, errors: [] };
     const currentYear = new Date().getFullYear();
 
-    // Transparency International - CPI
-    try {
-      const cpiResponse = await fetch(
-        `https://api.transparency.org/v1/cpi?year=${currentYear - 1}`
-      );
-      
-      if (cpiResponse.ok) {
-        const cpiData = await cpiResponse.json();
-        
-        if (Array.isArray(cpiData) && cpiData.length > 0) {
-          const cpiRecords = cpiData.slice(0, 50).map((item: any) => ({
-            country: item.country,
-            iso_code: item.iso3,
-            source: 'transparency',
-            indicator_name: 'corruption_perception_index',
-            value: parseFloat(item.cpi_score),
-            category: 'corruption',
-            year: currentYear - 1,
-            metadata: {
-              rank: item.rank,
-              sources: item.number_of_sources
-            }
-          }));
-          
-          const { error } = await supabase.from('governance_global').insert(cpiRecords);
-          if (!error) results.governance += cpiRecords.length;
-        }
-      }
-    } catch (e: unknown) {
-      results.errors.push(`Transparency.org: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    }
+    // World Bank - Governance effectiveness
+    await resilientCall(`${FN}:worldbank`, async () => {
+      const resp = await fetch('https://api.worldbank.org/v2/en/indicator/GE.EST?format=json&per_page=100');
+      if (!resp.ok) throw new Error(`World Bank API: ${resp.status}`);
+      const data = await resp.json();
 
-    // World Bank - Governance indicators
-    try {
-      const wbResponse = await fetch(
-        'https://api.worldbank.org/v2/en/indicator/GE.EST?format=json&per_page=100'
-      );
-      const wbData = await wbResponse.json();
-      
-      if (Array.isArray(wbData) && wbData[1]) {
-        const govRecords = wbData[1]
-          .filter((item: any) => item.value && item.date >= (currentYear - 2))
+      if (Array.isArray(data) && data[1]) {
+        const govRecords = data[1]
+          .filter((item: any) => item.value && item.date >= (currentYear - 3))
           .slice(0, 50)
           .map((item: any) => ({
-            country: item.country.value,
-            iso_code: item.countryiso3code,
-            source: 'worldbank',
-            indicator_name: 'government_effectiveness',
-            value: parseFloat(item.value),
-            category: 'governance',
+            country: item.country.value, iso_code: item.countryiso3code,
+            source: 'worldbank', indicator_name: 'government_effectiveness',
+            value: parseFloat(item.value), category: 'governance',
             year: parseInt(item.date),
-            metadata: {
-              indicator_code: 'GE.EST',
-              decimal: item.decimal
-            }
+            metadata: { indicator_code: 'GE.EST' }
           }));
-        
+
         if (govRecords.length > 0) {
           const { error } = await supabase.from('governance_global').insert(govRecords);
-          if (!error) results.governance += govRecords.length;
+          if (error) throw new Error(`DB insert: ${error.message}`);
+          results.governance += govRecords.length;
+          structuredLog('info', FN, `World Bank: ${govRecords.length} records`);
         }
       }
-    } catch (e: unknown) {
-      results.errors.push(`World Bank: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    }
-
-    // GDELT - Global events
-    try {
-      const gdeltResponse = await fetch(
-        'https://api.gdeltproject.org/api/v2/events/query?query=governance&mode=artlist&format=json&maxrecords=20'
-      );
-      const gdeltData = await gdeltResponse.json();
-      
-      if (gdeltData.articles) {
-        const eventRecords = gdeltData.articles.slice(0, 20).map((article: any) => ({
-          country: article.sourcecountry || 'Unknown',
-          iso_code: article.sourcecountry || 'UNK',
-          source: 'gdelt',
-          indicator_name: 'governance_events',
-          value: parseFloat(article.tone) || 0,
-          category: 'events',
-          year: currentYear,
-          metadata: {
-            title: article.title,
-            url: article.url,
-            domain: article.domain,
-            language: article.language
-          }
-        }));
-        
-        const { error } = await supabase.from('governance_global').insert(eventRecords);
-        if (!error) results.governance += eventRecords.length;
-      }
-    } catch (e: unknown) {
-      results.errors.push(`GDELT: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    }
-
-    // CIA Factbook - Country profiles (sample countries)
-    try {
-      const countries = ['gm', 'fr', 'br']; // Germany, France, Brazil
-      
-      for (const code of countries) {
-        const factbookResponse = await fetch(
-          `https://raw.githubusercontent.com/factbook/factbook.json/master/europe/${code}.json`
-        );
-        
-        if (factbookResponse.ok) {
-          const fbData = await factbookResponse.json();
-          
-          if (fbData.Economy?.GDP) {
-            const { error } = await supabase.from('governance_global').insert({
-              country: fbData.Government?.['Country name']?.conventional_short_form || 'Unknown',
-              iso_code: code.toUpperCase(),
-              source: 'factbook',
-              indicator_name: 'gdp_ppp',
-              value: parseFloat(fbData.Economy.GDP['purchasing power parity']?.$numberLong || 0),
-              category: 'stability',
-              year: currentYear,
-              metadata: {
-                government_type: fbData.Government?.['Government type'],
-                capital: fbData.Government?.Capital?.name
-              }
-            });
-            if (!error) results.governance++;
-          }
-        }
-      }
-    } catch (e: unknown) {
-      results.errors.push(`CIA Factbook: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    }
-
-    // Log completion
-    await supabase.from('automation_logs').insert({
-      job_name: 'fetch-governance-global',
-      status: results.errors.length === 0 ? 'success' : 'partial',
-      message: `Fetched ${results.governance} governance records. Errors: ${results.errors.length}`
+    }, { timeoutMs: TIMEOUT_MS }).catch(e => {
+      const msg = `World Bank: ${(e as Error).message}`;
+      results.errors.push(msg);
+      structuredLog('warn', FN, msg);
     });
 
-    return new Response(
-      JSON.stringify({ 
-        ok: true, 
-        message: `Fetched ${results.governance} governance records`,
-        data: results
-      }), 
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // World Bank - Rule of Law
+    await resilientCall(`${FN}:worldbank-rl`, async () => {
+      const resp = await fetch('https://api.worldbank.org/v2/en/indicator/RL.EST?format=json&per_page=100');
+      if (!resp.ok) throw new Error(`World Bank RL API: ${resp.status}`);
+      const data = await resp.json();
+
+      if (Array.isArray(data) && data[1]) {
+        const records = data[1]
+          .filter((item: any) => item.value && item.date >= (currentYear - 3))
+          .slice(0, 50)
+          .map((item: any) => ({
+            country: item.country.value, iso_code: item.countryiso3code,
+            source: 'worldbank', indicator_name: 'rule_of_law',
+            value: parseFloat(item.value), category: 'governance',
+            year: parseInt(item.date),
+            metadata: { indicator_code: 'RL.EST' }
+          }));
+
+        if (records.length > 0) {
+          const { error } = await supabase.from('governance_global').insert(records);
+          if (!error) results.governance += records.length;
+        }
+      }
+    }, { timeoutMs: TIMEOUT_MS }).catch(e => {
+      const msg = `World Bank RL: ${(e as Error).message}`;
+      results.errors.push(msg);
+      structuredLog('warn', FN, msg);
+    });
+
+    // GDELT Events
+    await resilientCall(`${FN}:gdelt`, async () => {
+      const resp = await fetch('https://api.gdeltproject.org/api/v2/doc/doc?query=governance%20reform&mode=ArtList&format=json&maxrecords=20');
+      if (!resp.ok) throw new Error(`GDELT API: ${resp.status}`);
+      const data = await resp.json();
+
+      if (data.articles) {
+        const records = data.articles.slice(0, 20).map((article: any) => ({
+          country: article.sourcecountry || 'Unknown',
+          iso_code: article.sourcecountry || 'UNK',
+          source: 'gdelt', indicator_name: 'governance_events',
+          value: parseFloat(article.tone) || 0, category: 'events',
+          year: currentYear,
+          metadata: { title: article.title?.slice(0, 200), domain: article.domain }
+        }));
+
+        const { error } = await supabase.from('governance_global').insert(records);
+        if (error) throw new Error(`DB insert: ${error.message}`);
+        results.governance += records.length;
+        structuredLog('info', FN, `GDELT: ${records.length} records`);
+      }
+    }, { timeoutMs: TIMEOUT_MS }).catch(e => {
+      const msg = `GDELT: ${(e as Error).message}`;
+      results.errors.push(msg);
+      structuredLog('warn', FN, msg);
+    });
+
+    await supabase.from('automation_logs').insert({
+      job_name: FN,
+      status: results.errors.length === 0 ? 'success' : (results.governance > 0 ? 'partial' : 'error'),
+      message: `Fetched ${results.governance} governance records. Errors: ${results.errors.length}${results.errors.length > 0 ? ` [${results.errors.join('; ')}]` : ''}`
+    });
+
+    structuredLog('info', FN, `Complete: ${results.governance} records, ${results.errors.length} errors`, undefined, start);
+    return jsonResponse({ ok: true, message: `Fetched ${results.governance} governance records`, data: results });
   } catch (e) {
-    console.error("fetch-governance-global error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), 
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    structuredLog('error', FN, (e as Error).message, undefined, start);
+    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+    await supabase.from('automation_logs').insert({ job_name: FN, status: 'error', message: (e as Error).message });
+    return errorResponse(e);
   }
 });

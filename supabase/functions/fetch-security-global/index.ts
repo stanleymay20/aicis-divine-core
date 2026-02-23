@@ -1,116 +1,108 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resilientCall, structuredLog, handleCors, corsHeaders, errorResponse, jsonResponse } from "../_shared/resilience.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const FN = "fetch-security-global";
+const TIMEOUT_MS = 15000;
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  const start = Date.now();
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const ABUSEIPDB_KEY = Deno.env.get("ABUSEIPDB_API_KEY");
     const NVD_KEY = Deno.env.get("NVD_API_KEY");
-    const VIRUSTOTAL_KEY = Deno.env.get("VIRUSTOTAL_API_KEY");
+    const ABUSEIPDB_KEY = Deno.env.get("ABUSEIPDB_API_KEY");
+    structuredLog('info', FN, 'Starting security data collection');
     const results: { security: number; errors: string[] } = { security: 0, errors: [] };
 
     // NVD - Recent CVEs
-    try {
+    await resilientCall(`${FN}:nvd`, async () => {
       const nvdResponse = await fetch(
-        `https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=20`,
-        { headers: { 'apiKey': NVD_KEY || '' } }
+        'https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=20',
+        { headers: NVD_KEY ? { 'apiKey': NVD_KEY } : {} }
       );
+      if (!nvdResponse.ok) throw new Error(`NVD API: ${nvdResponse.status}`);
       const nvdData = await nvdResponse.json();
-      
+
       if (nvdData.vulnerabilities) {
         const cveRecords = nvdData.vulnerabilities.map((v: any) => {
           const cve = v.cve;
-          const severity = cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity || 
+          const severity = cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseSeverity ||
                           cve.metrics?.cvssMetricV2?.[0]?.baseSeverity || 'UNKNOWN';
-          
           return {
-            source: 'nvd',
-            event_type: 'vulnerability',
+            source: 'nvd', event_type: 'vulnerability',
             severity: severity.toLowerCase(),
             title: cve.id,
             description: cve.descriptions?.[0]?.value || 'No description',
             cve_id: cve.id,
             threat_score: Math.round((cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore || 0) * 10),
-            metadata: {
-              published: cve.published,
-              modified: cve.lastModified,
-              references: cve.references?.slice(0, 3)
-            }
+            metadata: { published: cve.published, modified: cve.lastModified }
           };
         });
-        
+
         const { error } = await supabase.from('security_events').insert(cveRecords);
-        if (!error) results.security += cveRecords.length;
+        if (error) throw new Error(`DB insert: ${error.message}`);
+        results.security += cveRecords.length;
+        structuredLog('info', FN, `NVD: ${cveRecords.length} CVEs`);
       }
-    } catch (e: unknown) {
-      results.errors.push(`NVD: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    }
-
-    // AbuseIPDB - Check known bad IPs
-    try {
-      const badIPs = ['8.8.8.8', '1.1.1.1', '185.220.101.1']; // Sample IPs
-      
-      for (const ip of badIPs) {
-        const abuseResponse = await fetch(
-          `https://api.abuseipdb.com/api/v2/check?ipAddress=${ip}`,
-          { headers: { 'Key': ABUSEIPDB_KEY || '', 'Accept': 'application/json' } }
-        );
-        const abuseData = await abuseResponse.json();
-        
-        if (abuseData.data && abuseData.data.abuseConfidenceScore > 20) {
-          const { error } = await supabase.from('security_events').insert({
-            source: 'abuseipdb',
-            event_type: 'ip_abuse',
-            severity: abuseData.data.abuseConfidenceScore > 80 ? 'critical' : 
-                     abuseData.data.abuseConfidenceScore > 50 ? 'high' : 'medium',
-            title: `Suspicious IP: ${ip}`,
-            description: `Abuse confidence: ${abuseData.data.abuseConfidenceScore}%`,
-            ip_address: ip,
-            threat_score: abuseData.data.abuseConfidenceScore,
-            metadata: {
-              country: abuseData.data.countryCode,
-              domain: abuseData.data.domain,
-              total_reports: abuseData.data.totalReports
-            }
-          });
-          if (!error) results.security++;
-        }
-      }
-    } catch (e: unknown) {
-      results.errors.push(`AbuseIPDB: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    }
-
-    // Log completion
-    await supabase.from('automation_logs').insert({
-      job_name: 'fetch-security-global',
-      status: results.errors.length === 0 ? 'success' : 'partial',
-      message: `Fetched ${results.security} security events. Errors: ${results.errors.length}`
+    }, { timeoutMs: TIMEOUT_MS }).catch(e => {
+      const msg = `NVD: ${(e as Error).message}`;
+      results.errors.push(msg);
+      structuredLog('warn', FN, msg);
     });
 
-    return new Response(
-      JSON.stringify({ 
-        ok: true, 
-        message: `Fetched ${results.security} security events`,
-        data: results
-      }), 
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // AbuseIPDB
+    await resilientCall(`${FN}:abuseipdb`, async () => {
+      if (!ABUSEIPDB_KEY) { structuredLog('warn', FN, 'No ABUSEIPDB_API_KEY'); return; }
+      const badIPs = ['185.220.101.1', '45.148.10.1'];
+      for (const ip of badIPs) {
+        try {
+          const resp = await fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${ip}`, {
+            headers: { 'Key': ABUSEIPDB_KEY, 'Accept': 'application/json' }
+          });
+          if (!resp.ok) { structuredLog('warn', FN, `AbuseIPDB ${ip}: ${resp.status}`); continue; }
+          const data = await resp.json();
+          if (data.data && data.data.abuseConfidenceScore > 20) {
+            const { error } = await supabase.from('security_events').insert({
+              source: 'abuseipdb', event_type: 'ip_abuse',
+              severity: data.data.abuseConfidenceScore > 80 ? 'critical' :
+                       data.data.abuseConfidenceScore > 50 ? 'high' : 'medium',
+              title: `Suspicious IP: ${ip}`,
+              description: `Abuse confidence: ${data.data.abuseConfidenceScore}%`,
+              ip_address: ip, threat_score: data.data.abuseConfidenceScore,
+              metadata: { country: data.data.countryCode, total_reports: data.data.totalReports }
+            });
+            if (!error) results.security++;
+          }
+        } catch (e) {
+          structuredLog('warn', FN, `AbuseIPDB ${ip}: ${(e as Error).message}`);
+        }
+      }
+    }, { timeoutMs: TIMEOUT_MS }).catch(e => {
+      const msg = `AbuseIPDB: ${(e as Error).message}`;
+      results.errors.push(msg);
+      structuredLog('warn', FN, msg);
+    });
+
+    await supabase.from('automation_logs').insert({
+      job_name: FN,
+      status: results.errors.length === 0 ? 'success' : (results.security > 0 ? 'partial' : 'error'),
+      message: `Fetched ${results.security} security events. Errors: ${results.errors.length}${results.errors.length > 0 ? ` [${results.errors.join('; ')}]` : ''}`
+    });
+
+    structuredLog('info', FN, `Complete: ${results.security} records, ${results.errors.length} errors`, undefined, start);
+    return jsonResponse({ ok: true, message: `Fetched ${results.security} security events`, data: results });
   } catch (e) {
-    console.error("fetch-security-global error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), 
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    structuredLog('error', FN, (e as Error).message, undefined, start);
+    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+    await supabase.from('automation_logs').insert({ job_name: FN, status: 'error', message: (e as Error).message });
+    return errorResponse(e);
   }
 });
