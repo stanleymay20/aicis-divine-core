@@ -5668,6 +5668,14 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_accumulation: {
+        Row: {
+          count: number | null
+          day: string | null
+          metric: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       aggregate_country_snapshots: {
