@@ -13,17 +13,17 @@ const EXPECTED_DAILY = { snapshots: 1629, forecasts: 1629, calibration: 5400, vu
 const METRIC_LABELS: Record<string, string> = { snapshots: 'Performance Snapshots', forecasts: 'Forecast Archive', calibration: 'Calibration Metrics', vulnerability: 'Vulnerability Scores' };
 
 function compoundingScore(rows: DayRow[]): number {
-  const snapDays = rows.filter(r => r.metric === 'snapshots').map(r => r.day).sort();
-  if (snapDays.length < 2) return 0;
-  const last30 = snapDays.slice(-30);
+  const snapshotRows = rows.filter(r => r.metric === 'snapshots').sort((a, b) => a.day.localeCompare(b.day));
+  if (snapshotRows.length < 2) return 0;
+  const last30 = snapshotRows.slice(-30);
   let consecutive = 1;
   for (let i = 1; i < last30.length; i++) {
-    const prev = new Date(last30[i - 1]);
-    const curr = new Date(last30[i]);
+    const prev = new Date(last30[i - 1].day);
+    const curr = new Date(last30[i].day);
     if ((curr.getTime() - prev.getTime()) / 86400000 === 1) consecutive++;
   }
   const continuity = consecutive / Math.min(last30.length, 30);
-  const avgDaily = rows.filter(r => r.metric === 'snapshots').reduce((s, r) => s + r.count, 0) / Math.max(last30.length, 1);
+  const avgDaily = last30.reduce((s, r) => s + r.count, 0) / Math.max(last30.length, 1);
   const volumeScore = Math.min(avgDaily / EXPECTED_DAILY.snapshots, 1);
   return Math.round((continuity * 0.6 + volumeScore * 0.4) * 100);
 }
