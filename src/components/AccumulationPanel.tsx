@@ -20,7 +20,11 @@ function compoundingScore(rows: DayRow[]): number {
   for (let i = 1; i < last30.length; i++) {
     const prev = new Date(last30[i - 1].day);
     const curr = new Date(last30[i].day);
-    if ((curr.getTime() - prev.getTime()) / 86400000 === 1) consecutive++;
+    if ((curr.getTime() - prev.getTime()) / 86400000 === 1) {
+      consecutive++;
+    } else {
+      consecutive = 1;
+    }
   }
   const continuity = consecutive / Math.min(last30.length, 30);
   const avgDaily = last30.reduce((s, r) => s + r.count, 0) / Math.max(last30.length, 1);
