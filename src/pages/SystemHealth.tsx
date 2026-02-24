@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { type DiagnosticResult, type FailedApi, getErrorMessage } from '@/types/aicis';
 import { cn } from '@/lib/utils';
 import { AICISLayout } from '@/components/aicis/AICISLayout';
+import AccumulationPanel from '@/components/AccumulationPanel';
 
 export default function SystemHealth() {
   const { session, loading: authLoading } = useAuth();
@@ -446,7 +447,10 @@ export default function SystemHealth() {
               <p className="text-lg mb-4">No diagnostic data available</p>
               <Button onClick={runDiagnostics}>Run First Diagnostic</Button>
             </Card>
-        )}
+          )}
+
+          {/* Daily Accumulation Dashboard */}
+          <AccumulationPanel />
       </div>
     </AICISLayout>
   );
