@@ -11,19 +11,33 @@ serve(async (req) => {
   const start = Date.now();
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
+    // Support both user-initiated (JWT) and cron-initiated (service_role) invocations
+    const authHeader = req.headers.get('Authorization');
+    let supabaseClient;
+    let userId = 'system-cron';
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) throw new Error('Unauthorized');
+    if (authHeader && !authHeader.includes(Deno.env.get('SUPABASE_ANON_KEY') ?? '___')) {
+      // User-initiated: authenticate with their JWT
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      if (authError || !user) throw new Error('Unauthorized');
+      userId = user.id;
+    } else {
+      // Cron-initiated: use service_role for system operations
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+    }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-    structuredLog('info', FN, 'Starting crisis scan', { user_id: user.id });
+    structuredLog('info', FN, 'Starting crisis scan', { user_id: userId });
 
     const crisisTypes = ['weather', 'seismic', 'outage', 'health'];
     const regions = ['North America', 'Europe', 'Asia', 'Africa', 'South America'];
@@ -73,7 +87,7 @@ serve(async (req) => {
           const { data: approval } = await supabaseClient
             .from('approvals')
             .insert({
-              requester: user.id, division: 'crisis',
+              requester: userId, division: 'crisis',
               action: `Escalate ${kind} crisis in ${region}`,
               payload: { crisis_id: crisis.id, severity, region, kind },
               status: 'pending',
@@ -85,7 +99,7 @@ serve(async (req) => {
     }
 
     await supabaseClient.from('system_logs').insert({
-      action: 'crisis_scan', division: 'crisis', user_id: user.id,
+      action: 'crisis_scan', division: 'crisis', user_id: userId,
       log_level: escalations.length > 0 ? 'warning' : 'info',
       result: `Detected ${results.length} crisis events, ${escalations.length} escalations`,
       metadata: { crisis_count: results.length, escalations: escalations.length, execution_time_ms: Date.now() - start }

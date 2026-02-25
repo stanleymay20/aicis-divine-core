@@ -451,7 +451,7 @@ async function fetchFoodData(iso3: string, supabase: any) {
     const { data } = await supabase
       .from('food_security')
       .select('*')
-      .eq('country', iso3)
+      .eq('region', iso3)
       .order('created_at', { ascending: false })
       .limit(10);
     
