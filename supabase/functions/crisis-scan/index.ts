@@ -16,7 +16,11 @@ serve(async (req) => {
     let supabaseClient;
     let userId = 'system-cron';
 
-    if (authHeader && !authHeader.includes(Deno.env.get('SUPABASE_ANON_KEY') ?? '___')) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '___';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '___';
+    const isSystemCall = !authHeader || authHeader.includes(anonKey) || authHeader.includes(serviceRoleKey);
+
+    if (!isSystemCall) {
       // User-initiated: authenticate with their JWT
       supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
