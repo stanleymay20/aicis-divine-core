@@ -2719,6 +2719,71 @@ export type Database = {
         }
         Relationships: []
       }
+      forecast_validation_results: {
+        Row: {
+          absolute_error: number | null
+          actual_direction: string | null
+          actual_value: number | null
+          confidence_at_forecast: number | null
+          created_at: string | null
+          direction_hit: boolean | null
+          domain: string
+          forecast_archive_id: string | null
+          forecast_date: string
+          horizon_days: number
+          id: string
+          iso3: string
+          percentage_error: number | null
+          predicted_direction: string | null
+          predicted_value: number | null
+          realized_date: string
+        }
+        Insert: {
+          absolute_error?: number | null
+          actual_direction?: string | null
+          actual_value?: number | null
+          confidence_at_forecast?: number | null
+          created_at?: string | null
+          direction_hit?: boolean | null
+          domain: string
+          forecast_archive_id?: string | null
+          forecast_date: string
+          horizon_days: number
+          id?: string
+          iso3: string
+          percentage_error?: number | null
+          predicted_direction?: string | null
+          predicted_value?: number | null
+          realized_date: string
+        }
+        Update: {
+          absolute_error?: number | null
+          actual_direction?: string | null
+          actual_value?: number | null
+          confidence_at_forecast?: number | null
+          created_at?: string | null
+          direction_hit?: boolean | null
+          domain?: string
+          forecast_archive_id?: string | null
+          forecast_date?: string
+          horizon_days?: number
+          id?: string
+          iso3?: string
+          percentage_error?: number | null
+          predicted_direction?: string | null
+          predicted_value?: number | null
+          realized_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_validation_results_forecast_archive_id_fkey"
+            columns: ["forecast_archive_id"]
+            isOneToOne: false
+            referencedRelation: "forecast_archive"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_catalog: {
         Row: {
           bbox: number[] | null
@@ -5483,6 +5548,51 @@ export type Database = {
           session_token?: string
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      vulnerability_event_correlations: {
+        Row: {
+          country: string
+          created_at: string | null
+          days_between: number
+          event_date: string
+          event_id: string | null
+          event_severity: number | null
+          event_type: string
+          id: string
+          iso3: string
+          signal_strength: number | null
+          vulnerability_date: string
+          vulnerability_score: number
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          days_between: number
+          event_date: string
+          event_id?: string | null
+          event_severity?: number | null
+          event_type: string
+          id?: string
+          iso3: string
+          signal_strength?: number | null
+          vulnerability_date: string
+          vulnerability_score: number
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          days_between?: number
+          event_date?: string
+          event_id?: string | null
+          event_severity?: number | null
+          event_type?: string
+          id?: string
+          iso3?: string
+          signal_strength?: number | null
+          vulnerability_date?: string
+          vulnerability_score?: number
         }
         Relationships: []
       }
