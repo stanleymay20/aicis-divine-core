@@ -40,6 +40,7 @@ const OperationalDashboard = lazy(() => import("./pages/OperationalDashboard"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const WeeklyBriefs = lazy(() => import("./pages/WeeklyBriefs"));
 const PredictionAccuracy = lazy(() => import("./pages/PredictionAccuracy"));
+const ADIDashboard = lazy(() => import("./pages/ADIDashboard"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/reset-password" element={<Lazy><ResetPassword /></Lazy>} />
             <Route path="/weekly-briefs" element={<Lazy><WeeklyBriefs /></Lazy>} />
             <Route path="/prediction-accuracy" element={<Lazy><PredictionAccuracy /></Lazy>} />
+            <Route path="/adi" element={<Lazy><ADIDashboard /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

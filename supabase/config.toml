@@ -421,3 +421,9 @@ verify_jwt = false
 
 [functions.compute-political-stability]
 verify_jwt = false
+
+[functions.adi-analyze]
+verify_jwt = false
+
+[functions.adi-conflict-scan]
+verify_jwt = false

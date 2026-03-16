@@ -71,6 +71,140 @@ export type Database = {
         }
         Relationships: []
       }
+      adi_decisions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          confidence: number | null
+          country_iso3: string | null
+          created_at: string | null
+          domain: string
+          executed_at: string | null
+          id: string
+          options: Json
+          outcome_assessment: string | null
+          outcome_score: number | null
+          reasoning_md: string | null
+          recommended_option_rank: number | null
+          region: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity_score: number
+          signal_id: string | null
+          signal_source: string
+          signal_summary: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence?: number | null
+          country_iso3?: string | null
+          created_at?: string | null
+          domain: string
+          executed_at?: string | null
+          id?: string
+          options?: Json
+          outcome_assessment?: string | null
+          outcome_score?: number | null
+          reasoning_md?: string | null
+          recommended_option_rank?: number | null
+          region?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity_score?: number
+          signal_id?: string | null
+          signal_source: string
+          signal_summary: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence?: number | null
+          country_iso3?: string | null
+          created_at?: string | null
+          domain?: string
+          executed_at?: string | null
+          id?: string
+          options?: Json
+          outcome_assessment?: string | null
+          outcome_score?: number | null
+          reasoning_md?: string | null
+          recommended_option_rank?: number | null
+          region?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity_score?: number
+          signal_id?: string | null
+          signal_source?: string
+          signal_summary?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      adi_scenarios: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          created_by: string | null
+          decision_id: string | null
+          id: string
+          input_params: Json
+          probability_tree: Json | null
+          projection_30d: Json | null
+          projection_60d: Json | null
+          projection_90d: Json | null
+          reasoning_md: string | null
+          scenario_name: string
+          scenario_type: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          decision_id?: string | null
+          id?: string
+          input_params?: Json
+          probability_tree?: Json | null
+          projection_30d?: Json | null
+          projection_60d?: Json | null
+          projection_90d?: Json | null
+          reasoning_md?: string | null
+          scenario_name: string
+          scenario_type?: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          decision_id?: string | null
+          id?: string
+          input_params?: Json
+          probability_tree?: Json | null
+          projection_30d?: Json | null
+          projection_60d?: Json | null
+          projection_90d?: Json | null
+          reasoning_md?: string | null
+          scenario_name?: string
+          scenario_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adi_scenarios_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "adi_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_chat_messages: {
         Row: {
           content: string
@@ -837,6 +971,78 @@ export type Database = {
           ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      conflict_signals: {
+        Row: {
+          assessment_md: string | null
+          confidence: number | null
+          conflict_intensity: number | null
+          conflict_type: string | null
+          country_iso3: string
+          created_at: string | null
+          data_sources: Json | null
+          diplomatic_tension: number | null
+          escalation_probability: number | null
+          historical_parallels: Json | null
+          id: string
+          involved_parties: Json | null
+          materialized_at: string | null
+          media_hostility_index: number | null
+          military_escalation: number | null
+          protest_momentum: number | null
+          region: string
+          status: string | null
+          time_to_conflict_days: number | null
+          triggers: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          assessment_md?: string | null
+          confidence?: number | null
+          conflict_intensity?: number | null
+          conflict_type?: string | null
+          country_iso3: string
+          created_at?: string | null
+          data_sources?: Json | null
+          diplomatic_tension?: number | null
+          escalation_probability?: number | null
+          historical_parallels?: Json | null
+          id?: string
+          involved_parties?: Json | null
+          materialized_at?: string | null
+          media_hostility_index?: number | null
+          military_escalation?: number | null
+          protest_momentum?: number | null
+          region: string
+          status?: string | null
+          time_to_conflict_days?: number | null
+          triggers?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          assessment_md?: string | null
+          confidence?: number | null
+          conflict_intensity?: number | null
+          conflict_type?: string | null
+          country_iso3?: string
+          created_at?: string | null
+          data_sources?: Json | null
+          diplomatic_tension?: number | null
+          escalation_probability?: number | null
+          historical_parallels?: Json | null
+          id?: string
+          involved_parties?: Json | null
+          materialized_at?: string | null
+          media_hostility_index?: number | null
+          military_escalation?: number | null
+          protest_momentum?: number | null
+          region?: string
+          status?: string | null
+          time_to_conflict_days?: number | null
+          triggers?: Json | null
+          updated_at?: string | null
         }
         Relationships: []
       }
