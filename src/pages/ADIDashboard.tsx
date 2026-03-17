@@ -262,7 +262,7 @@ export default function ADIDashboard() {
               <Brain className="h-4 w-4 mr-1" /> Decisions
             </TabsTrigger>
             <TabsTrigger value="conflicts" className="data-[state=active]:bg-destructive/20">
-              <Crosshair className="h-4 w-4 mr-1" /> Conflict Early Warning
+              <Crosshair className="h-4 w-4 mr-1" /> Conflict Analysis
             </TabsTrigger>
             <TabsTrigger value="scenarios" className="data-[state=active]:bg-secondary/20">
               <Globe className="h-4 w-4 mr-1" /> Scenarios
