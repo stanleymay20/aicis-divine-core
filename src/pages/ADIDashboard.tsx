@@ -158,6 +158,15 @@ export default function ADIDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Shadow Mode Banner */}
+        <div className="rounded-lg border border-warning/40 bg-warning/5 px-4 py-3 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p className="font-semibold text-foreground">Shadow Mode — AI-Assisted Analysis Only</p>
+            <p>ADI generates structured conflict-risk hypotheses for analyst review. Outputs are AI-synthesized, not measured from validated conflict data pipelines (ACLED, UCDP). All recommendations require human review before action. Do not treat as validated early warning.</p>
+          </div>
+        </div>
+
         {/* Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="bg-card/60 border-border/30">
