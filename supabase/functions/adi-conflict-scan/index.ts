@@ -30,7 +30,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-    structuredLog('info', FN, 'Starting conflict early warning scan');
+    structuredLog('info', FN, 'Starting conflict risk hypothesis scan (shadow/advisory mode)');
     const results: any[] = [];
 
     for (const hotspot of HOTSPOT_REGIONS) {
