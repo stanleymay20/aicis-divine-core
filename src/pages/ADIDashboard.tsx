@@ -451,7 +451,7 @@ function ConflictCard({ signal }: { signal: any }) {
           </div>
           <div className="text-right">
             <p className={`text-2xl font-bold font-['Orbitron'] ${probColor}`}>{prob.toFixed(0)}%</p>
-            <p className="text-xs text-muted-foreground">Escalation Risk</p>
+            <p className="text-xs text-muted-foreground">Est. Risk (AI)</p>
           </div>
         </div>
       </CardHeader>
