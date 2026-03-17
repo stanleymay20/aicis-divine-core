@@ -140,8 +140,9 @@ export default function ADIDashboard() {
             <div className="flex items-center gap-2">
               <Brain className="h-6 w-6 text-primary" />
               <h1 className="text-lg font-bold font-['Orbitron'] tracking-wider">
-                ADI <span className="text-primary">Artificial Decision Intelligence</span>
+                ADI <span className="text-primary">Decision Advisory</span>
               </h1>
+              <Badge variant="outline" className="text-[10px] border-warning/50 text-warning ml-2">SHADOW</Badge>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -158,6 +159,15 @@ export default function ADIDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Shadow Mode Banner */}
+        <div className="rounded-lg border border-warning/40 bg-warning/5 px-4 py-3 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p className="font-semibold text-foreground">Shadow Mode — AI-Assisted Analysis Only</p>
+            <p>ADI generates structured conflict-risk hypotheses for analyst review. Outputs are AI-synthesized, not measured from validated conflict data pipelines (ACLED, UCDP). All recommendations require human review before action. Do not treat as validated early warning.</p>
+          </div>
+        </div>
+
         {/* Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="bg-card/60 border-border/30">
@@ -252,7 +262,7 @@ export default function ADIDashboard() {
               <Brain className="h-4 w-4 mr-1" /> Decisions
             </TabsTrigger>
             <TabsTrigger value="conflicts" className="data-[state=active]:bg-destructive/20">
-              <Crosshair className="h-4 w-4 mr-1" /> Conflict Early Warning
+              <Crosshair className="h-4 w-4 mr-1" /> Conflict Analysis
             </TabsTrigger>
             <TabsTrigger value="scenarios" className="data-[state=active]:bg-secondary/20">
               <Globe className="h-4 w-4 mr-1" /> Scenarios
@@ -441,7 +451,7 @@ function ConflictCard({ signal }: { signal: any }) {
           </div>
           <div className="text-right">
             <p className={`text-2xl font-bold font-['Orbitron'] ${probColor}`}>{prob.toFixed(0)}%</p>
-            <p className="text-xs text-muted-foreground">Escalation Risk</p>
+            <p className="text-xs text-muted-foreground">Est. Risk (AI)</p>
           </div>
         </div>
       </CardHeader>
@@ -469,8 +479,8 @@ function ConflictCard({ signal }: { signal: any }) {
         </div>
 
         {signal.time_to_conflict_days && (
-          <p className="text-xs text-destructive font-medium">
-            ⚠ Est. time to conflict: {Number(signal.time_to_conflict_days).toFixed(0)} days
+          <p className="text-xs text-warning font-medium">
+            ⚠ AI-estimated horizon: ~{Number(signal.time_to_conflict_days).toFixed(0)} days (unvalidated)
           </p>
         )}
 
