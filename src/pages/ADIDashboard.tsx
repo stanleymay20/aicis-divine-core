@@ -479,8 +479,8 @@ function ConflictCard({ signal }: { signal: any }) {
         </div>
 
         {signal.time_to_conflict_days && (
-          <p className="text-xs text-destructive font-medium">
-            ⚠ Est. time to conflict: {Number(signal.time_to_conflict_days).toFixed(0)} days
+          <p className="text-xs text-warning font-medium">
+            ⚠ AI-estimated horizon: ~{Number(signal.time_to_conflict_days).toFixed(0)} days (unvalidated)
           </p>
         )}
 

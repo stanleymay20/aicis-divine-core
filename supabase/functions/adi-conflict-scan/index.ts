@@ -45,7 +45,7 @@ serve(async (req) => {
             model: 'google/gemini-2.5-flash',
             messages: [{
               role: 'system',
-              content: `You are a conflict early warning analyst. Assess current armed conflict risks based on recent events and geopolitical context. Be factual and calibrated. Return ONLY valid JSON with this structure:
+              content: `You are a conflict risk analyst generating structured hypotheses for human review. Assess current armed conflict risks based on recent events and geopolitical context. Be conservative in estimates. Label all outputs as AI-assisted analysis, NOT validated intelligence. Return ONLY valid JSON with this structure:
 {
   "protest_momentum": 0-100,
   "conflict_intensity": 0-100,
