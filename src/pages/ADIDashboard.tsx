@@ -140,8 +140,9 @@ export default function ADIDashboard() {
             <div className="flex items-center gap-2">
               <Brain className="h-6 w-6 text-primary" />
               <h1 className="text-lg font-bold font-['Orbitron'] tracking-wider">
-                ADI <span className="text-primary">Artificial Decision Intelligence</span>
+                ADI <span className="text-primary">Decision Advisory</span>
               </h1>
+              <Badge variant="outline" className="text-[10px] border-warning/50 text-warning ml-2">SHADOW</Badge>
             </div>
           </div>
           <div className="flex items-center gap-2">
