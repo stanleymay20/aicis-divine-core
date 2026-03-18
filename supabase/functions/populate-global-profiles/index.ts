@@ -91,32 +91,43 @@ async function fetchIndicatorForCountry(iso3: string, indicatorCode: string): Pr
 async function buildKPIsForCountry(iso3: string): Promise<Record<string, any>> {
   const kpis: Record<string, any> = {};
   
-  // Fetch all indicators in parallel
-  const entries = Object.entries(WB_INDICATORS);
+  // Fetch all indicators in parallel (now supports multiple indicators per domain)
+  const tasks: { domain: string; code: string; metric: string; unit: string }[] = [];
+  for (const [domain, indicators] of Object.entries(WB_INDICATORS)) {
+    for (const ind of indicators) {
+      tasks.push({ domain, code: ind.code, metric: ind.metric, unit: ind.unit });
+    }
+  }
+  
   const results = await Promise.all(
-    entries.map(([domain, ind]) => 
-      fetchIndicatorForCountry(iso3, ind.code).then(data => ({ domain, data, ind }))
+    tasks.map(t => 
+      fetchIndicatorForCountry(iso3, t.code).then(data => ({ ...t, data }))
     )
   );
   
-  for (const { domain, data, ind } of results) {
-    const metrics = data.map(d => ({
-      metric: ind.metric,
-      period: d.period,
-      value: d.value,
-      unit: ind.unit,
-      source: "worldbank",
-      raw: {},
-    }));
-    
+  // Group results by domain
+  const domainMetrics: Record<string, any[]> = {};
+  for (const { domain, data, metric, unit } of results) {
+    if (!domainMetrics[domain]) domainMetrics[domain] = [];
+    for (const d of data) {
+      domainMetrics[domain].push({
+        metric,
+        period: d.period,
+        value: d.value,
+        unit,
+        source: "worldbank",
+        raw: {},
+      });
+    }
+  }
+  
+  for (const [domain] of Object.entries(WB_INDICATORS)) {
+    const metrics = domainMetrics[domain] || [];
     kpis[domain] = {
       metrics,
       completeness: Math.min(1, metrics.length / 5),
     };
   }
-  
-  // Climate domain — skip for now (requires lat/lon per-country NASA call)
-  kpis["climate"] = { metrics: [], completeness: 0 };
   
   return kpis;
 }
