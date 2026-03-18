@@ -27,15 +27,20 @@ interface WBCountry {
 }
 
 // World Bank indicator codes for minimal KPI skeleton
-const WB_INDICATORS: Record<string, { code: string; metric: string; unit: string }> = {
-  governance: { code: "GE.EST", metric: "government_effectiveness", unit: "index" },
-  health: { code: "SP.DYN.LE00.IN", metric: "life_expectancy", unit: "years" },
-  education: { code: "SE.SEC.ENRR", metric: "secondary_enrolment", unit: "%" },
-  energy: { code: "EG.ELC.ACCS.ZS", metric: "electricity_access", unit: "%" },
-  finance: { code: "NY.GDP.MKTP.CD", metric: "gdp_current_usd", unit: "USD" },
-  population: { code: "SP.POP.TOTL", metric: "population_total", unit: "people" },
-  food: { code: "AG.PRD.FOOD.XD", metric: "food_production_index", unit: "index" },
-  security: { code: "PV.EST", metric: "political_stability", unit: "index" },
+const WB_INDICATORS: Record<string, { code: string; metric: string; unit: string }[]> = {
+  governance: [{ code: "GE.EST", metric: "government_effectiveness", unit: "index" }],
+  health: [{ code: "SP.DYN.LE00.IN", metric: "life_expectancy", unit: "years" }],
+  education: [{ code: "SE.SEC.ENRR", metric: "secondary_enrolment", unit: "%" }],
+  energy: [{ code: "EG.ELC.ACCS.ZS", metric: "electricity_access", unit: "%" }],
+  finance: [{ code: "NY.GDP.MKTP.CD", metric: "gdp_current_usd", unit: "USD" }],
+  population: [{ code: "SP.POP.TOTL", metric: "population_total", unit: "people" }],
+  food: [{ code: "AG.PRD.FOOD.XD", metric: "food_production_index", unit: "index" }],
+  security: [{ code: "PV.EST", metric: "political_stability", unit: "index" }],
+  climate: [
+    { code: "EN.ATM.CO2E.PC", metric: "co2_emissions_per_capita", unit: "metric_tons" },
+    { code: "EG.FEC.RNEW.ZS", metric: "renewable_energy_share", unit: "%" },
+    { code: "AG.LND.FRST.ZS", metric: "forest_area_pct", unit: "%" },
+  ],
 };
 
 async function fetchWithTimeout(url: string, timeoutMs = 15000): Promise<Response> {
