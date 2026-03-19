@@ -93,7 +93,32 @@ export async function resolveLocation(query: string): Promise<ResolvedLocation> 
     };
   }
 
-  // 2. Check geo_catalog cache
+  // 2. Check admin_regions for sub-national match (villages, districts, provinces)
+  const { data: regionMatch } = await supabase
+    .from('admin_regions')
+    .select('id, name, admin_level, parent_id, country_iso3, lat, lon, urban_rural')
+    .ilike('name', `%${query}%`)
+    .order('admin_level', { ascending: false }) // prefer most granular match
+    .limit(1)
+    .single();
+
+  if (regionMatch) {
+    const adminTypeMap: Record<number, ResolvedLocation['type']> = {
+      0: 'country', 1: 'province', 2: 'district', 3: 'district', 4: 'village'
+    };
+    return {
+      name: regionMatch.name,
+      iso3: regionMatch.country_iso3,
+      type: adminTypeMap[regionMatch.admin_level] || 'region',
+      adminLevel: regionMatch.admin_level,
+      lat: regionMatch.lat || undefined,
+      lon: regionMatch.lon || undefined,
+      regionId: regionMatch.id,
+      parentId: regionMatch.parent_id || undefined,
+    };
+  }
+
+  // 3. Check geo_catalog cache
   const { data: cached } = await supabase
     .from('geo_catalog')
     .select('*')
