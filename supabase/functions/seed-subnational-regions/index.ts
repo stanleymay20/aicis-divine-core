@@ -31,9 +31,9 @@ serve(async (req) => {
     console.log(`[${FN}] Seeding regions for ${country_iso3}`);
     const results = { countries: 0, provinces: 0, districts: 0, villages: 0, errors: [] as string[] };
 
-    // 1. Get country info from Nominatim
+    // 1. Get country info from Nominatim (search by ISO code)
     const countryResp = await fetch(
-      `https://nominatim.openstreetmap.org/search?country=${country_iso3}&format=json&limit=1`,
+      `https://nominatim.openstreetmap.org/search?q=${country_iso3}&format=json&limit=1&featuretype=country`,
       { headers: { "User-Agent": "AICIS/2.0" } }
     );
     const countryData = await countryResp.json();
