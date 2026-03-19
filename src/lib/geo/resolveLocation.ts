@@ -5,11 +5,14 @@ export interface ResolvedLocation {
   name: string;
   iso2?: string;
   iso3?: string;
-  type: 'country' | 'region' | 'city' | 'suburb' | 'district';
+  type: 'country' | 'region' | 'city' | 'suburb' | 'district' | 'village' | 'province';
+  adminLevel?: number; // 0=country, 1=province, 2=district, 3=sub-district, 4=village
   lat?: number;
   lon?: number;
-  bbox?: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
+  bbox?: [number, number, number, number];
   geoId?: string;
+  parentId?: string;
+  regionId?: string; // admin_regions table ID for sub-national queries
 }
 
 /**
@@ -90,7 +93,32 @@ export async function resolveLocation(query: string): Promise<ResolvedLocation> 
     };
   }
 
-  // 2. Check geo_catalog cache
+  // 2. Check admin_regions for sub-national match (villages, districts, provinces)
+  const { data: regionMatch } = await supabase
+    .from('admin_regions')
+    .select('id, name, admin_level, parent_id, country_iso3, lat, lon, urban_rural')
+    .ilike('name', `%${query}%`)
+    .order('admin_level', { ascending: false }) // prefer most granular match
+    .limit(1)
+    .single();
+
+  if (regionMatch) {
+    const adminTypeMap: Record<number, ResolvedLocation['type']> = {
+      0: 'country', 1: 'province', 2: 'district', 3: 'district', 4: 'village'
+    };
+    return {
+      name: regionMatch.name,
+      iso3: regionMatch.country_iso3,
+      type: adminTypeMap[regionMatch.admin_level] || 'region',
+      adminLevel: regionMatch.admin_level,
+      lat: regionMatch.lat || undefined,
+      lon: regionMatch.lon || undefined,
+      regionId: regionMatch.id,
+      parentId: regionMatch.parent_id || undefined,
+    };
+  }
+
+  // 3. Check geo_catalog cache
   const { data: cached } = await supabase
     .from('geo_catalog')
     .select('*')
@@ -189,7 +217,9 @@ function determineLocationType(osmType?: string): ResolvedLocation['type'] {
   
   const type = osmType.toLowerCase();
   if (type.includes('country')) return 'country';
+  if (type.includes('state') || type.includes('province')) return 'province';
   if (type.includes('city') || type.includes('town')) return 'city';
+  if (type.includes('village') || type.includes('hamlet')) return 'village';
   if (type.includes('suburb') || type.includes('neighbourhood')) return 'suburb';
   if (type.includes('district') || type.includes('county')) return 'district';
   
