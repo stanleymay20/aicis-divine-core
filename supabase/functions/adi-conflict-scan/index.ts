@@ -4,7 +4,8 @@ import { resilientCall, structuredLog, handleCors, corsHeaders, errorResponse, j
 
 const FN = "adi-conflict-scan";
 
-const HOTSPOT_REGIONS = [
+// Static hotspots — always scanned
+const STATIC_HOTSPOTS = [
   { region: 'Eastern Europe', iso3: 'UKR', context: 'Russia-Ukraine war, NATO tensions' },
   { region: 'Middle East', iso3: 'PSE', context: 'Israel-Palestine conflict, regional proxy wars' },
   { region: 'East Asia', iso3: 'TWN', context: 'Taiwan Strait tensions, South China Sea disputes' },
@@ -30,10 +31,72 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-    structuredLog('info', FN, 'Starting conflict risk hypothesis scan (shadow/advisory mode)');
+    structuredLog('info', FN, 'Starting conflict scan with dynamic discovery');
+
+    // ── Dynamic Discovery: find new hotspots from vulnerability + anomaly data ──
+    const dynamicHotspots: typeof STATIC_HOTSPOTS = [];
+    const staticISO3s = new Set(STATIC_HOTSPOTS.map(h => h.iso3));
+
+    // 1. High vulnerability countries not in static list
+    const { data: vulnCountries } = await supabase
+      .from('vulnerability_scores')
+      .select('country, iso_code, overall_score')
+      .gte('overall_score', 70)
+      .order('overall_score', { ascending: false })
+      .limit(20);
+
+    if (vulnCountries) {
+      for (const vc of vulnCountries) {
+        if (!staticISO3s.has(vc.iso_code) && !dynamicHotspots.find(h => h.iso3 === vc.iso_code)) {
+          dynamicHotspots.push({
+            region: vc.country || vc.iso_code,
+            iso3: vc.iso_code,
+            context: `Dynamic: vulnerability score ${vc.overall_score}/100`,
+          });
+        }
+        if (dynamicHotspots.length >= 4) break;
+      }
+    }
+
+    // 2. Countries with recent critical anomalies
+    const { data: anomalyCountries } = await supabase
+      .from('anomaly_detections')
+      .select('division, severity, description, metrics')
+      .in('severity', ['critical', 'high'])
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    // 3. Countries with recent crisis events not in static list
+    const { data: crisisCountries } = await supabase
+      .from('crisis_events')
+      .select('region, severity, kind')
+      .in('status', ['active', 'escalated'])
+      .gte('severity', 7)
+      .order('opened_at', { ascending: false })
+      .limit(10);
+
+    if (crisisCountries) {
+      for (const ce of crisisCountries) {
+        const regionLower = (ce.region || '').toLowerCase();
+        const alreadyCovered = STATIC_HOTSPOTS.some(h => h.region.toLowerCase() === regionLower) ||
+          dynamicHotspots.some(h => h.region.toLowerCase() === regionLower);
+        if (!alreadyCovered && dynamicHotspots.length < 6) {
+          dynamicHotspots.push({
+            region: ce.region,
+            iso3: ce.region.substring(0, 3).toUpperCase(),
+            context: `Dynamic: active ${ce.kind} crisis, severity ${ce.severity}`,
+          });
+        }
+      }
+    }
+
+    const allHotspots = [...STATIC_HOTSPOTS, ...dynamicHotspots];
+    structuredLog('info', FN, `Scanning ${allHotspots.length} hotspots (${STATIC_HOTSPOTS.length} static + ${dynamicHotspots.length} dynamic)`);
+
     const results: any[] = [];
 
-    for (const hotspot of HOTSPOT_REGIONS) {
+    for (const hotspot of allHotspots) {
       const analysis = await resilientCall(`${FN}:ai:${hotspot.iso3}`, async () => {
         const resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
@@ -81,6 +144,8 @@ serve(async (req) => {
         continue;
       }
 
+      const isDynamic = !staticISO3s.has(hotspot.iso3);
+
       const { data: signal, error } = await supabase
         .from('conflict_signals')
         .insert({
@@ -98,7 +163,9 @@ serve(async (req) => {
           triggers: parsed.triggers || [],
           historical_parallels: parsed.historical_parallels || [],
           assessment_md: parsed.assessment || '',
-          data_sources: ['gdelt', 'acled', 'ai_synthesis'],
+          data_sources: isDynamic
+            ? ['vulnerability_threshold', 'ai_synthesis']
+            : ['gdelt', 'acled', 'ai_synthesis'],
           confidence: Math.min(parsed.confidence || 50, 90),
           status: 'active',
         })
@@ -108,12 +175,11 @@ serve(async (req) => {
       if (!error && signal) {
         results.push(signal);
 
-        // Auto-escalate high probability conflicts to ADI
         if (parsed.escalation_probability >= 60) {
           await supabase.from('adi_decisions').insert({
             signal_source: 'conflict_signal',
             signal_id: signal.id,
-            signal_summary: `Conflict escalation risk ${parsed.escalation_probability}% in ${hotspot.region} (${hotspot.iso3})`,
+            signal_summary: `Conflict escalation risk ${parsed.escalation_probability}% in ${hotspot.region} (${hotspot.iso3})${isDynamic ? ' [DYNAMIC DISCOVERY]' : ''}`,
             region: hotspot.region,
             country_iso3: hotspot.iso3,
             domain: 'conflict',
@@ -129,11 +195,18 @@ serve(async (req) => {
 
     await supabase.from('automation_logs').insert({
       job_name: FN, status: 'success',
-      message: `Scanned ${results.length} hotspots, ${results.filter(r => r.escalation_probability >= 60).length} high-risk`
+      message: `Scanned ${results.length} hotspots (${dynamicHotspots.length} dynamic), ${results.filter(r => r.escalation_probability >= 60).length} high-risk`
     });
 
-    structuredLog('info', FN, `Complete: ${results.length} conflict signals`, undefined, start);
-    return jsonResponse({ success: true, signals: results, execution_time_ms: Date.now() - start });
+    structuredLog('info', FN, `Complete: ${results.length} signals (${dynamicHotspots.length} dynamic)`, undefined, start);
+    return jsonResponse({
+      success: true,
+      signals: results,
+      static_count: STATIC_HOTSPOTS.length,
+      dynamic_count: dynamicHotspots.length,
+      dynamic_discoveries: dynamicHotspots.map(h => ({ iso3: h.iso3, region: h.region, context: h.context })),
+      execution_time_ms: Date.now() - start,
+    });
   } catch (e) {
     structuredLog('error', FN, (e as Error).message, undefined, start);
     return errorResponse(e);
