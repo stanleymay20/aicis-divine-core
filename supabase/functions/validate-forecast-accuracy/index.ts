@@ -309,7 +309,7 @@ serve(async (req) => {
             window_end: new Date().toISOString(),
           },
           {
-            model_version: 'aicis-engine-v2',
+            model_version: 'APE-V2.1',
             metric_name: 'accuracy_delta_vs_naive',
             metric_value: (aicisDirectionAcc ?? 0) - (naiveDirectionAcc ?? 0),
             sample_size: totalValidated,
