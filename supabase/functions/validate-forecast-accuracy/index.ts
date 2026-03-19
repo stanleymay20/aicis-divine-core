@@ -261,7 +261,74 @@ serve(async (req) => {
       }
     }
 
-    // ── 3. Log telemetry ─────────────────────────────────────────────
+    // ── 3. Naive Baseline Comparison ────────────────────────────────
+    // "Tomorrow = today" model: predict no change, measure how often that's correct
+    let naiveHits = 0;
+    let naiveTotal = 0;
+    let aicisDirectionAcc: number | null = null;
+    let naiveDirectionAcc: number | null = null;
+
+    if (totalValidated > 0) {
+      // Re-query the 1-day results we just inserted to compute naive baseline
+      const { data: recentResults } = await sb
+        .from("forecast_validation_results")
+        .select("predicted_direction, actual_direction")
+        .eq("horizon_days", 1)
+        .eq("realized_date", todayStr);
+
+      if (recentResults?.length) {
+        for (const r of recentResults) {
+          naiveTotal++;
+          // Naive model always predicts "stable" (no change)
+          if (r.actual_direction === "stable") naiveHits++;
+        }
+
+        aicisDirectionAcc = totalValidated > 0
+          ? Math.round(totalDirectionHits / totalValidated * 100) : null;
+        naiveDirectionAcc = naiveTotal > 0
+          ? Math.round(naiveHits / naiveTotal * 100) : null;
+
+        // Store both metrics in calibration_metrics
+        const metricsToInsert = [
+          {
+            model_version: 'aicis-engine-v2',
+            metric_name: 'directional_accuracy',
+            metric_value: aicisDirectionAcc ?? 0,
+            sample_size: totalValidated,
+            domain: 'all',
+            window_start: new Date(Date.now() - 86400000).toISOString(),
+            window_end: new Date().toISOString(),
+          },
+          {
+            model_version: 'aicis-engine-v2',
+            metric_name: 'naive_baseline_accuracy',
+            metric_value: naiveDirectionAcc ?? 0,
+            sample_size: naiveTotal,
+            domain: 'all',
+            window_start: new Date(Date.now() - 86400000).toISOString(),
+            window_end: new Date().toISOString(),
+          },
+          {
+            model_version: 'aicis-engine-v2',
+            metric_name: 'accuracy_delta_vs_naive',
+            metric_value: (aicisDirectionAcc ?? 0) - (naiveDirectionAcc ?? 0),
+            sample_size: totalValidated,
+            domain: 'all',
+            window_start: new Date(Date.now() - 86400000).toISOString(),
+            window_end: new Date().toISOString(),
+          },
+        ];
+
+        for (const m of metricsToInsert) {
+          const { error } = await sb.from("calibration_metrics").insert(m);
+          if (error) structuredLog("warn", FN, `Metric insert error: ${error.message}`);
+        }
+
+        structuredLog("info", FN, `Baseline comparison: AICIS=${aicisDirectionAcc}% vs Naive=${naiveDirectionAcc}%, delta=${(aicisDirectionAcc ?? 0) - (naiveDirectionAcc ?? 0)}%`);
+      }
+    }
+
+    // ── 4. Log telemetry ─────────────────────────────────────────────
     await sb.from("operational_telemetry").insert({
       function_name: FN,
       execution_time_ms: Date.now() - start,
@@ -271,8 +338,10 @@ serve(async (req) => {
         horizons: horizonResults,
         correlations_found: correlationsFound,
         vuln_spikes_checked: vulnSpikes?.length || 0,
-        overall_direction_accuracy: totalValidated > 0
-          ? Math.round(totalDirectionHits / totalValidated * 100) : null,
+        overall_direction_accuracy: aicisDirectionAcc,
+        naive_baseline_accuracy: naiveDirectionAcc,
+        accuracy_delta: aicisDirectionAcc !== null && naiveDirectionAcc !== null
+          ? aicisDirectionAcc - naiveDirectionAcc : null,
       },
     });
 
