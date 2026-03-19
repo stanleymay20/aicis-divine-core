@@ -227,7 +227,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         message: "All 211 countries fully seeded with villages! Starting inference.",
-        total_countries: seededSet.size,
+        total_countries: seededCountries.size,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
