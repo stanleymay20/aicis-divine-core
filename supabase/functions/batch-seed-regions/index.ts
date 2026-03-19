@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const FN = "batch-seed-regions";
-const BATCH_SIZE = 3; // fewer per batch since we now also seed villages
+const BATCH_SIZE = 3;
 
 const ALL_COUNTRIES = [
   "AFG","ALB","DZA","AND","AGO","ATG","ARG","ARM","AUS","AUT","AZE","BHS","BHR","BGD","BRB",
@@ -56,7 +56,6 @@ async function overpass(query: string): Promise<any[]> {
 async function seedOneCountry(supabase: any, iso3: string, seedVillages: boolean) {
   const res = { provinces: 0, districts: 0, villages: 0 };
 
-  // Check if country already exists
   const { data: existCheck } = await supabase
     .from("admin_regions").select("id").eq("country_iso3", iso3).eq("admin_level", 0).maybeSingle();
 
@@ -68,12 +67,10 @@ async function seedOneCountry(supabase: any, iso3: string, seedVillages: boolean
       { headers: { "User-Agent": "AICIS/2.0" } }
     );
     const cData = await cResp.json().catch(() => []);
-
     if (cData?.length) {
       const c = cData[0];
       countryId = await insertRegion(supabase, {
-        name: c.display_name?.split(",")[0] || iso3,
-        admin_level: 0, country_iso3: iso3,
+        name: c.display_name?.split(",")[0] || iso3, admin_level: 0, country_iso3: iso3,
         lat: parseFloat(c.lat), lon: parseFloat(c.lon),
         osm_id: parseInt(c.osm_id) || null, source: "nominatim",
       });
@@ -85,48 +82,7 @@ async function seedOneCountry(supabase: any, iso3: string, seedVillages: boolean
     }
   }
 
-  // Check if provinces already seeded
-  const { count: provCount } = await supabase
-    .from("admin_regions").select("id", { count: "exact", head: true })
-    .eq("country_iso3", iso3).eq("admin_level", 1);
-
-  if (!provCount || provCount === 0) {
-    const provs = await overpass(
-      `[out:json][timeout:12];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="4"]["boundary"="administrative"](area.a);out center 150;`
-    );
-    for (const el of provs) {
-      const name = el.tags?.name || el.tags?.["name:en"];
-      if (!name || !el.center?.lat) continue;
-      const id = await insertRegion(supabase, {
-        name, admin_level: 1, parent_id: countryId, country_iso3: iso3,
-        osm_id: el.id, lat: el.center.lat, lon: el.center.lon,
-        iso_code: el.tags?.["ISO3166-2"] || null, source: "overpass",
-      });
-      if (id) res.provinces++;
-    }
-  }
-
-  // Check if districts already seeded
-  const { count: distCount } = await supabase
-    .from("admin_regions").select("id", { count: "exact", head: true })
-    .eq("country_iso3", iso3).eq("admin_level", 2);
-
-  if (!distCount || distCount === 0) {
-    const dists = await overpass(
-      `[out:json][timeout:12];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="6"]["boundary"="administrative"](area.a);out center 200;`
-    );
-    for (const el of dists) {
-      const name = el.tags?.name || el.tags?.["name:en"];
-      if (!name || !el.center?.lat) continue;
-      await insertRegion(supabase, {
-        name, admin_level: 2, parent_id: countryId, country_iso3: iso3,
-        osm_id: el.id, lat: el.center.lat, lon: el.center.lon, source: "overpass",
-      });
-      res.districts++;
-    }
-  }
-
-  // Seed villages (admin_level 3 = towns, admin_level 4 = villages/hamlets)
+  // Seed villages
   if (seedVillages) {
     const { count: vilCount } = await supabase
       .from("admin_regions").select("id", { count: "exact", head: true })
@@ -147,8 +103,7 @@ async function seedOneCountry(supabase: any, iso3: string, seedVillages: boolean
           osm_id: v.id, lat: v.lat, lon: v.lon,
           population_est: parseInt(v.tags?.population) || null,
           urban_rural: (placeType === "city" || placeType === "town") ? "urban" : "rural",
-          source: "overpass",
-          metadata: { place_type: placeType },
+          source: "overpass", metadata: { place_type: placeType },
         });
         res.villages++;
       }
@@ -171,39 +126,19 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const mode = body.mode || "full"; // "full" = provinces + districts + villages
+    // Use RPC to efficiently find countries needing villages
+    const { data: needsVillagesList, error: rpcErr } = await supabase
+      .rpc("get_countries_needing_villages");
 
-    // Step 1: Get countries with level-0 entries (already seeded)
-    const seededCountries = new Set<string>();
-    let offset = 0;
-    while (true) {
-      const { data } = await supabase
-        .from("admin_regions").select("country_iso3")
-        .eq("admin_level", 0)
-        .range(offset, offset + 999);
-      if (!data || data.length === 0) break;
-      for (const r of data) seededCountries.add(r.country_iso3);
-      if (data.length < 1000) break;
-      offset += 1000;
-    }
+    if (rpcErr) throw rpcErr;
 
-    // Step 2: Get countries that have villages (level 3 or 4)
-    const villageCountries = new Set<string>();
-    offset = 0;
-    while (true) {
-      const { data } = await supabase
-        .from("admin_regions").select("country_iso3")
-        .gte("admin_level", 3)
-        .range(offset, offset + 999);
-      if (!data || data.length === 0) break;
-      for (const r of data) villageCountries.add(r.country_iso3);
-      if (data.length < 1000) break;
-      offset += 1000;
-    }
+    const needsVillages = (needsVillagesList || []).map((r: any) => r.country_iso3);
 
-    const unseeded = ALL_COUNTRIES.filter(iso3 => !seededCountries.has(iso3));
-    const needsVillages = ALL_COUNTRIES.filter(iso3 => seededCountries.has(iso3) && !villageCountries.has(iso3));
+    // Also check for completely unseeded countries
+    const { data: seededRows } = await supabase
+      .from("admin_regions").select("country_iso3").eq("admin_level", 0);
+    const seededSet = new Set((seededRows || []).map((r: any) => r.country_iso3));
+    const unseeded = ALL_COUNTRIES.filter(iso3 => !seededSet.has(iso3));
 
     let batch: string[];
     let phase: string;
@@ -217,7 +152,6 @@ serve(async (req) => {
       batch = needsVillages.slice(0, BATCH_SIZE);
       phase = "villages";
     } else {
-      // All done — trigger inference
       fetch(`${supabaseUrl}/functions/v1/batch-village-inference`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
@@ -227,7 +161,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         message: "All 211 countries fully seeded with villages! Starting inference.",
-        total_countries: seededCountries.size,
+        total_countries: seededSet.size,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -252,12 +186,11 @@ serve(async (req) => {
       message: `[${phase}] ${batch.join(",")}. Remaining: ${totalRemaining}. ${JSON.stringify(batchResults)}`,
     });
 
-    // Auto-chain
     if (totalRemaining > 0) {
       fetch(`${supabaseUrl}/functions/v1/batch-seed-regions`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }),
+        body: "{}",
       }).catch(() => {});
     }
 
