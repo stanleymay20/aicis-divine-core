@@ -5,11 +5,14 @@ export interface ResolvedLocation {
   name: string;
   iso2?: string;
   iso3?: string;
-  type: 'country' | 'region' | 'city' | 'suburb' | 'district';
+  type: 'country' | 'region' | 'city' | 'suburb' | 'district' | 'village' | 'province';
+  adminLevel?: number; // 0=country, 1=province, 2=district, 3=sub-district, 4=village
   lat?: number;
   lon?: number;
-  bbox?: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
+  bbox?: [number, number, number, number];
   geoId?: string;
+  parentId?: string;
+  regionId?: string; // admin_regions table ID for sub-national queries
 }
 
 /**
