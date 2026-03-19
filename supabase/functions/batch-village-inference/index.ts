@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const FN = "batch-village-inference";
-const REGIONS_PER_BATCH = 20;
+const REGIONS_PER_BATCH = 8;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
