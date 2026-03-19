@@ -3,10 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const FN = "batch-seed-regions";
+const BATCH_SIZE = 5;
 
 const ALL_COUNTRIES = [
   "AFG","ALB","DZA","AND","AGO","ATG","ARG","ARM","AUS","AUT","AZE","BHS","BHR","BGD","BRB",
@@ -38,7 +39,7 @@ async function insertRegion(supabase: any, data: any): Promise<string | null> {
 
 async function overpass(query: string): Promise<any[]> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const resp = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
@@ -55,7 +56,6 @@ async function overpass(query: string): Promise<any[]> {
 async function seedOneCountry(supabase: any, iso3: string) {
   const res = { provinces: 0, districts: 0 };
 
-  // Nominatim lookup
   const cResp = await fetch(
     `https://nominatim.openstreetmap.org/search?q=${iso3}&format=json&limit=1&featuretype=country`,
     { headers: { "User-Agent": "AICIS/2.0" } }
@@ -78,9 +78,9 @@ async function seedOneCountry(supabase: any, iso3: string) {
     countryId = row?.id || null;
   }
 
-  // Provinces
+  // Provinces (admin_level 4)
   const provs = await overpass(
-    `[out:json][timeout:10];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="4"]["boundary"="administrative"](area.a);out center 100;`
+    `[out:json][timeout:12];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="4"]["boundary"="administrative"](area.a);out center 150;`
   );
   for (const el of provs) {
     const name = el.tags?.name || el.tags?.["name:en"];
@@ -93,9 +93,9 @@ async function seedOneCountry(supabase: any, iso3: string) {
     if (id) res.provinces++;
   }
 
-  // Districts
+  // Districts (admin_level 6)
   const dists = await overpass(
-    `[out:json][timeout:10];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="6"]["boundary"="administrative"](area.a);out center 100;`
+    `[out:json][timeout:12];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="6"]["boundary"="administrative"](area.a);out center 200;`
   );
   for (const el of dists) {
     const name = el.tags?.name || el.tags?.["name:en"];
@@ -123,32 +123,48 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
-    // Get already-seeded countries
     const { data: existing } = await supabase
       .from("admin_regions").select("country_iso3").eq("admin_level", 0);
     const seededSet = new Set((existing || []).map((r: any) => r.country_iso3));
     const unseeded = ALL_COUNTRIES.filter(iso3 => !seededSet.has(iso3));
 
     if (unseeded.length === 0) {
+      // All done — trigger batch inference
+      fetch(`${supabaseUrl}/functions/v1/batch-village-inference`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        body: "{}",
+      }).catch(() => {});
+
       return new Response(JSON.stringify({
-        success: true, message: "All 211 countries seeded!",
+        success: true, message: "All 211 countries seeded! Starting inference pipeline.",
         total_seeded: seededSet.size,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Process 1 country
-    const iso3 = unseeded[0];
-    console.log(`[${FN}] Seeding ${iso3} (${seededSet.size + 1}/${ALL_COUNTRIES.length})`);
+    // Process batch
+    const batch = unseeded.slice(0, BATCH_SIZE);
+    const batchResults: Record<string, any> = {};
 
-    const result = await seedOneCountry(supabase, iso3);
+    for (const iso3 of batch) {
+      console.log(`[${FN}] Seeding ${iso3} (${seededSet.size + Object.keys(batchResults).length + 1}/${ALL_COUNTRIES.length})`);
+      try {
+        batchResults[iso3] = await seedOneCountry(supabase, iso3);
+      } catch (e) {
+        batchResults[iso3] = { error: (e as Error).message };
+      }
+      // 1.5s delay between countries to respect Nominatim rate limits
+      await new Promise(r => setTimeout(r, 1500));
+    }
 
+    const progress = seededSet.size + batch.length;
     await supabase.from("automation_logs").insert({
       job_name: FN, status: "success",
-      message: `${iso3}: ${result.provinces}P/${result.districts}D. Progress: ${seededSet.size + 1}/${ALL_COUNTRIES.length}`,
+      message: `Batch: ${batch.join(",")}. Progress: ${progress}/${ALL_COUNTRIES.length}. ${JSON.stringify(batchResults)}`,
     });
 
-    // Auto-chain next country
-    const remaining = unseeded.length - 1;
+    // Auto-chain
+    const remaining = unseeded.length - batch.length;
     if (remaining > 0) {
       fetch(`${supabaseUrl}/functions/v1/batch-seed-regions`, {
         method: "POST",
@@ -158,8 +174,8 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      success: true, country: iso3, result,
-      progress: `${seededSet.size + 1}/${ALL_COUNTRIES.length}`,
+      success: true, batch: batchResults,
+      progress: `${progress}/${ALL_COUNTRIES.length}`,
       remaining, auto_continuing: remaining > 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
