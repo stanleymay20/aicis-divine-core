@@ -23,19 +23,20 @@ serve(async (req) => {
 
   try {
     // Find regions that have coordinates but NO indicators yet
-    const { data: regionsWithIndicators } = await supabase
+    // Use a left join approach: get regions not in village_indicators
+    const { data: coveredData } = await supabase
       .from("village_indicators")
-      .select("region_id");
+      .select("region_id")
+      .limit(1000);
     
-    const coveredIds = new Set((regionsWithIndicators || []).map((r: any) => r.region_id));
+    const coveredIds = new Set((coveredData || []).map((r: any) => r.region_id));
 
     const { data: allRegions, error: regErr } = await supabase
       .from("admin_regions")
       .select("id, name, admin_level, lat, lon, country_iso3, population_est, urban_rural")
       .not("lat", "is", null)
       .not("lon", "is", null)
-      .order("admin_level", { ascending: false }) // process deepest levels first
-      .limit(500);
+      .limit(200);
 
     if (regErr) throw regErr;
 
