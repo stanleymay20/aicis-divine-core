@@ -205,6 +205,74 @@ export type Database = {
           },
         ]
       }
+      admin_regions: {
+        Row: {
+          admin_level: number
+          area_km2: number | null
+          bbox: Json | null
+          country_iso3: string
+          created_at: string | null
+          id: string
+          iso_code: string | null
+          lat: number | null
+          lon: number | null
+          metadata: Json | null
+          name: string
+          osm_id: number | null
+          parent_id: string | null
+          population_est: number | null
+          source: string | null
+          updated_at: string | null
+          urban_rural: string | null
+        }
+        Insert: {
+          admin_level: number
+          area_km2?: number | null
+          bbox?: Json | null
+          country_iso3: string
+          created_at?: string | null
+          id?: string
+          iso_code?: string | null
+          lat?: number | null
+          lon?: number | null
+          metadata?: Json | null
+          name: string
+          osm_id?: number | null
+          parent_id?: string | null
+          population_est?: number | null
+          source?: string | null
+          updated_at?: string | null
+          urban_rural?: string | null
+        }
+        Update: {
+          admin_level?: number
+          area_km2?: number | null
+          bbox?: Json | null
+          country_iso3?: string
+          created_at?: string | null
+          id?: string
+          iso_code?: string | null
+          lat?: number | null
+          lon?: number | null
+          metadata?: Json | null
+          name?: string
+          osm_id?: number | null
+          parent_id?: string | null
+          population_est?: number | null
+          source?: string | null
+          updated_at?: string | null
+          urban_rural?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_regions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "admin_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_chat_messages: {
         Row: {
           content: string
@@ -4701,6 +4769,71 @@ export type Database = {
         }
         Relationships: []
       }
+      satellite_tiles: {
+        Row: {
+          built_area_pct: number | null
+          center_lat: number
+          center_lon: number
+          cloud_cover_pct: number | null
+          created_at: string | null
+          id: string
+          ndvi: number | null
+          nightlight_radiance: number | null
+          observation_date: string
+          raw_bands: Json | null
+          region_id: string | null
+          satellite_source: string | null
+          tile_x: number
+          tile_y: number
+          water_body_pct: number | null
+          zoom_level: number
+        }
+        Insert: {
+          built_area_pct?: number | null
+          center_lat: number
+          center_lon: number
+          cloud_cover_pct?: number | null
+          created_at?: string | null
+          id?: string
+          ndvi?: number | null
+          nightlight_radiance?: number | null
+          observation_date: string
+          raw_bands?: Json | null
+          region_id?: string | null
+          satellite_source?: string | null
+          tile_x: number
+          tile_y: number
+          water_body_pct?: number | null
+          zoom_level?: number
+        }
+        Update: {
+          built_area_pct?: number | null
+          center_lat?: number
+          center_lon?: number
+          cloud_cover_pct?: number | null
+          created_at?: string | null
+          id?: string
+          ndvi?: number | null
+          nightlight_radiance?: number | null
+          observation_date?: string
+          raw_bands?: Json | null
+          region_id?: string | null
+          satellite_source?: string | null
+          tile_x?: number
+          tile_y?: number
+          water_body_pct?: number | null
+          zoom_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satellite_tiles_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "admin_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sc_allocation_policies: {
         Row: {
           constraints: Json
@@ -5757,6 +5890,59 @@ export type Database = {
         }
         Relationships: []
       }
+      village_indicators: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          data_source: string
+          domain: string
+          id: string
+          indicator: string
+          inference_model: string | null
+          observed_at: string | null
+          raw: Json | null
+          region_id: string
+          unit: string | null
+          value: number | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          data_source: string
+          domain: string
+          id?: string
+          indicator: string
+          inference_model?: string | null
+          observed_at?: string | null
+          raw?: Json | null
+          region_id: string
+          unit?: string | null
+          value?: number | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          data_source?: string
+          domain?: string
+          id?: string
+          indicator?: string
+          inference_model?: string | null
+          observed_at?: string | null
+          raw?: Json | null
+          region_id?: string
+          unit?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "village_indicators_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "admin_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vulnerability_event_correlations: {
         Row: {
           country: string
@@ -6025,6 +6211,32 @@ export type Database = {
       }
       cleanup_expired_exports: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      get_region_hierarchy: {
+        Args: { _country_iso3: string; _max_level?: number }
+        Returns: {
+          admin_level: number
+          id: string
+          indicator_count: number
+          lat: number
+          lon: number
+          name: string
+          parent_id: string
+          population_est: number
+          urban_rural: string
+        }[]
+      }
+      get_village_dashboard: {
+        Args: { _region_id: string }
+        Returns: {
+          confidence: number
+          data_source: string
+          domain: string
+          indicator: string
+          observed_at: string
+          unit: string
+          value: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
