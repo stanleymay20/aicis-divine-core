@@ -217,7 +217,9 @@ function determineLocationType(osmType?: string): ResolvedLocation['type'] {
   
   const type = osmType.toLowerCase();
   if (type.includes('country')) return 'country';
+  if (type.includes('state') || type.includes('province')) return 'province';
   if (type.includes('city') || type.includes('town')) return 'city';
+  if (type.includes('village') || type.includes('hamlet')) return 'village';
   if (type.includes('suburb') || type.includes('neighbourhood')) return 'suburb';
   if (type.includes('district') || type.includes('county')) return 'district';
   
