@@ -291,7 +291,7 @@ serve(async (req) => {
         // Store both metrics in calibration_metrics
         const metricsToInsert = [
           {
-            model_version: 'aicis-engine-v2',
+            model_version: 'APE-V2.1',
             metric_name: 'directional_accuracy',
             metric_value: aicisDirectionAcc ?? 0,
             sample_size: totalValidated,
