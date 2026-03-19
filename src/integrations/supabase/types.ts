@@ -6211,6 +6211,13 @@ export type Database = {
       }
       cleanup_expired_exports: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      count_uncovered_regions: { Args: never; Returns: number }
+      get_countries_needing_villages: {
+        Args: never
+        Returns: {
+          country_iso3: string
+        }[]
+      }
       get_region_hierarchy: {
         Args: { _country_iso3: string; _max_level?: number }
         Returns: {
@@ -6221,6 +6228,19 @@ export type Database = {
           lon: number
           name: string
           parent_id: string
+          population_est: number
+          urban_rural: string
+        }[]
+      }
+      get_uncovered_regions: {
+        Args: { _limit?: number }
+        Returns: {
+          admin_level: number
+          country_iso3: string
+          id: string
+          lat: number
+          lon: number
+          name: string
           population_est: number
           urban_rural: string
         }[]
