@@ -300,7 +300,7 @@ serve(async (req) => {
             window_end: new Date().toISOString(),
           },
           {
-            model_version: 'aicis-engine-v2',
+            model_version: 'APE-V2.1',
             metric_name: 'naive_baseline_accuracy',
             metric_value: naiveDirectionAcc ?? 0,
             sample_size: naiveTotal,
