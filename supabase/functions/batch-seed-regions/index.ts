@@ -174,30 +174,41 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const mode = body.mode || "full"; // "full" = provinces + districts + villages
 
-    // Find countries that need village seeding (have level 0 but no level 3/4)
-    const { data: existing } = await supabase
-      .from("admin_regions").select("country_iso3, admin_level");
-
-    const countryLevels: Record<string, Set<number>> = {};
-    for (const r of (existing || [])) {
-      if (!countryLevels[r.country_iso3]) countryLevels[r.country_iso3] = new Set();
-      countryLevels[r.country_iso3].add(r.admin_level);
+    // Step 1: Get countries with level-0 entries (already seeded)
+    const seededCountries = new Set<string>();
+    let offset = 0;
+    while (true) {
+      const { data } = await supabase
+        .from("admin_regions").select("country_iso3")
+        .eq("admin_level", 0)
+        .range(offset, offset + 999);
+      if (!data || data.length === 0) break;
+      for (const r of data) seededCountries.add(r.country_iso3);
+      if (data.length < 1000) break;
+      offset += 1000;
     }
 
-    const seededSet = new Set(Object.keys(countryLevels));
+    // Step 2: Get countries that have villages (level 3 or 4)
+    const villageCountries = new Set<string>();
+    offset = 0;
+    while (true) {
+      const { data } = await supabase
+        .from("admin_regions").select("country_iso3")
+        .gte("admin_level", 3)
+        .range(offset, offset + 999);
+      if (!data || data.length === 0) break;
+      for (const r of data) villageCountries.add(r.country_iso3);
+      if (data.length < 1000) break;
+      offset += 1000;
+    }
 
-    // Countries not seeded at all
-    const unseeded = ALL_COUNTRIES.filter(iso3 => !seededSet.has(iso3));
-    
-    // Countries seeded but missing villages (no level 3 or 4)
-    const needsVillages = ALL_COUNTRIES.filter(iso3 => {
-      const levels = countryLevels[iso3];
-      return levels && !levels.has(3) && !levels.has(4);
-    });
+    const unseeded = ALL_COUNTRIES.filter(iso3 => !seededCountries.has(iso3));
+    const needsVillages = ALL_COUNTRIES.filter(iso3 => seededCountries.has(iso3) && !villageCountries.has(iso3));
 
-    // Prioritize: first finish unseeded countries, then add villages
     let batch: string[];
     let phase: string;
+
+    console.log(`[${FN}] Unseeded: ${unseeded.length}, Needs villages: ${needsVillages.length}`);
 
     if (unseeded.length > 0) {
       batch = unseeded.slice(0, BATCH_SIZE);
