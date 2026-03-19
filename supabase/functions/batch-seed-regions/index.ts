@@ -24,6 +24,92 @@ const ALL_COUNTRIES = [
   "TUV","UGA","UKR","ARE","GBR","USA","URY","UZB","VUT","VEN","VNM","YEM","ZMB","ZWE"
 ];
 
+async function insertRegion(supabase: any, data: any): Promise<string | null> {
+  if (data.osm_id) {
+    const { data: existing } = await supabase
+      .from("admin_regions").select("id").eq("osm_id", data.osm_id).maybeSingle();
+    if (existing) return existing.id;
+  }
+  const { data: row, error } = await supabase
+    .from("admin_regions").insert(data).select("id").single();
+  if (error) return null;
+  return row?.id || null;
+}
+
+async function overpass(query: string): Promise<any[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const resp = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) return [];
+    return (await resp.json()).elements || [];
+  } catch { clearTimeout(timer); return []; }
+}
+
+async function seedOneCountry(supabase: any, iso3: string) {
+  const res = { provinces: 0, districts: 0 };
+
+  // Nominatim lookup
+  const cResp = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${iso3}&format=json&limit=1&featuretype=country`,
+    { headers: { "User-Agent": "AICIS/2.0" } }
+  );
+  const cData = await cResp.json().catch(() => []);
+
+  let countryId: string | null = null;
+  if (cData?.length) {
+    const c = cData[0];
+    countryId = await insertRegion(supabase, {
+      name: c.display_name?.split(",")[0] || iso3,
+      admin_level: 0, country_iso3: iso3,
+      lat: parseFloat(c.lat), lon: parseFloat(c.lon),
+      osm_id: parseInt(c.osm_id) || null, source: "nominatim",
+    });
+  } else {
+    const { data: row } = await supabase.from("admin_regions")
+      .insert({ name: iso3, admin_level: 0, country_iso3: iso3, source: "fallback" })
+      .select("id").single();
+    countryId = row?.id || null;
+  }
+
+  // Provinces
+  const provs = await overpass(
+    `[out:json][timeout:10];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="4"]["boundary"="administrative"](area.a);out center 100;`
+  );
+  for (const el of provs) {
+    const name = el.tags?.name || el.tags?.["name:en"];
+    if (!name || !el.center?.lat) continue;
+    const id = await insertRegion(supabase, {
+      name, admin_level: 1, parent_id: countryId, country_iso3: iso3,
+      osm_id: el.id, lat: el.center.lat, lon: el.center.lon,
+      iso_code: el.tags?.["ISO3166-2"] || null, source: "overpass",
+    });
+    if (id) res.provinces++;
+  }
+
+  // Districts
+  const dists = await overpass(
+    `[out:json][timeout:10];area["ISO3166-1:alpha3"="${iso3}"]->.a;rel["admin_level"="6"]["boundary"="administrative"](area.a);out center 100;`
+  );
+  for (const el of dists) {
+    const name = el.tags?.name || el.tags?.["name:en"];
+    if (!name || !el.center?.lat) continue;
+    await insertRegion(supabase, {
+      name, admin_level: 2, parent_id: countryId, country_iso3: iso3,
+      osm_id: el.id, lat: el.center.lat, lon: el.center.lon, source: "overpass",
+    });
+    res.districts++;
+  }
+
+  return res;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -37,15 +123,9 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const includeVillages = body.include_villages ?? false;
-
     // Get already-seeded countries
     const { data: existing } = await supabase
-      .from("admin_regions")
-      .select("country_iso3")
-      .eq("admin_level", 0);
-
+      .from("admin_regions").select("country_iso3").eq("admin_level", 0);
     const seededSet = new Set((existing || []).map((r: any) => r.country_iso3));
     const unseeded = ALL_COUNTRIES.filter(iso3 => !seededSet.has(iso3));
 
@@ -56,69 +136,31 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Process just 2 countries per invocation to stay within timeout
-    const batch = unseeded.slice(0, 2);
-    console.log(`[${FN}] Processing: ${batch.join(", ")} (${unseeded.length} remaining)`);
+    // Process 1 country
+    const iso3 = unseeded[0];
+    console.log(`[${FN}] Seeding ${iso3} (${seededSet.size + 1}/${ALL_COUNTRIES.length})`);
 
-    const results: Record<string, any> = {};
-
-    for (const iso3 of batch) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 45000);
-
-        const resp = await fetch(`${supabaseUrl}/functions/v1/seed-subnational-regions`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${serviceKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ country_iso3: iso3, include_villages: includeVillages }),
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-
-        if (resp.ok) {
-          results[iso3] = (await resp.json()).results || "ok";
-        } else {
-          results[iso3] = { error: `HTTP ${resp.status}` };
-        }
-      } catch (e) {
-        results[iso3] = { error: (e as Error).name === "AbortError" ? "timeout" : (e as Error).message };
-      }
-
-      // 3s delay between countries
-      await new Promise(r => setTimeout(r, 3000));
-    }
-
-    const newSeeded = seededSet.size + Object.values(results).filter((r: any) => !r.error).length;
-    const remaining = ALL_COUNTRIES.length - newSeeded;
+    const result = await seedOneCountry(supabase, iso3);
 
     await supabase.from("automation_logs").insert({
       job_name: FN, status: "success",
-      message: `Batch: ${batch.join(",")}. Progress: ${newSeeded}/${ALL_COUNTRIES.length}. Remaining: ${remaining}`,
+      message: `${iso3}: ${result.provinces}P/${result.districts}D. Progress: ${seededSet.size + 1}/${ALL_COUNTRIES.length}`,
     });
 
-    // Auto-schedule next batch if remaining
+    // Auto-chain next country
+    const remaining = unseeded.length - 1;
     if (remaining > 0) {
-      // Fire-and-forget next batch call
       fetch(`${supabaseUrl}/functions/v1/batch-seed-regions`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ include_villages: includeVillages }),
+        headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        body: "{}",
       }).catch(() => {});
     }
 
     return new Response(JSON.stringify({
-      success: true,
-      batch: batch,
-      results,
-      progress: `${newSeeded}/${ALL_COUNTRIES.length}`,
-      remaining,
-      auto_continuing: remaining > 0,
+      success: true, country: iso3, result,
+      progress: `${seededSet.size + 1}/${ALL_COUNTRIES.length}`,
+      remaining, auto_continuing: remaining > 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error(`[${FN}] Error:`, e);
