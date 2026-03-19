@@ -291,7 +291,7 @@ serve(async (req) => {
         // Store both metrics in calibration_metrics
         const metricsToInsert = [
           {
-            model_version: 'aicis-engine-v2',
+            model_version: 'APE-V2.1',
             metric_name: 'directional_accuracy',
             metric_value: aicisDirectionAcc ?? 0,
             sample_size: totalValidated,
@@ -300,7 +300,7 @@ serve(async (req) => {
             window_end: new Date().toISOString(),
           },
           {
-            model_version: 'aicis-engine-v2',
+            model_version: 'APE-V2.1',
             metric_name: 'naive_baseline_accuracy',
             metric_value: naiveDirectionAcc ?? 0,
             sample_size: naiveTotal,
@@ -309,7 +309,7 @@ serve(async (req) => {
             window_end: new Date().toISOString(),
           },
           {
-            model_version: 'aicis-engine-v2',
+            model_version: 'APE-V2.1',
             metric_name: 'accuracy_delta_vs_naive',
             metric_value: (aicisDirectionAcc ?? 0) - (naiveDirectionAcc ?? 0),
             sample_size: totalValidated,
