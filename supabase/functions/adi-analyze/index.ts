@@ -169,22 +169,70 @@ Return ONLY valid JSON: { "options": [...], "reasoning": "...", "confidence": N,
       } else {
         decisions.push(decision);
 
-        // Generate scenario simulations for the top decision
+        // Generate AI-driven scenario simulations for the top decision
         if (parsed.options?.[0]) {
-          const scenarios = ['best_case', 'worst_case', 'baseline'];
-          for (const scenarioType of scenarios) {
-            await supabase.from('adi_scenarios').insert({
-              decision_id: decision.id,
-              scenario_name: `${scenarioType.replace('_', ' ')} — ${parsed.options[0].action}`,
-              scenario_type: scenarioType,
-              input_params: { action: parsed.options[0].action, timeframe: parsed.options[0].timeframe },
-              projection_30d: { stability_delta: scenarioType === 'best_case' ? 15 : scenarioType === 'worst_case' ? -20 : 0 },
-              projection_60d: { stability_delta: scenarioType === 'best_case' ? 25 : scenarioType === 'worst_case' ? -35 : -5 },
-              projection_90d: { stability_delta: scenarioType === 'best_case' ? 30 : scenarioType === 'worst_case' ? -45 : -10 },
-              confidence: Math.min(parsed.confidence || 50, 85),
-              reasoning_md: `${scenarioType.replace('_', ' ')} projection for: ${parsed.options[0].action}`,
-              created_by: userId !== 'system' ? userId : null,
+          const scenarioAI = await resilientCall(`${FN}:scenarios`, async () => {
+            const resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash',
+                messages: [{
+                  role: 'system',
+                  content: `You generate 3 divergent scenario projections (best_case, worst_case, baseline) for a geopolitical/crisis decision. Each scenario MUST have unique, data-informed numeric projections — never use fixed templates. Consider the region, severity, domain, and decision context to produce realistic stability deltas.
+
+Return ONLY valid JSON:
+{
+  "scenarios": [
+    {
+      "type": "best_case",
+      "name": "descriptive scenario name",
+      "stability_delta_30d": <number -50 to +50>,
+      "stability_delta_60d": <number -70 to +70>,
+      "stability_delta_90d": <number -100 to +100>,
+      "confidence": <number 20-85>,
+      "reasoning": "1-2 sentence explanation of why this outcome occurs"
+    }
+  ]
+}`
+                }, {
+                  role: 'user',
+                  content: `Signal: ${signalSummary}\nRecommended action: ${parsed.options[0].action} (${parsed.options[0].timeframe})\nRisk: ${parsed.options[0].risk_level}\nRegion: ${signal.region || 'unknown'}\nSeverity: ${signal.severity || 'N/A'}\nDomain: ${parsed.domain || 'general'}`
+                }],
+              }),
             });
+            if (!resp.ok) throw new Error(`Scenario AI error: ${resp.status}`);
+            const data = await resp.json();
+            return data.choices[0].message.content;
+          }, { maxRetries: 1, timeoutMs: 20000 });
+
+          let scenarioParsed;
+          try {
+            const cleaned = scenarioAI.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            scenarioParsed = JSON.parse(cleaned);
+          } catch {
+            structuredLog('warn', FN, 'Failed to parse scenario AI response');
+            scenarioParsed = null;
+          }
+
+          if (scenarioParsed?.scenarios?.length) {
+            for (const sc of scenarioParsed.scenarios) {
+              await supabase.from('adi_scenarios').insert({
+                decision_id: decision.id,
+                scenario_name: sc.name || `${sc.type} — ${parsed.options[0].action}`,
+                scenario_type: sc.type || 'baseline',
+                input_params: { action: parsed.options[0].action, timeframe: parsed.options[0].timeframe },
+                projection_30d: { stability_delta: sc.stability_delta_30d ?? 0 },
+                projection_60d: { stability_delta: sc.stability_delta_60d ?? 0 },
+                projection_90d: { stability_delta: sc.stability_delta_90d ?? 0 },
+                confidence: Math.min(sc.confidence || 50, 85),
+                reasoning_md: sc.reasoning || `${sc.type} projection for: ${parsed.options[0].action}`,
+                created_by: userId !== 'system' ? userId : null,
+              });
+            }
           }
         }
       }
