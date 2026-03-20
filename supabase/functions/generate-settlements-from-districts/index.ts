@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const FN = "generate-settlements-from-districts";
 const SETTLEMENTS_PER_DISTRICT = 3;
-const BATCH_SIZE = 50; // districts per invocation
+const BATCH_SIZE = 50;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -23,42 +23,30 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
-    // Use RPC to find parent regions without village children
-    const { data: uncoveredDistricts, error: distErr } = await supabase
+    // Find districts/provinces without child settlements using RPC
+    const { data: uncoveredDistricts, error: rpcErr } = await supabase
       .rpc("get_districts_needing_settlements", { _limit: BATCH_SIZE });
 
-    if (distErr) throw distErr;
+    if (rpcErr) throw rpcErr;
 
     if (!uncoveredDistricts || uncoveredDistricts.length === 0) {
+      // All done — trigger inference for new settlements
+      console.log(`[${FN}] All districts covered! Triggering inference.`);
+      fetch(`${supabaseUrl}/functions/v1/batch-village-inference`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        body: "{}",
+      }).catch(() => {});
+
       return new Response(JSON.stringify({
-        success: true, message: "All districts have settlements!", remaining: 0,
+        success: true, message: "All districts have settlements! Inference triggered.", remaining: 0,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const districtIds = uncoveredDistricts.map((d: any) => d.id);
-    const { data: existingChildren } = await supabase
-      .from("admin_regions")
-      .select("parent_id")
-      .in("parent_id", districtIds)
-      .gte("admin_level", 3);
+    const { data: remainingData } = await supabase.rpc("count_districts_needing_settlements");
+    const totalRemaining = remainingData || 0;
 
-    const parentsWithChildren = new Set((existingChildren || []).map(c => c.parent_id));
-    const uncoveredDistricts = districts.filter(d => !parentsWithChildren.has(d.id));
-
-    if (uncoveredDistricts.length === 0) {
-      // All districts in this batch already have children — skip forward
-      // Check total remaining
-      const { count } = await supabase
-        .from("admin_regions")
-        .select("id", { count: "exact", head: true })
-        .in("admin_level", [1, 2])
-        .not("lat", "is", null);
-
-      return new Response(JSON.stringify({
-        success: true, message: "Batch already covered, checking next...",
-        batch_covered: districts.length, total_parent_regions: count,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    console.log(`[${FN}] Processing ${uncoveredDistricts.length} districts, ${totalRemaining} total remaining`);
 
     let created = 0;
     const errors: string[] = [];
@@ -69,7 +57,7 @@ serve(async (req) => {
         for (const s of settlements) {
           const { error } = await supabase.from("admin_regions").insert(s);
           if (!error) created++;
-          else if (!error.message.includes("duplicate")) {
+          else if (!error.message?.includes("duplicate")) {
             errors.push(`${s.name}: ${error.message}`);
           }
         }
@@ -78,19 +66,12 @@ serve(async (req) => {
       }
     }
 
-    // Count remaining districts without village children
-    const { count: totalDistricts } = await supabase
-      .from("admin_regions")
-      .select("id", { count: "exact", head: true })
-      .in("admin_level", [1, 2])
-      .not("lat", "is", null);
-
-    const remaining = (totalDistricts || 0) - (parentsWithChildren.size + uncoveredDistricts.length);
+    const remaining = totalRemaining - uncoveredDistricts.length;
 
     await supabase.from("automation_logs").insert({
       job_name: FN,
       status: errors.length > 0 ? "partial" : "success",
-      message: `Created ${created} settlements from ${uncoveredDistricts.length} districts. Remaining ~${remaining}`,
+      message: `Created ${created} settlements from ${uncoveredDistricts.length} districts. Remaining: ${remaining}`,
     });
 
     // Self-chain if more work
@@ -101,15 +82,22 @@ serve(async (req) => {
           headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
           body: "{}",
         }).catch(() => {});
-      }, 3000);
+      }, 2000);
+    } else {
+      // Done — trigger inference
+      setTimeout(() => {
+        fetch(`${supabaseUrl}/functions/v1/batch-village-inference`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+          body: "{}",
+        }).catch(() => {});
+      }, 2000);
     }
 
     return new Response(JSON.stringify({
-      success: true,
-      created,
+      success: true, created,
       processed_districts: uncoveredDistricts.length,
-      remaining,
-      errors: errors.slice(0, 5),
+      remaining, errors: errors.slice(0, 5),
       auto_continuing: remaining > 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
@@ -124,7 +112,6 @@ function generateSettlements(district: any) {
   const { id, name, lat, lon, country_iso3, population_est } = district;
   const settlements: any[] = [];
   
-  // Generate deterministic offsets based on district coordinates
   const offsets = [
     { dlat: 0.02, dlon: 0.015, suffix: "Central", urban: "urban" },
     { dlat: -0.035, dlon: 0.04, suffix: "North", urban: "rural" },
@@ -135,7 +122,6 @@ function generateSettlements(district: any) {
 
   for (let i = 0; i < SETTLEMENTS_PER_DISTRICT; i++) {
     const o = offsets[i];
-    // Add coordinate-seeded variation
     const jitterLat = Math.sin(lat * 1000 + i * 137) * 0.01;
     const jitterLon = Math.cos(lon * 1000 + i * 251) * 0.01;
     
@@ -148,8 +134,7 @@ function generateSettlements(district: any) {
       admin_level: 4,
       parent_id: id,
       country_iso3,
-      lat: sLat,
-      lon: sLon,
+      lat: sLat, lon: sLon,
       population_est: sPop,
       urban_rural: o.urban,
       source: "district_derived",
