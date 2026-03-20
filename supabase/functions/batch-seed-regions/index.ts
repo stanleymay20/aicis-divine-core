@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const FN = "batch-seed-regions";
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 1;
 
 const ALL_COUNTRIES = [
   "AFG","ALB","DZA","AND","AGO","ATG","ARG","ARM","AUS","AUT","AZE","BHS","BHR","BGD","BRB",
