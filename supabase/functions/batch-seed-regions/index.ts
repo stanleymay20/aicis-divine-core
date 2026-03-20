@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const FN = "batch-seed-regions";
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 1;
 
 const ALL_COUNTRIES = [
   "AFG","ALB","DZA","AND","AGO","ATG","ARG","ARM","AUS","AUT","AZE","BHS","BHR","BGD","BRB",
@@ -170,9 +170,23 @@ serve(async (req) => {
     for (const iso3 of batch) {
       console.log(`[${FN}] [${phase}] ${iso3}`);
       try {
-        batchResults[iso3] = await seedOneCountry(supabase, iso3, true);
+        const result = await seedOneCountry(supabase, iso3, true);
+        batchResults[iso3] = result;
+        // Record the attempt so we don't retry countries where Overpass has no data
+        await supabase.from("village_seed_attempts").upsert({
+          country_iso3: iso3,
+          villages_found: result.villages,
+          status: "completed",
+          attempted_at: new Date().toISOString(),
+        });
       } catch (e) {
         batchResults[iso3] = { error: (e as Error).message };
+        await supabase.from("village_seed_attempts").upsert({
+          country_iso3: iso3,
+          villages_found: 0,
+          status: "error",
+          attempted_at: new Date().toISOString(),
+        });
       }
       await new Promise(r => setTimeout(r, 1500));
     }
@@ -187,6 +201,8 @@ serve(async (req) => {
     });
 
     if (totalRemaining > 0) {
+      // Delay before self-chaining to prevent invocation storms
+      await new Promise(r => setTimeout(r, 5000));
       fetch(`${supabaseUrl}/functions/v1/batch-seed-regions`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
