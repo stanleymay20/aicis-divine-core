@@ -23,26 +23,19 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   try {
-    // Find districts that have NO child villages yet
-    const { data: districts, error: distErr } = await supabase
-      .from("admin_regions")
-      .select("id, name, lat, lon, country_iso3, population_est, admin_level")
-      .in("admin_level", [1, 2])
-      .not("lat", "is", null)
-      .not("lon", "is", null)
-      .order("country_iso3")
-      .limit(BATCH_SIZE);
+    // Use RPC to find parent regions without village children
+    const { data: uncoveredDistricts, error: distErr } = await supabase
+      .rpc("get_districts_needing_settlements", { _limit: BATCH_SIZE });
 
     if (distErr) throw distErr;
 
-    if (!districts || districts.length === 0) {
+    if (!uncoveredDistricts || uncoveredDistricts.length === 0) {
       return new Response(JSON.stringify({
-        success: true, message: "No districts found to process", remaining: 0,
+        success: true, message: "All districts have settlements!", remaining: 0,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Filter to only districts without children
-    const districtIds = districts.map(d => d.id);
+    const districtIds = uncoveredDistricts.map((d: any) => d.id);
     const { data: existingChildren } = await supabase
       .from("admin_regions")
       .select("parent_id")
