@@ -5943,6 +5943,27 @@ export type Database = {
           },
         ]
       }
+      village_seed_attempts: {
+        Row: {
+          attempted_at: string | null
+          country_iso3: string
+          status: string | null
+          villages_found: number | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          country_iso3: string
+          status?: string | null
+          villages_found?: number | null
+        }
+        Update: {
+          attempted_at?: string | null
+          country_iso3?: string
+          status?: string | null
+          villages_found?: number | null
+        }
+        Relationships: []
+      }
       vulnerability_event_correlations: {
         Row: {
           country: string
