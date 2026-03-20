@@ -170,9 +170,23 @@ serve(async (req) => {
     for (const iso3 of batch) {
       console.log(`[${FN}] [${phase}] ${iso3}`);
       try {
-        batchResults[iso3] = await seedOneCountry(supabase, iso3, true);
+        const result = await seedOneCountry(supabase, iso3, true);
+        batchResults[iso3] = result;
+        // Record the attempt so we don't retry countries where Overpass has no data
+        await supabase.from("village_seed_attempts").upsert({
+          country_iso3: iso3,
+          villages_found: result.villages,
+          status: "completed",
+          attempted_at: new Date().toISOString(),
+        });
       } catch (e) {
         batchResults[iso3] = { error: (e as Error).message };
+        await supabase.from("village_seed_attempts").upsert({
+          country_iso3: iso3,
+          villages_found: 0,
+          status: "error",
+          attempted_at: new Date().toISOString(),
+        });
       }
       await new Promise(r => setTimeout(r, 1500));
     }
