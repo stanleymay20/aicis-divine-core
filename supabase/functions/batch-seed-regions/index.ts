@@ -201,6 +201,8 @@ serve(async (req) => {
     });
 
     if (totalRemaining > 0) {
+      // Delay before self-chaining to prevent invocation storms
+      await new Promise(r => setTimeout(r, 5000));
       fetch(`${supabaseUrl}/functions/v1/batch-seed-regions`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
