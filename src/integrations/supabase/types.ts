@@ -6232,11 +6232,24 @@ export type Database = {
       }
       cleanup_expired_exports: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      count_districts_needing_settlements: { Args: never; Returns: number }
       count_uncovered_regions: { Args: never; Returns: number }
       get_countries_needing_villages: {
         Args: never
         Returns: {
           country_iso3: string
+        }[]
+      }
+      get_districts_needing_settlements: {
+        Args: { _limit?: number }
+        Returns: {
+          admin_level: number
+          country_iso3: string
+          id: string
+          lat: number
+          lon: number
+          name: string
+          population_est: number
         }[]
       }
       get_region_hierarchy: {
