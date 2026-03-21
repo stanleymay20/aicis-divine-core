@@ -7290,6 +7290,23 @@ export type Database = {
         }
         Relationships: []
       }
+      action_reliability_view: {
+        Row: {
+          acceptance_count: number | null
+          action_type: string | null
+          avg_impact: number | null
+          avg_roi: number | null
+          ci_lower_pct: number | null
+          ci_upper_pct: number | null
+          domain: string | null
+          measured_sample_size: number | null
+          reliability_band: string | null
+          sample_size: number | null
+          success_count: number | null
+          success_rate_pct: number | null
+        }
+        Relationships: []
+      }
       daily_accumulation: {
         Row: {
           count: number | null
