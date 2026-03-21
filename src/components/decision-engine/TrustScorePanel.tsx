@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ShieldCheck, AlertTriangle, Info } from "lucide-react";
 
 interface TrustData {
   model_version: string;
@@ -10,6 +11,32 @@ interface TrustData {
   outcome_maturity_ratio: number | null;
   trust_score: number;
   evaluated_at: string;
+}
+
+interface Threshold {
+  min_samples: number;
+  min_measured_samples: number;
+  min_acceptances: number;
+  enabled: boolean;
+}
+
+const trustTiers = [
+  { min: 75, label: "Trusted", variant: "default" as const },
+  { min: 50, label: "Operational", variant: "secondary" as const },
+  { min: 25, label: "Emerging", variant: "outline" as const },
+  { min: 0, label: "Experimental", variant: "destructive" as const },
+];
+
+function getTrustTier(score: number) {
+  return trustTiers.find(t => score >= t.min) || trustTiers[trustTiers.length - 1];
+}
+
+function getTrustDrivers(data: TrustData): string[] {
+  const drivers: string[] = [];
+  if (data.calibration_error != null) drivers.push(`ECE ${data.calibration_error.toFixed(3)}`);
+  if (data.acceptance_rate != null) drivers.push(`Accept ${(data.acceptance_rate * 100).toFixed(0)}%`);
+  if (data.outcome_maturity_ratio != null) drivers.push(`Maturity ${(data.outcome_maturity_ratio * 100).toFixed(0)}%`);
+  return drivers;
 }
 
 export default function TrustScorePanel() {
@@ -26,6 +53,19 @@ export default function TrustScorePanel() {
     staleTime: 120_000,
   });
 
+  const { data: threshold } = useQuery<Threshold | null>({
+    queryKey: ["threshold-trust-score"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("decision_metric_thresholds" as any)
+        .select("min_samples, min_measured_samples, min_acceptances, enabled")
+        .eq("metric_name", "trust_score")
+        .maybeSingle();
+      return data as any;
+    },
+    staleTime: 300_000,
+  });
+
   if (!data) {
     return (
       <Card className="border-border/50">
@@ -37,8 +77,13 @@ export default function TrustScorePanel() {
     );
   }
 
-  const score = data.trust_score;
-  const color = score >= 70 ? "text-primary" : score >= 40 ? "text-warning" : "text-destructive";
+  // Check if measured evidence meets threshold — cap display if not
+  const maturityPct = data.outcome_maturity_ratio != null ? data.outcome_maturity_ratio * 100 : 0;
+  const belowThreshold = threshold?.enabled && maturityPct < (threshold.min_measured_samples ?? 5);
+  const displayScore = belowThreshold ? Math.min(data.trust_score, 40) : data.trust_score;
+  const tier = getTrustTier(displayScore);
+  const drivers = getTrustDrivers(data);
+  const color = displayScore >= 70 ? "text-primary" : displayScore >= 40 ? "text-warning" : "text-destructive";
 
   return (
     <Card className="border-primary/20">
@@ -47,7 +92,11 @@ export default function TrustScorePanel() {
           <ShieldCheck className={`h-5 w-5 ${color}`} />
           <div>
             <p className="text-xs font-medium text-muted-foreground">System Trust Score</p>
-            <p className={`text-2xl font-bold ${color}`}>{score}<span className="text-xs font-normal text-muted-foreground">/100</span></p>
+            <div className="flex items-center gap-2">
+              <p className={`text-2xl font-bold ${color}`}>{displayScore}<span className="text-xs font-normal text-muted-foreground">/100</span></p>
+              <Badge variant={tier.variant} className="text-[9px] h-4">{tier.label}</Badge>
+              {belowThreshold && <AlertTriangle className="h-3.5 w-3.5 text-warning" />}
+            </div>
           </div>
           <div className="ml-auto grid grid-cols-3 gap-2 text-center">
             <div>
@@ -64,6 +113,13 @@ export default function TrustScorePanel() {
             </div>
           </div>
         </div>
+        {drivers.length > 0 && (
+          <p className="text-[9px] text-muted-foreground mt-1.5 flex items-center gap-1">
+            <Info className="h-2.5 w-2.5 shrink-0" />
+            Driven by: {drivers.join(" · ")}
+            {belowThreshold && " · Capped: insufficient measured evidence"}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
