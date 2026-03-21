@@ -101,29 +101,44 @@ export default function DecisionEngine() {
   const handleCaptureToLog = async (rec: Recommendation) => {
     setCapturingId(rec.id);
     try {
-      const { error } = await supabase.from("decision_outcome_log" as any).insert({
-        signal_source: "decision-engine",
+      // Check for duplicate first
+      const { data: existing } = await supabase
+        .from("decision_outcome_log")
+        .select("id")
+        .eq("signal_id", rec.id)
+        .eq("evidence_source_type", "decision-engine")
+        .maybeSingle();
+
+      if (existing) {
+        toast.info(`"${rec.title}" is already captured in the Decision Log`);
+        setCapturingId(null);
+        return;
+      }
+
+      const { error } = await supabase.from("decision_outcome_log").insert({
         signal_id: rec.id,
+        signal_title: rec.title,
+        signal_date: new Date().toISOString().split("T")[0],
+        signal_direction: rec.urgency === "immediate" ? "down" : "stable",
+        signal_confidence: rec.confidence,
         domain: rec.domain,
-        country_iso3: rec.affected_countries?.[0] || null,
-        recommendation_md: rec.recommended_action,
-        evidence_tier: "hypothetical",
-        detection_summary: rec.signal_summary,
-        ai_confidence: rec.confidence,
-        metadata: {
-          priority: rec.priority,
-          urgency: rec.urgency,
-          alternatives: rec.alternatives,
-          ai_reasoning: rec.ai_reasoning,
-          risk_if_ignored: rec.risk_if_ignored,
-          expected_impact: rec.expected_impact,
-        },
+        iso3: rec.affected_countries?.[0] || null,
+        recommended_action: rec.recommended_action,
+        hypothetical_decision_value: rec.expected_impact || "Pending assessment",
+        evidence_type: "hypothetical",
+        evidence_source_type: "decision-engine",
+        evidence_note: rec.ai_reasoning || rec.signal_summary,
+        status: "pending",
       });
       if (error) throw error;
       toast.success(`Captured "${rec.title}" to Decision Outcome Log for tracking`);
-    } catch (e) {
-      toast.error("Failed to capture recommendation to log");
-      console.error(e);
+    } catch (e: any) {
+      if (e?.code === "23505") {
+        toast.info(`"${rec.title}" is already captured in the Decision Log`);
+      } else {
+        toast.error("Failed to capture recommendation to log");
+        console.error(e);
+      }
     } finally {
       setCapturingId(null);
     }
