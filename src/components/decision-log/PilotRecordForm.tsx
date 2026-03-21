@@ -25,6 +25,8 @@ const PilotRecordForm = ({ entry, onClose }: PilotRecordFormProps) => {
     measured_outcome: entry.measured_outcome || "",
     measured_impact_score: entry.measured_impact_score?.toString() || "",
     evidence_type: entry.evidence_type || "hypothetical",
+    evidence_note: entry.evidence_note || "",
+    evidence_source_type: entry.evidence_source_type || "",
   });
 
   const handleSave = async () => {
