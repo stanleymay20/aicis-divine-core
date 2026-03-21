@@ -2120,6 +2120,39 @@ export type Database = {
         }
         Relationships: []
       }
+      decision_metric_thresholds: {
+        Row: {
+          created_at: string | null
+          enabled: boolean
+          id: string
+          metric_name: string
+          min_acceptances: number
+          min_measured_samples: number
+          min_samples: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          metric_name: string
+          min_acceptances?: number
+          min_measured_samples?: number
+          min_samples?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          metric_name?: string
+          min_acceptances?: number
+          min_measured_samples?: number
+          min_samples?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       decision_models: {
         Row: {
           action_adjustment_weights: Json | null
