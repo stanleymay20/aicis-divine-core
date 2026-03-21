@@ -50,6 +50,7 @@ const FirstSignal = lazy(() => import("./pages/FirstSignal"));
 const DecisionOutcomeLog = lazy(() => import("./pages/DecisionOutcomeLog"));
 const InfraOps = lazy(() => import("./pages/InfraOps"));
 const GovReadiness = lazy(() => import("./pages/GovReadiness"));
+const DecisionEngine = lazy(() => import("./pages/DecisionEngine"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -111,6 +112,7 @@ const App = () => (
             <Route path="/decision-log" element={<Lazy><DecisionOutcomeLog /></Lazy>} />
             <Route path="/infra-ops" element={<Lazy><InfraOps /></Lazy>} />
             <Route path="/gov-readiness" element={<Lazy><GovReadiness /></Lazy>} />
+            <Route path="/decision-engine" element={<Lazy><DecisionEngine /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
