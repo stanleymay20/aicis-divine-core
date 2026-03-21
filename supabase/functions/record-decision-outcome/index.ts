@@ -20,7 +20,8 @@ serve(async (req) => {
       decision_id, action_taken, outcome_success, impact_score,
       outcome_description, recommendation_accepted, recommendation_rejected_reason,
       actor_role, cost_of_action: body_cost_of_action,
-      outcome_source, execution_note, evidence_note
+      outcome_source, execution_note, evidence_note,
+      execution_owner, execution_status: body_execution_status, execution_blocker
     } = body;
 
     if (!decision_id) {
