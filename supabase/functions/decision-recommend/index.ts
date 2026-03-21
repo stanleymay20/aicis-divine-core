@@ -6,6 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/** Classify evidence density from signal counts */
+function classifySignalDensity(counts: { snapshots: number; anomalies: number; alerts: number; crises: number }): "strong" | "moderate" | "weak" | "insufficient" {
+  const total = counts.snapshots + counts.anomalies + counts.alerts + counts.crises;
+  const sources = [counts.snapshots > 0, counts.anomalies > 0, counts.alerts > 0, counts.crises > 0].filter(Boolean).length;
+  if (total >= 30 && sources >= 3) return "strong";
+  if (total >= 10 && sources >= 2) return "moderate";
+  if (total >= 3) return "weak";
+  return "insufficient";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -20,46 +30,69 @@ serve(async (req) => {
 
     const { country_iso3, domain } = await req.json().catch(() => ({}));
 
-    // 1. Pull latest performance snapshots (top risk countries or specific)
+    // 1. Pull latest performance snapshots
     let snapshotQuery = supabase
       .from("country_performance_snapshots")
       .select("iso3, domain, performance_index, momentum_score, risk_pressure_score, systemic_fragility_score, forecast_direction, confidence_score, structural_break_count")
       .order("risk_pressure_score", { ascending: false })
       .limit(50);
-
     if (country_iso3) snapshotQuery = snapshotQuery.eq("iso3", country_iso3);
     if (domain) snapshotQuery = snapshotQuery.eq("domain", domain);
 
-    // 2. Pull active anomalies
-    let anomalyQuery = supabase
+    // 2. Active anomalies
+    const anomalyQuery = supabase
       .from("anomaly_detections")
       .select("division, anomaly_type, severity, description, deviation_percentage, detected_at")
       .eq("status", "active")
       .order("detected_at", { ascending: false })
       .limit(20);
 
-    // 3. Pull recent critical alerts
-    let alertQuery = supabase
+    // 3. Critical alerts
+    const alertQuery = supabase
       .from("critical_alerts")
       .select("headline, level, country, severity, event_type, triggered_at")
       .eq("acknowledged", false)
       .order("triggered_at", { ascending: false })
       .limit(15);
 
-    // 4. Pull active crisis events
-    let crisisQuery = supabase
+    // 4. Active crises
+    const crisisQuery = supabase
       .from("crisis_events")
       .select("region, kind, severity, status, details_md")
       .neq("status", "resolved")
       .order("severity", { ascending: false })
       .limit(10);
 
-    // Execute all in parallel
     const [snapshots, anomalies, alerts, crises] = await Promise.all([
       snapshotQuery, anomalyQuery, alertQuery, crisisQuery
     ]);
 
-    // Build context for AI
+    const signalCounts = {
+      snapshots: (snapshots.data || []).length,
+      anomalies: (anomalies.data || []).length,
+      alerts: (alerts.data || []).length,
+      crises: (crises.data || []).length,
+    };
+
+    const evidenceDensity = classifySignalDensity(signalCounts);
+
+    // WEAK SIGNAL FALLBACK: if insufficient evidence, return advisory-only response
+    if (evidenceDensity === "insufficient") {
+      return new Response(JSON.stringify({
+        ok: true,
+        recommendations: [],
+        global_assessment: "Insufficient signal data available to generate actionable recommendations. The system is in monitor-only mode for the requested scope.",
+        signal_quality: "insufficient",
+        evidence_density: "insufficient",
+        outcome_trained: false,
+        generated_at: new Date().toISOString(),
+        scope: { country_iso3: country_iso3 || "global", domain: domain || "all" },
+        signal_counts: signalCounts,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const signalContext = {
       performance_snapshots: snapshots.data || [],
       active_anomalies: anomalies.data || [],
@@ -68,30 +101,37 @@ serve(async (req) => {
       request_scope: { country_iso3: country_iso3 || "global", domain: domain || "all" },
     };
 
-    const systemPrompt = `You are AICIS Decision Intelligence Engine — a sovereign-grade decision recommendation system for global risk management.
+    const systemPrompt = `You are the AICIS Decision Recommendation Engine — an AI-assisted advisory system for global risk management.
 
-You analyze structured intelligence signals (performance indices, anomalies, alerts, crises) and produce actionable decision recommendations.
+IMPORTANT FRAMING:
+- You synthesize AICIS structured intelligence signals into advisory recommendations
+- Your recommendations are LLM-guided interpretations of system evidence, NOT autonomous decisions
+- Confidence scores are heuristic estimates, NOT statistically calibrated probabilities
+- You have NO access to historical outcome data — recommendations are NOT outcome-trained
+
+EVIDENCE DENSITY for this request: ${evidenceDensity}
+${evidenceDensity === "weak" ? "WARNING: Signal evidence is sparse. Be conservative. Prefer 'monitor' recommendations over action recommendations. State uncertainty explicitly." : ""}
 
 RULES:
-- Every recommendation MUST be grounded in the provided signal data
-- Cite specific metrics (e.g., "risk_pressure_score: 78.3 for NGA/security")
-- Assign confidence based on signal density and consistency
+- Every recommendation MUST cite specific AICIS metrics (e.g., "risk_pressure_score: 78.3 for NGA/security")
+- Clearly separate AICIS evidence (system signals) from AI reasoning (your interpretation)
+- If evidence is weak for a recommendation, explicitly say so
 - Prioritize by urgency and impact
-- Be specific about WHAT action to take, WHO should act, and WHEN
-- Never fabricate data — if signals are insufficient, say so
-- Use "recommended_action" for the primary action and "alternatives" for backup options
+- Be specific about WHAT action, WHO should act, WHEN
+- Never fabricate data
+- When uncertain, recommend "monitor" rather than action
+- Cap confidence at 85 for weak evidence, 90 for moderate, 95 for strong`;
 
-OUTPUT FORMAT (strict JSON via tool call):
-Return 3-5 decision recommendations ranked by priority.`;
+    const userPrompt = `Analyze these live AICIS intelligence signals and generate decision recommendations.
 
-    const userPrompt = `Analyze these live intelligence signals and generate decision recommendations:
+Evidence density: ${evidenceDensity} (${signalCounts.snapshots} snapshots, ${signalCounts.anomalies} anomalies, ${signalCounts.alerts} alerts, ${signalCounts.crises} crises)
 
 ${JSON.stringify(signalContext, null, 2)}
 
 Focus on:
 1. Highest-risk situations requiring immediate attention
-2. Emerging patterns that suggest upcoming crises
-3. Opportunities where intervention can prevent escalation
+2. Emerging patterns suggesting upcoming crises
+3. Opportunities where intervention prevents escalation
 4. Resource allocation priorities`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -122,21 +162,22 @@ Focus on:
                       id: { type: "string", description: "Short unique ID like REC-001" },
                       priority: { type: "string", enum: ["critical", "high", "medium", "low"] },
                       title: { type: "string", description: "One-line recommendation title" },
-                      domain: { type: "string", description: "Primary domain (security, health, finance, etc.)" },
+                      domain: { type: "string", description: "Primary domain" },
                       affected_countries: { type: "array", items: { type: "string" }, description: "ISO3 codes" },
-                      signal_summary: { type: "string", description: "Key signals driving this recommendation" },
+                      signal_summary: { type: "string", description: "AICIS evidence driving this recommendation" },
+                      ai_reasoning: { type: "string", description: "AI interpretation and reasoning chain" },
                       recommended_action: { type: "string", description: "Specific action to take" },
-                      alternatives: { type: "array", items: { type: "string" }, description: "Alternative actions" },
-                      confidence: { type: "number", description: "0-100 confidence score" },
-                      urgency: { type: "string", enum: ["immediate", "24h", "7d", "30d"] },
-                      expected_impact: { type: "string", description: "What happens if action is taken" },
-                      risk_if_ignored: { type: "string", description: "What happens if not acted upon" },
+                      alternatives: { type: "array", items: { type: "string" } },
+                      confidence: { type: "number", description: "0-95 heuristic confidence" },
+                      urgency: { type: "string", enum: ["immediate", "24h", "7d", "30d", "monitor"] },
+                      expected_impact: { type: "string" },
+                      risk_if_ignored: { type: "string" },
                     },
-                    required: ["id", "priority", "title", "domain", "signal_summary", "recommended_action", "confidence", "urgency"],
+                    required: ["id", "priority", "title", "domain", "signal_summary", "ai_reasoning", "recommended_action", "confidence", "urgency"],
                     additionalProperties: false,
                   },
                 },
-                global_assessment: { type: "string", description: "1-2 sentence overall risk posture assessment" },
+                global_assessment: { type: "string" },
                 signal_quality: { type: "string", enum: ["strong", "moderate", "weak", "insufficient"] },
               },
               required: ["recommendations", "global_assessment", "signal_quality"],
@@ -166,7 +207,6 @@ Focus on:
 
     const aiResult = await response.json();
     const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-    
     if (!toolCall?.function?.arguments) {
       throw new Error("AI did not return structured recommendations");
     }
@@ -180,20 +220,17 @@ Focus on:
       input_summary: `Decision recommendation for ${country_iso3 || 'global'} / ${domain || 'all domains'}`,
       output_summary: recommendations.global_assessment,
       confidence: recommendations.recommendations?.[0]?.confidence || 0,
-      explanation: { signal_counts: signalContext },
+      explanation: { signal_counts: signalCounts, evidence_density: evidenceDensity },
     });
 
     return new Response(JSON.stringify({
       ok: true,
       ...recommendations,
+      evidence_density: evidenceDensity,
+      outcome_trained: false,
       generated_at: new Date().toISOString(),
       scope: { country_iso3: country_iso3 || "global", domain: domain || "all" },
-      signal_counts: {
-        snapshots: signalContext.performance_snapshots.length,
-        anomalies: signalContext.active_anomalies.length,
-        alerts: signalContext.unacknowledged_alerts.length,
-        crises: signalContext.active_crises.length,
-      },
+      signal_counts: signalCounts,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
