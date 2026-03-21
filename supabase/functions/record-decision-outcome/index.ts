@@ -19,7 +19,8 @@ serve(async (req) => {
     const {
       decision_id, action_taken, outcome_success, impact_score,
       outcome_description, recommendation_accepted, recommendation_rejected_reason,
-      actor_role, cost_of_action: body_cost_of_action
+      actor_role, cost_of_action: body_cost_of_action,
+      outcome_source, execution_note, evidence_note
     } = body;
 
     if (!decision_id) {
@@ -28,10 +29,10 @@ serve(async (req) => {
       });
     }
 
-    // 1. Build update payload
     const now = new Date().toISOString();
     const updatePayload: Record<string, any> = { updated_at: now };
 
+    // --- Acceptance tracking ---
     if (recommendation_accepted !== undefined) {
       updatePayload.recommendation_accepted = recommendation_accepted;
       if (!recommendation_accepted && recommendation_rejected_reason) {
@@ -40,35 +41,39 @@ serve(async (req) => {
     }
     if (actor_role) updatePayload.actor_role = actor_role;
 
+    // --- Action tracking ---
     if (action_taken !== undefined) {
       updatePayload.action_taken = action_taken;
       updatePayload.action_taken_at = now;
       updatePayload.action_timestamp = now;
     }
+    if (execution_note) updatePayload.execution_note = execution_note;
 
+    // --- Outcome tracking ---
     if (outcome_success !== undefined) {
       updatePayload.outcome_success = outcome_success;
       updatePayload.outcome_timestamp = now;
-      // Calculate time to outcome
+      if (outcome_source) updatePayload.outcome_source = outcome_source;
+
       const { data: entry } = await supabase
         .from("decision_outcome_log")
         .select("created_at")
         .eq("id", decision_id)
         .single();
       if (entry?.created_at) {
-        const days = Math.round((Date.now() - new Date(entry.created_at).getTime()) / 86400000);
-        updatePayload.time_to_outcome_days = days;
+        updatePayload.time_to_outcome_days = Math.round(
+          (Date.now() - new Date(entry.created_at).getTime()) / 86400000
+        );
       }
     }
 
     if (impact_score !== undefined) {
       updatePayload.impact_score = Math.max(0, Math.min(100, impact_score));
     }
-    if (outcome_description) {
-      updatePayload.measured_outcome = outcome_description;
-    }
+    if (outcome_description) updatePayload.measured_outcome = outcome_description;
+    if (evidence_note) updatePayload.evidence_note = evidence_note;
 
-    // ROI computation
+    // --- ROI computation ---
     if (impact_score !== undefined) {
       const { data: entry2 } = await supabase
         .from("decision_outcome_log")
@@ -84,9 +89,11 @@ serve(async (req) => {
       if (body_cost_of_action !== undefined) updatePayload.cost_of_action = costVal;
     }
 
-    // Promote evidence type
+    // --- Evidence type promotion ---
     if (outcome_success !== undefined && impact_score !== undefined) {
       updatePayload.evidence_type = "measured";
+    } else if (outcome_success !== undefined) {
+      updatePayload.evidence_type = "real";
     } else if (action_taken) {
       updatePayload.evidence_type = "pilot";
     }
@@ -98,7 +105,8 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // 2. If outcome recorded, write to training dataset + promote proxy rows
+    // --- Proxy → Real override pipeline ---
+    let proxyOverridden = false;
     if (outcome_success !== undefined) {
       const { data: logEntry } = await supabase
         .from("decision_outcome_log")
@@ -107,7 +115,8 @@ serve(async (req) => {
         .single();
 
       if (logEntry) {
-        // Write real training row
+        // Write real/measured training row
+        const labelSource = impact_score !== undefined ? "measured" : "real";
         await supabase.from("decision_training_dataset").insert({
           iso3: logEntry.iso3,
           domain: logEntry.domain,
@@ -115,20 +124,23 @@ serve(async (req) => {
           action_type: logEntry.action_type || "unknown",
           outcome_success,
           impact_score: impact_score || null,
-          label_source: impact_score !== undefined ? "measured" : "real",
-          source_type: impact_score !== undefined ? "measured" : "real",
+          label_source: labelSource,
+          source_type: labelSource,
           source_id: decision_id,
+          label_confidence: impact_score !== undefined ? 1.0 : 0.9,
         });
 
         // Override matching proxy rows
         if (logEntry.iso3 && logEntry.domain) {
-          await supabase
+          const { count } = await supabase
             .from("decision_training_dataset")
             .update({ overridden_by_real: true })
             .eq("iso3", logEntry.iso3)
             .eq("domain", logEntry.domain)
             .eq("label_source", "proxy")
-            .eq("overridden_by_real", false);
+            .eq("overridden_by_real", false)
+            .select("*", { count: "exact", head: true });
+          proxyOverridden = (count || 0) > 0;
         }
       }
     }
@@ -136,7 +148,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       ok: true,
       evidence_type: updatePayload.evidence_type || "hypothetical",
-      proxy_overridden: outcome_success !== undefined,
+      proxy_overridden: proxyOverridden,
       message: "Outcome recorded successfully",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 

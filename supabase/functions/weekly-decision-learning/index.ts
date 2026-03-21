@@ -1,0 +1,103 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
+
+  try {
+    console.log("Starting weekly decision learning cycle...");
+    const results: Record<string, any> = {};
+
+    // Step 1: Compute weekly stats from last 7 days
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const { data: recentOutcomes } = await supabase
+      .from("decision_outcome_log")
+      .select("outcome_success, impact_score, roi_estimate, recommendation_accepted, evidence_type")
+      .gte("updated_at", weekAgo);
+
+    const outcomes = recentOutcomes || [];
+    const withOutcome = outcomes.filter(r => r.outcome_success !== null);
+    const successRate = withOutcome.length > 0
+      ? Math.round(withOutcome.filter(r => r.outcome_success).length / withOutcome.length * 100)
+      : null;
+    const avgROI = outcomes.filter(r => r.roi_estimate != null).length > 0
+      ? Math.round(outcomes.filter(r => r.roi_estimate != null).reduce((s, r) => s + (r.roi_estimate || 0), 0) / outcomes.filter(r => r.roi_estimate != null).length * 10) / 10
+      : null;
+    const failedCount = withOutcome.filter(r => !r.outcome_success).length;
+
+    results.weekly_stats = {
+      total_outcomes: outcomes.length,
+      with_outcome: withOutcome.length,
+      success_rate: successRate,
+      avg_roi: avgROI,
+      failed_count: failedCount,
+    };
+
+    // Step 2: Run calibration
+    const { data: calData, error: calError } = await supabase.functions.invoke(
+      "calibrate-decision-weights", { body: {} }
+    );
+    if (calError) {
+      results.calibration = { error: calError.message };
+    } else {
+      results.calibration = { ok: true, version: calData?.version };
+    }
+
+    // Step 3: Run evaluation
+    const { data: evalData, error: evalError } = await supabase.functions.invoke(
+      "evaluate-decision-models", { body: {} }
+    );
+    if (evalError) {
+      results.evaluation = { error: evalError.message };
+    } else {
+      results.evaluation = {
+        ok: true,
+        improvement_over_heuristic: evalData?.evaluation?.improvement_over_heuristic,
+        calibration_error: evalData?.evaluation?.calibration_error,
+      };
+    }
+
+    // Step 4: Run governance alerts
+    const { error: govError } = await supabase.functions.invoke(
+      "governance-alerts", { body: {} }
+    );
+    results.governance_alerts = govError ? { error: govError.message } : { ok: true };
+
+    // Step 5: Log summary
+    await supabase.from("system_logs").insert({
+      action: "weekly_decision_learning",
+      result: JSON.stringify({
+        weekly_stats: results.weekly_stats,
+        calibration: results.calibration?.ok ? "success" : "error",
+        evaluation: results.evaluation?.ok ? "success" : "error",
+      }),
+      log_level: "info",
+      division: "decision-engine",
+    });
+
+    return new Response(JSON.stringify({ ok: true, results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Weekly learning error:", error);
+    await supabase.from("system_logs").insert({
+      action: "weekly_decision_learning",
+      result: `Error: ${error instanceof Error ? error.message : "Unknown"}`,
+      log_level: "error",
+      division: "decision-engine",
+    });
+    return new Response(JSON.stringify({
+      error: error instanceof Error ? error.message : "Unknown error",
+    }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+});

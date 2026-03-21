@@ -200,7 +200,17 @@ serve(async (req) => {
     const { error: insertErr } = await supabase.from("model_evaluations").insert(evaluation);
     if (insertErr) throw insertErr;
 
-    return new Response(JSON.stringify({ ok: true, evaluation }), {
+    // Check promotion status — flag if model underperforms
+    let promotionAdvice = "ok";
+    if (improvementOverHeuristic != null && improvementOverHeuristic < -5) {
+      promotionAdvice = "reject: underperforms heuristic by " + Math.abs(improvementOverHeuristic).toFixed(1) + "%";
+      // Update model promotion_status
+      await supabase.from("decision_models")
+        .update({ promotion_status: "flagged", rejection_reason: promotionAdvice })
+        .eq("version", activeModel.version);
+    }
+
+    return new Response(JSON.stringify({ ok: true, evaluation, promotion_advice: promotionAdvice }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
