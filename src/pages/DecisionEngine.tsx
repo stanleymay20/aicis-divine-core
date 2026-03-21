@@ -410,6 +410,8 @@ export default function DecisionEngine() {
             </p>
           </>
         )}
+        </>
+        )}
       </div>
     </AICISLayout>
   );
