@@ -102,11 +102,11 @@ serve(async (req) => {
       }
     }
 
-    await supabaseClient.from('system_logs').insert({
-      action: 'crisis_scan', division: 'crisis', user_id: userId,
-      log_level: escalations.length > 0 ? 'warning' : 'info',
-      result: `Detected ${results.length} crisis events, ${escalations.length} escalations`,
-      metadata: { crisis_count: results.length, escalations: escalations.length, execution_time_ms: Date.now() - start }
+    // Log to automation_logs (system_logs requires uuid user_id, which cron cannot provide)
+    await supabaseClient.from('automation_logs').insert({
+      job_name: 'crisis-scan',
+      status: escalations.length > 0 ? 'warning' : 'success',
+      message: `Detected ${results.length} crisis events, ${escalations.length} escalations (${Date.now() - start}ms)`,
     });
 
     structuredLog('info', FN, `Scan complete: ${results.length} events`, undefined, start);

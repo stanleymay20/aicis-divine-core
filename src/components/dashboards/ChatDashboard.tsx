@@ -20,7 +20,7 @@ export const ChatDashboard = () => {
     {
       id: "1",
       role: "system",
-      content: "AICIS Intelligence System online. I can help you analyze global data, search for countries, generate reports, and provide real-time insights. What would you like to explore?",
+      content: "AICIS Analysis Assistant online. I can help you explore global data, compare countries, and review analytical signals. What would you like to explore?",
       timestamp: new Date(),
     },
   ]);

@@ -43,7 +43,7 @@ const Privacy = () => {
             <section>
               <h2 className="text-2xl font-semibold mb-3">1. Introduction &amp; Scope</h2>
               <p className="text-muted-foreground">
-                AICIS (Autonomous Intelligent Cybernetic Intervention System) is an AI-assisted geopolitical and socioeconomic intelligence platform. This Privacy Policy explains how we handle data in two categories:
+                AICIS (AI-Assisted Civilization Intelligence System) is an AI-assisted geopolitical and socioeconomic intelligence platform. This Privacy Policy explains how we handle data in two categories:
               </p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
                 <li><strong>Platform user data</strong> — your account credentials, usage patterns, and preferences</li>

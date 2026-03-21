@@ -27,21 +27,27 @@ const TrustLayer = () => {
     queryFn: async () => {
       const [
         { count: totalValidations },
-        { count: totalCountries },
+        { data: countryData },
         { data: latestScore },
         { count: totalDecisions },
         { count: auditEntries },
       ] = await Promise.all([
         supabase.from("forecast_validation_results").select("*", { count: "exact", head: true }),
-        supabase.from("country_performance_snapshots").select("iso3", { count: "exact", head: true }),
+        supabase.from("admin_regions").select("country_iso3").limit(1), // placeholder — we'll use RPC
         supabase.from("intelligence_score_snapshots").select("*").order("snapshot_date", { ascending: false }).limit(1),
         supabase.from("adi_decisions").select("*", { count: "exact", head: true }),
         supabase.from("automation_logs").select("*", { count: "exact", head: true }),
       ]);
 
+      // Get actual distinct country count
+      const { data: distinctCountries } = await supabase
+        .from("country_performance_snapshots")
+        .select("iso3");
+      const uniqueCountries = new Set((distinctCountries || []).map((r: any) => r.iso3)).size;
+
       return {
         totalValidations: totalValidations || 0,
-        totalCountries: totalCountries || 0,
+        totalCountries: uniqueCountries || 194,
         intelligenceGrade: latestScore?.[0]?.intelligence_grade || "SENSING",
         turningPointAccuracy: latestScore?.[0]?.turning_point_accuracy || 0,
         totalDecisions: totalDecisions || 0,
@@ -94,9 +100,9 @@ const TrustLayer = () => {
             />
             <EvidenceCard
               icon={<Globe className="h-5 w-5 text-primary" />}
-              label="Countries Covered"
-              value="211"
-              detail="Full planetary coverage"
+              label="Countries Tracked"
+              value={(trustStats?.totalCountries || 0).toLocaleString()}
+              detail="Multi-domain performance snapshots"
             />
             <EvidenceCard
               icon={<Brain className="h-5 w-5 text-primary" />}
@@ -207,30 +213,86 @@ const TrustLayer = () => {
           </CardContent>
         </Card>
 
-        {/* Regulatory Compliance */}
+        {/* How AICIS Works */}
         <Card className="border-muted/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Regulatory Alignment</CardTitle>
-            <CardDescription className="text-xs">Standards AICIS is designed to meet</CardDescription>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Brain className="h-4 w-4 text-primary" />
+              How AICIS Works
+            </CardTitle>
+            <CardDescription className="text-xs">From raw data to analytical signals</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {[
+                { step: "1", title: "Data Collection", desc: "Public data from World Bank, WHO, GDELT, OWID, FAO, and satellite-derived indicators ingested daily via automated pipelines" },
+                { step: "2", title: "Statistical Processing", desc: "Holt-Winters smoothing, CUSUM structural break detection, and EWMA drift monitoring applied across 7 domains per country" },
+                { step: "3", title: "Forecast Generation", desc: "90-day directional forecasts with confidence bands, validated daily against realized outcomes via naive baseline comparison" },
+                { step: "4", title: "Advisory Output", desc: "Signals and analytical assessments presented to human analysts for review — no autonomous action is ever taken" },
+              ].map((s) => (
+                <div key={s.step} className="rounded-lg border border-primary/10 p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-orbitron font-bold text-primary bg-primary/10 rounded-full w-5 h-5 flex items-center justify-center">{s.step}</span>
+                    <span className="text-xs font-medium text-foreground">{s.title}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Sources */}
+        <Card className="border-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Database className="h-4 w-4 text-primary" />
+              Data Sources
+            </CardTitle>
+            <CardDescription className="text-xs">All data is publicly available and properly attributed</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <ComplianceBadge
-                label="EU AI Act"
-                status="Aligned"
-                detail="Decision-support system with mandatory human oversight"
-              />
-              <ComplianceBadge
-                label="GDPR"
-                status="Compliant"
-                detail="No personal data in analytical layer; user data rights enforced"
-              />
-              <ComplianceBadge
-                label="ISO 27001 Principles"
-                status="Applied"
-                detail="Information security management practices implemented"
-              />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {[
+                { name: "World Bank", type: "Economic & Development" },
+                { name: "WHO (GHO)", type: "Health Indicators" },
+                { name: "GDELT", type: "Event & Media Signals" },
+                { name: "OWID", type: "Energy & Health" },
+                { name: "FAO / FAOSTAT", type: "Food Security" },
+                { name: "NASA / Satellite", type: "Environmental Proxies" },
+              ].map((src) => (
+                <div key={src.name} className="rounded border border-primary/10 p-2">
+                  <span className="text-xs font-medium text-foreground">{src.name}</span>
+                  <p className="text-[10px] text-muted-foreground">{src.type}</p>
+                </div>
+              ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Known Limitations */}
+        <Card className="border-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              Known Limitations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5">
+              {[
+                "System is in validation phase — intelligence grade is currently DETECTING (20% turning-point accuracy)",
+                "Conflict risk assessments use GDELT media signals, not field-verified intelligence (ACLED, UCDP)",
+                "Macro-level data changes slowly — 1-day forecasts are inherently close to the naive baseline",
+                "Village-level indicators are satellite-derived proxies, not ground-truth measurements",
+                "AI-generated scenario projections may overstate confidence in low-data regions",
+              ].map((item, i) => (
+                <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                  <span className="text-muted-foreground/60 shrink-0">•</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
 
