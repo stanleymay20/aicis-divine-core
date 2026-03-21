@@ -223,7 +223,7 @@ const FirstSignal = () => {
         .limit(500);
       if (!data) return {};
       const map: Record<string, any> = {};
-      for (const entry of data) {
+      for (const entry of (data as any[])) {
         const key = (entry.signal_id as string).replace("snapshot-", "").replace(/-\d{4}-\d{2}-\d{2}$/, "");
         if (!map[key]) map[key] = entry;
       }
