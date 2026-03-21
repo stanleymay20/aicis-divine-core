@@ -7,7 +7,7 @@ import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Shield, Activity, Eye, BarChart3, Target, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Loader2, Shield, Activity, Eye, BarChart3, Target, CheckCircle2, AlertTriangle, Clock, Siren } from "lucide-react";
 
 interface DimensionData {
   label: string;
