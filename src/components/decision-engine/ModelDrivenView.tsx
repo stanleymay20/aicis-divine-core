@@ -15,6 +15,7 @@ import { useState } from "react";
 import ActionLeaderboard from "./ActionLeaderboard";
 import TrustScorePanel from "./TrustScorePanel";
 import BaselineComparison from "./BaselineComparison";
+import DecisionGovernancePanel from "./DecisionGovernancePanel";
 
 interface FeatureContribution {
   feature: string;
