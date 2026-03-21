@@ -287,7 +287,7 @@ export default function ModelDrivenView({ domain }: Props) {
                     <div key={fc.feature} className="flex items-center gap-2 text-xs">
                       {fc.contribution > 0
                         ? <ArrowUp className="h-3 w-3 text-destructive" />
-                        : <ArrowDown className="h-3 w-3 text-green-500" />}
+                        : <ArrowDown className="h-3 w-3 text-primary" />}
                       <span className="text-muted-foreground flex-1 truncate">{fc.feature.replace(/_/g, " ")}</span>
                       <span className="font-mono text-xs font-medium w-14 text-right">
                         {fc.contribution > 0 ? "+" : ""}{fc.contribution.toFixed(3)}
