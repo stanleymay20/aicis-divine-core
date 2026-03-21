@@ -62,6 +62,39 @@ const GovReadiness = () => {
     enabled: !!user,
   });
 
+  const { data: auditChainCount } = useQuery({
+    queryKey: ["gov-audit-chain-count"],
+    queryFn: async () => {
+      const { count } = await supabase.from("signal_audit_chain" as any).select("*", { count: "exact", head: true });
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: slaBreaches } = useQuery({
+    queryKey: ["gov-sla-breaches"],
+    queryFn: async () => {
+      // Check breaches client-side from pipeline_health + sla_definitions
+      if (!pipelineHealth || !slaDefinitions) return [];
+      const now = Date.now();
+      const breaches: { pipeline: string; type: string; detail: string; severity: string }[] = [];
+      for (const sla of slaDefinitions as any[]) {
+        const p = (pipelineHealth as any[]).find((ph: any) => ph.pipeline_name === sla.pipeline_name);
+        if (p?.last_success_at) {
+          const staleH = (now - new Date(p.last_success_at).getTime()) / 3600000;
+          if (staleH > sla.max_stale_hours) {
+            breaches.push({ pipeline: sla.pipeline_name, type: "Stale", detail: `${Math.round(staleH)}h > ${sla.max_stale_hours}h`, severity: staleH > sla.max_stale_hours * 2 ? "critical" : "warning" });
+          }
+        }
+        if (p?.consecutive_failures >= sla.max_consecutive_failures) {
+          breaches.push({ pipeline: sla.pipeline_name, type: "Failures", detail: `${p.consecutive_failures} consecutive`, severity: "critical" });
+        }
+      }
+      return breaches;
+    },
+    enabled: !!user && !!pipelineHealth && !!slaDefinitions,
+  });
+
   if (authLoading || !user) return null;
 
   // Compute live scores
