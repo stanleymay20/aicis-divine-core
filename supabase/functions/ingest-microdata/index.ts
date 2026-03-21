@@ -122,18 +122,41 @@ async function handleRegister(supabase: any, body: MicrodataRequest) {
 
   if (body.provider === "worldbank_microdata") {
     try {
-      const resp = await fetch(
-        `https://microdata.worldbank.org/index.php/api/catalog/${body.dataset_id}`,
+      // First try the search API which returns form_model
+      const searchResp = await fetch(
+        `https://microdata.worldbank.org/index.php/api/catalog/search?ps=1&sk=${body.dataset_id}`,
         { headers: { Accept: "application/json" } }
       );
-      if (resp.ok) {
-        const data = await resp.json();
-        const ds = data?.dataset || data;
-        title = ds.title || title;
-        countries = ds.nation ? [ds.nation] : [];
-        years = ds.year_start ? [parseInt(ds.year_start)] : [];
-        licenseType = ds.data_access_type === "open" ? "public-use" : "licensed";
-        metadata = { raw_metadata: ds };
+      let foundInSearch = false;
+      if (searchResp.ok) {
+        const searchData = await searchResp.json();
+        const rows = searchData?.result?.rows || [];
+        const match = rows.find((r: any) => String(r.id) === String(body.dataset_id));
+        if (match) {
+          title = match.title || title;
+          countries = match.nation ? [match.nation] : [];
+          years = match.year_start ? [parseInt(match.year_start)] : [];
+          // Check form_model (World Bank uses this) OR data_access_type
+          licenseType = (match.form_model === "public" || match.data_access_type === "open") ? "public-use" : "licensed";
+          metadata = { raw_metadata: match };
+          foundInSearch = true;
+        }
+      }
+      // Fallback: fetch individual record
+      if (!foundInSearch) {
+        const resp = await fetch(
+          `https://microdata.worldbank.org/index.php/api/catalog/${body.dataset_id}`,
+          { headers: { Accept: "application/json" } }
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          const ds = data?.dataset || data;
+          title = ds.title || title;
+          countries = ds.nation ? [ds.nation] : [];
+          years = ds.year_start ? [parseInt(ds.year_start)] : [];
+          licenseType = (ds.form_model === "public" || ds.data_access_type === "open") ? "public-use" : "licensed";
+          metadata = { raw_metadata: ds };
+        }
       }
     } catch (e) {
       console.warn("Failed to fetch dataset metadata:", e);
