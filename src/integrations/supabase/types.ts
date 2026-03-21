@@ -2375,6 +2375,47 @@ export type Database = {
         }
         Relationships: []
       }
+      decision_review_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_role: string | null
+          decision_id: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_role?: string | null
+          decision_id: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_role?: string | null
+          decision_id?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_review_history_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decision_outcome_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decision_training_dataset: {
         Row: {
           action_type: string
