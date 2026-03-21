@@ -106,7 +106,7 @@ export default function ModelDrivenView({ domain }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("decision_models")
-        .select("version, training_mode, training_sample_count, proxy_sample_count, real_sample_count, measured_sample_count, last_calibrated_at, avg_impact_score, outcome_maturity_ratio, domain_feature_weights, action_adjustment_weights")
+        .select("version, training_mode, training_sample_count, proxy_sample_count, real_sample_count, measured_sample_count, last_calibrated_at, avg_impact_score, outcome_maturity_ratio, domain_feature_weights, action_adjustment_weights, promotion_status, rejection_reason")
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1)
