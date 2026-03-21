@@ -262,24 +262,41 @@ export default function DecisionGovernancePanel() {
                     </div>
                   </div>
 
-                  {/* Review status */}
+                  {/* Review status actions */}
                   <div>
-                    <label className="text-[10px] font-medium text-muted-foreground block mb-1">Review Status</label>
-                    <Select
-                      value={rec.review_status || "pending"}
-                      onValueChange={(v) => handleReviewStatusChange(rec, v)}
-                    >
-                      <SelectTrigger className="h-7 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="reviewed">Reviewed</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                        <SelectItem value="overridden">Overridden</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label className="text-[10px] font-medium text-muted-foreground block mb-1">Review Actions</label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      <Button size="sm" variant="default" className="h-6 text-[10px]" onClick={() => handleReviewStatusChange(rec, "approved")}>
+                        <CheckCircle className="h-3 w-3 mr-0.5" /> Approve
+                      </Button>
+                      <Button size="sm" variant="destructive" className="h-6 text-[10px]" onClick={() => handleReviewStatusChange(rec, "rejected")}>
+                        <XCircle className="h-3 w-3 mr-0.5" /> Reject
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => handleReviewStatusChange(rec, "overridden")}>
+                        Override
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => {
+                        updateMutation.mutate({
+                          id: rec.id,
+                          updates: { review_status: "pending", evidence_note: (rec as any).evidence_note ? (rec as any).evidence_note + " | More evidence requested" : "More evidence requested" },
+                          historyEntry: { from_status: rec.review_status || "pending", to_status: "pending", note: "Reviewer requested more evidence" },
+                        });
+                      }}>
+                        Request Evidence
+                      </Button>
+                      {rec.recommendation_accepted === true && rec.outcome_success === false && !rec.postmortem_note && (
+                        <Button size="sm" variant="destructive" className="h-6 text-[10px]" onClick={() => {
+                          updateMutation.mutate({
+                            id: rec.id,
+                            updates: {},
+                            historyEntry: { from_status: rec.review_status || "pending", to_status: rec.review_status || "pending", note: "Postmortem required — flagged by reviewer" },
+                          });
+                          toast.info("Postmortem requirement flagged");
+                        }}>
+                        Mark PM Required
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Override reason */}
