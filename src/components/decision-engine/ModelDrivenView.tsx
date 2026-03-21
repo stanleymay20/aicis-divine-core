@@ -233,7 +233,7 @@ export default function ModelDrivenView({ domain }: Props) {
           )}
 
           <p className="text-xs text-muted-foreground text-center">
-            Generated {new Date(data.generated_at).toLocaleString()} · Model: {data.model_version} · Basis: {data.decision_basis}
+            Generated {new Date(data.generated_at).toLocaleString()} · Model: {data.model_version} · Mode: {data.training_mode} · Hash: {data.inference_hash?.slice(0, 12)}…
           </p>
         </>
       )}
