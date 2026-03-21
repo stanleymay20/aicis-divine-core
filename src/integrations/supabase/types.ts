@@ -1960,11 +1960,17 @@ export type Database = {
           event_confirmed: boolean | null
           event_confirmed_date: string | null
           event_description: string | null
+          evidence_type: string
           hypothetical_decision_value: string | null
           id: string
           iso3: string | null
+          measured_impact_score: number | null
+          measured_outcome: string | null
           pilot_action_taken: string | null
+          pilot_ended_at: string | null
           pilot_outcome: string | null
+          pilot_partner: string | null
+          pilot_started_at: string | null
           recommended_action: string | null
           signal_confidence: number | null
           signal_date: string
@@ -1981,11 +1987,17 @@ export type Database = {
           event_confirmed?: boolean | null
           event_confirmed_date?: string | null
           event_description?: string | null
+          evidence_type?: string
           hypothetical_decision_value?: string | null
           id?: string
           iso3?: string | null
+          measured_impact_score?: number | null
+          measured_outcome?: string | null
           pilot_action_taken?: string | null
+          pilot_ended_at?: string | null
           pilot_outcome?: string | null
+          pilot_partner?: string | null
+          pilot_started_at?: string | null
           recommended_action?: string | null
           signal_confidence?: number | null
           signal_date: string
@@ -2002,11 +2014,17 @@ export type Database = {
           event_confirmed?: boolean | null
           event_confirmed_date?: string | null
           event_description?: string | null
+          evidence_type?: string
           hypothetical_decision_value?: string | null
           id?: string
           iso3?: string | null
+          measured_impact_score?: number | null
+          measured_outcome?: string | null
           pilot_action_taken?: string | null
+          pilot_ended_at?: string | null
           pilot_outcome?: string | null
+          pilot_partner?: string | null
+          pilot_started_at?: string | null
           recommended_action?: string | null
           signal_confidence?: number | null
           signal_date?: string
