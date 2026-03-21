@@ -1886,6 +1886,72 @@ export type Database = {
           },
         ]
       }
+      decision_outcome_log: {
+        Row: {
+          action_window_days: number | null
+          created_at: string | null
+          domain: string | null
+          event_confirmed: boolean | null
+          event_confirmed_date: string | null
+          event_description: string | null
+          hypothetical_decision_value: string | null
+          id: string
+          iso3: string | null
+          pilot_action_taken: string | null
+          pilot_outcome: string | null
+          recommended_action: string | null
+          signal_confidence: number | null
+          signal_date: string
+          signal_direction: string | null
+          signal_id: string
+          signal_title: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_window_days?: number | null
+          created_at?: string | null
+          domain?: string | null
+          event_confirmed?: boolean | null
+          event_confirmed_date?: string | null
+          event_description?: string | null
+          hypothetical_decision_value?: string | null
+          id?: string
+          iso3?: string | null
+          pilot_action_taken?: string | null
+          pilot_outcome?: string | null
+          recommended_action?: string | null
+          signal_confidence?: number | null
+          signal_date: string
+          signal_direction?: string | null
+          signal_id: string
+          signal_title: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_window_days?: number | null
+          created_at?: string | null
+          domain?: string | null
+          event_confirmed?: boolean | null
+          event_confirmed_date?: string | null
+          event_description?: string | null
+          hypothetical_decision_value?: string | null
+          id?: string
+          iso3?: string | null
+          pilot_action_taken?: string | null
+          pilot_outcome?: string | null
+          recommended_action?: string | null
+          signal_confidence?: number | null
+          signal_date?: string
+          signal_direction?: string | null
+          signal_id?: string
+          signal_title?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       defense_posture: {
         Row: {
           advisories_md: string | null
