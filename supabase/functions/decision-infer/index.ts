@@ -141,9 +141,15 @@ function selectActions(
 }
 
 // ─── Policy Layer ───
-function classifyAction(successProb: number, impact: number): "ACT" | "CONSIDER" | "MONITOR" {
-  if (successProb >= 0.75 && impact >= 60) return "ACT";
-  if (successProb >= 0.50 || impact >= 40) return "CONSIDER";
+function classifyAction(
+  successProb: number, 
+  impact: number, 
+  domainPolicies?: Record<string, { act: number; consider: number; min_impact: number }>,
+  domain?: string
+): "ACT" | "CONSIDER" | "MONITOR" {
+  const policy = (domain && domainPolicies?.[domain]) || { act: 0.75, consider: 0.50, min_impact: 40 };
+  if (successProb >= policy.act && impact >= policy.min_impact) return "ACT";
+  if (successProb >= policy.consider || impact >= (policy.min_impact * 0.8)) return "CONSIDER";
   return "MONITOR";
 }
 
