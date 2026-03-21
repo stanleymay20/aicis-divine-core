@@ -134,10 +134,22 @@ serve(async (req) => {
       let heuristicCorrect = 0;
       for (const row of featuredRows) {
         const feats = row.features as Record<string, number> || {};
-        // Simple heuristic: high risk_pressure + high fragility → predict failure
-        const heuristicRisk = (feats.risk_pressure_score || 0) * 0.25 + (feats.systemic_fragility_score || 0) * 0.20;
-        const heuristicPredictFailure = heuristicRisk > 15;
-        if (heuristicPredictFailure === !row.outcome_success) heuristicCorrect++;
+        // Heuristic: compute weighted score using default weights, predict success if score < 50
+        let hScore = 0;
+        for (const [k, w] of Object.entries(HEURISTIC_WEIGHTS)) {
+          const val = feats[k] || 0;
+          const bounds: Record<string, [number, number]> = {
+            performance_index: [0, 100], momentum_score: [-50, 50], risk_pressure_score: [0, 100],
+            systemic_fragility_score: [0, 100], confidence_score: [0, 100], structural_break_count: [0, 20],
+            anomaly_count: [0, 20], alert_count: [0, 15], crisis_severity_avg: [0, 10], forecast_stability_score: [0, 100],
+          };
+          const [min, max] = bounds[k] || [0, 100];
+          const norm = Math.max(0, Math.min(1, (val - min) / (max - min)));
+          hScore += norm * w;
+        }
+        const hRiskScore = Math.max(0, Math.min(100, (hScore + 0.5) * 100));
+        const heuristicPredictSuccess = hRiskScore < 55;
+        if (heuristicPredictSuccess === row.outcome_success) heuristicCorrect++;
       }
       heuristicSuccessRate = Math.round(heuristicCorrect / featuredRows.length * 1000) / 1000;
     }
