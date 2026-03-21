@@ -22,6 +22,11 @@ import ReviewerWorkloadPanel from "./ReviewerWorkloadPanel";
 import ModelPromotionLog from "./ModelPromotionLog";
 import LearningCycleHealth from "./LearningCycleHealth";
 import DecisionKPIPanel from "./DecisionKPIPanel";
+import ModelSafetyPanel from "./ModelSafetyPanel";
+import ExecutionPipelinePanel from "./ExecutionPipelinePanel";
+import ReviewerAccountabilityPanel from "./ReviewerAccountabilityPanel";
+import MeasuredEvidenceProgressPanel from "./MeasuredEvidenceProgressPanel";
+import SilentFailurePanel from "./SilentFailurePanel";
 
 interface FeatureContribution {
   feature: string;
