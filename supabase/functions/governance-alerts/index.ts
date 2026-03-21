@@ -87,6 +87,104 @@ serve(async (req) => {
       });
     }
 
+    // --- SILENT FAILURE ALERTS ---
+
+    // 5. No measured outcomes in last 14 days
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400000).toISOString();
+    const { count: recentMeasured } = await supabase
+      .from("decision_outcome_log")
+      .select("id", { count: "exact", head: true })
+      .eq("evidence_type", "measured")
+      .gte("outcome_timestamp", fourteenDaysAgo);
+
+    if ((recentMeasured ?? 0) === 0) {
+      alerts.push({
+        title: "No measured outcomes recorded in 14 days",
+        message: "The decision engine has not received any real-world measured outcomes recently. This stalls the learning loop.",
+        severity: "high",
+        division: "decision-engine",
+      });
+    }
+
+    // 6. No inference audit records in last 24h
+    const oneDayAgo = new Date(now.getTime() - 24 * 3600000).toISOString();
+    const { count: recentInference } = await supabase
+      .from("decision_inference_audit")
+      .select("id", { count: "exact", head: true })
+      .gte("inferred_at", oneDayAgo);
+
+    if ((recentInference ?? 0) === 0) {
+      alerts.push({
+        title: "No inference audit records in 24 hours",
+        message: "The decision inference pipeline has not logged any audit records in the last 24 hours.",
+        severity: "medium",
+        division: "decision-engine",
+      });
+    }
+
+    // 7. Weekly learning cron failed (check last run)
+    const { data: lastLearn } = await supabase
+      .from("system_logs")
+      .select("log_level, created_at")
+      .eq("action", "weekly_decision_learning")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastLearn && lastLearn.log_level === "error") {
+      alerts.push({
+        title: "Weekly learning cycle failed",
+        message: "The most recent weekly decision learning run encountered an error. Model calibration may be stale.",
+        severity: "high",
+        division: "decision-engine",
+      });
+    }
+
+    // 8. Active model older than 30 days without re-evaluation
+    const { data: activeModel } = await supabase
+      .from("decision_models")
+      .select("version, last_calibrated_at")
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (activeModel?.last_calibrated_at) {
+      const calAge = (now.getTime() - new Date(activeModel.last_calibrated_at).getTime()) / 86400000;
+      if (calAge > 30) {
+        alerts.push({
+          title: "Active model calibration is stale",
+          message: `Model ${activeModel.version} was last calibrated ${Math.round(calAge)} days ago. Re-evaluation recommended.`,
+          severity: "medium",
+          division: "decision-engine",
+        });
+      }
+    }
+
+    // 9. Trust score drop detection
+    const { data: recentEvals } = await supabase
+      .from("model_evaluations")
+      .select("acceptance_rate, calibration_error, evaluated_at")
+      .order("evaluated_at", { ascending: false })
+      .limit(2);
+
+    if (recentEvals && recentEvals.length >= 2) {
+      const computeTrust = (e: any) => {
+        const ece = e.calibration_error ?? 0.5;
+        const accept = e.acceptance_rate ?? 0;
+        return (1 - Math.min(ece, 1)) * 40 + accept * 30;
+      };
+      const current = computeTrust(recentEvals[0]);
+      const previous = computeTrust(recentEvals[1]);
+      if (previous - current > 10) {
+        alerts.push({
+          title: "Trust score dropped significantly",
+          message: `Trust score component dropped by ${Math.round(previous - current)} points between evaluations.`,
+          severity: "high",
+          division: "decision-engine",
+        });
+      }
+    }
+
     // Write alerts (deduplicate by title within 6h)
     let inserted = 0;
     for (const alert of alerts) {
@@ -95,7 +193,7 @@ serve(async (req) => {
         .from("alerts")
         .select("id")
         .eq("title", alert.title)
-        .eq("division", "governance")
+        .eq("division", alert.division)
         .gte("created_at", sixHoursAgo)
         .limit(1);
 
@@ -105,6 +203,18 @@ serve(async (req) => {
       }
     }
 
+    // Also log to system_logs for audit
+    await supabase.from("system_logs").insert({
+      action: "governance_alerts_scan",
+      result: JSON.stringify({
+        alerts_detected: alerts.length,
+        alerts_inserted: inserted,
+        categories: alerts.map(a => a.title),
+      }),
+      log_level: "info",
+      division: "governance",
+    });
+
     return new Response(JSON.stringify({
       ok: true,
       alerts_detected: alerts.length,
@@ -112,6 +222,8 @@ serve(async (req) => {
       overdue_count: overdue?.length || 0,
       missing_postmortem_count: missingPM?.length || 0,
       unresolved_overrides: noNote?.length || 0,
+      no_measured_14d: (recentMeasured ?? 0) === 0,
+      no_inference_24h: (recentInference ?? 0) === 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
