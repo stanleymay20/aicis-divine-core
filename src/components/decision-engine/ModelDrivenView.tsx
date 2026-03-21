@@ -239,14 +239,16 @@ export default function ModelDrivenView({ domain }: Props) {
 
       // Log assignment to immutable review history
       if (assignedReviewer) {
-        await supabase.from("decision_review_history").insert({
-          decision_id: `model-${rec.action_type}-${data?.generated_at}`,
-          changed_by: "system",
-          changed_role: "auto-router",
-          from_status: null,
-          to_status: "pending",
-          note: `Auto-assigned to ${assignedReviewer} (${assignedReviewerRole}) via routing rules`,
-        }).then(() => {}).catch(() => {}); // non-critical
+        try {
+          await supabase.from("decision_review_history").insert({
+            decision_id: `model-${rec.action_type}-${data?.generated_at}`,
+            changed_by: "system",
+            changed_role: "auto-router",
+            from_status: null,
+            to_status: "pending",
+            note: `Auto-assigned to ${assignedReviewer} (${assignedReviewerRole}) via routing rules`,
+          });
+        } catch { /* non-critical */ }
 
       }
 
