@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Heuristic baseline weights (frozen reference)
+const HEURISTIC_WEIGHTS: Record<string, number> = {
+  performance_index: -0.15,
+  momentum_score: -0.10,
+  risk_pressure_score: 0.25,
+  systemic_fragility_score: 0.20,
+  confidence_score: 0.05,
+  structural_break_count: 0.10,
+  anomaly_count: 0.10,
+  alert_count: 0.10,
+  crisis_severity_avg: 0.10,
+  forecast_stability_score: -0.05,
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -18,7 +32,7 @@ serve(async (req) => {
     // 1. Get active + previous models
     const { data: models } = await supabase
       .from("decision_models")
-      .select("id, version, status, training_mode, training_sample_count, proxy_sample_count, real_sample_count, measured_sample_count")
+      .select("id, version, status, training_mode, feature_weights, training_sample_count, proxy_sample_count, real_sample_count, measured_sample_count")
       .in("status", ["active", "superseded"])
       .order("created_at", { ascending: false })
       .limit(2);
@@ -49,10 +63,10 @@ serve(async (req) => {
       return withOutcome.length > 0 ? withOutcome.filter(r => r.outcome_success).length / withOutcome.length : null;
     };
 
-    // 3. Load outcome log for acceptance tracking
+    // 3. Load outcome log for acceptance + ROI tracking
     const { data: outcomes } = await supabase
       .from("decision_outcome_log")
-      .select("recommendation_accepted, outcome_success, impact_score, evidence_type, signal_confidence")
+      .select("recommendation_accepted, outcome_success, impact_score, evidence_type, signal_confidence, roi_estimate, net_value")
       .not("action_type", "is", null)
       .limit(2000);
 
@@ -62,7 +76,12 @@ serve(async (req) => {
       ? withAcceptance.filter(r => r.recommendation_accepted).length / withAcceptance.length
       : null;
 
-    // 4. Confidence calibration: bucket predicted confidence vs actual outcomes
+    // ROI metrics
+    const withROI = outcomeRows.filter(r => r.roi_estimate != null);
+    const avgROI = withROI.length > 0 ? withROI.reduce((s, r) => s + (r.roi_estimate || 0), 0) / withROI.length : null;
+    const totalNetValue = outcomeRows.filter(r => r.net_value != null).reduce((s, r) => s + (r.net_value || 0), 0) || null;
+
+    // 4. Confidence calibration (ECE)
     const buckets: Record<string, { predicted: number; actual: number; count: number }> = {};
     for (const row of outcomeRows) {
       if (row.signal_confidence == null || row.outcome_success == null) continue;
@@ -73,7 +92,6 @@ serve(async (req) => {
       buckets[bucket].actual += row.outcome_success ? 1 : 0;
     }
 
-    // Compute calibration error (ECE - Expected Calibration Error)
     let calibrationError: number | null = null;
     const bucketEntries = Object.values(buckets);
     if (bucketEntries.length > 0) {
@@ -102,7 +120,41 @@ serve(async (req) => {
       }
     }
 
-    // 6. Store evaluation
+    // 6. Baseline comparison — heuristic success rate
+    // Simulate: for each training row with features, compute heuristic score and check if heuristic would agree
+    const { data: featuredRows } = await supabase
+      .from("decision_training_dataset")
+      .select("features, outcome_success")
+      .eq("overridden_by_real", false)
+      .not("outcome_success", "is", null)
+      .limit(2000);
+
+    let heuristicSuccessRate: number | null = null;
+    if (featuredRows && featuredRows.length > 10) {
+      let heuristicCorrect = 0;
+      for (const row of featuredRows) {
+        const feats = row.features as Record<string, number> || {};
+        // Simple heuristic: high risk_pressure + high fragility → predict failure
+        const heuristicRisk = (feats.risk_pressure_score || 0) * 0.25 + (feats.systemic_fragility_score || 0) * 0.20;
+        const heuristicPredictFailure = heuristicRisk > 15;
+        if (heuristicPredictFailure === !row.outcome_success) heuristicCorrect++;
+      }
+      heuristicSuccessRate = Math.round(heuristicCorrect / featuredRows.length * 1000) / 1000;
+    }
+
+    // Model success rate for comparison
+    const modelSuccessRate = successRate(rows);
+    const prevModelRate = previousModel ? successRate(proxyRows) : null; // approximate
+
+    const improvementOverHeuristic = (modelSuccessRate != null && heuristicSuccessRate != null)
+      ? Math.round((modelSuccessRate - heuristicSuccessRate) * 1000) / 10
+      : null;
+
+    const improvementOverPrevious = (modelSuccessRate != null && prevModelRate != null)
+      ? Math.round((modelSuccessRate - prevModelRate) * 1000) / 10
+      : null;
+
+    // 7. Store evaluation
     const evaluation = {
       model_version: activeModel.version,
       compared_to_version: previousModel?.version || null,
@@ -119,11 +171,17 @@ serve(async (req) => {
       calibration_error: calibrationError,
       confidence_buckets: buckets,
       sample_count: rows.length,
+      heuristic_success_rate: heuristicSuccessRate,
+      improvement_over_previous: improvementOverPrevious,
+      improvement_over_heuristic: improvementOverHeuristic,
+      avg_roi: avgROI ? Math.round(avgROI * 10) / 10 : null,
+      total_net_value: totalNetValue ? Math.round(totalNetValue * 10) / 10 : null,
       metadata: {
         active_model: activeModel.version,
         previous_model: previousModel?.version,
         outcome_log_count: outcomeRows.length,
         inference_count: recentInferences?.length || 0,
+        roi_samples: withROI.length,
       },
     };
 
