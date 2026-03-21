@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Brain, AlertTriangle, Clock, Target, Shield, RefreshCw, Zap, TrendingUp,
-  ChevronDown, ChevronUp, Database, Eye, BookOpen, FileText, Info
+  ChevronDown, ChevronUp, Database, Eye, BookOpen, FileText, Info, Activity
 } from "lucide-react";
 import { toast } from "sonner";
 import OutcomeMaturityPanel from "@/components/decision-engine/OutcomeMaturityPanel";
+import ModelDrivenView from "@/components/decision-engine/ModelDrivenView";
 
 interface Recommendation {
   id: string;
