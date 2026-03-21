@@ -47,6 +47,7 @@ const EnterpriseReadiness = lazy(() => import("./pages/EnterpriseReadiness"));
 const ValidatedPredictions = lazy(() => import("./pages/ValidatedPredictions"));
 const MicrodataRegistry = lazy(() => import("./pages/MicrodataRegistry"));
 const FirstSignal = lazy(() => import("./pages/FirstSignal"));
+const DecisionOutcomeLog = lazy(() => import("./pages/DecisionOutcomeLog"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -105,6 +106,7 @@ const App = () => (
             <Route path="/validated-predictions" element={<Lazy><ValidatedPredictions /></Lazy>} />
             <Route path="/microdata" element={<Lazy><MicrodataRegistry /></Lazy>} />
             <Route path="/first-signal" element={<Lazy><FirstSignal /></Lazy>} />
+            <Route path="/decision-log" element={<Lazy><DecisionOutcomeLog /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
