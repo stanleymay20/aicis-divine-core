@@ -557,7 +557,7 @@ Deno.serve(async (req) => {
         data_sources: JSON.stringify(["country_profiles", "global_indicators"]),
         input_hash: inputHash,
         output_hash: outputHash,
-        parameters: JSON.stringify({ alpha: 0.55, beta: 0.3, breakThreshold: 1.5 }),
+        parameters: JSON.stringify(ENGINE_PARAMS),
         reproducible: true,
         notes: `full-coverage audit | ${allSnapshots.length} total snapshots`,
       });
