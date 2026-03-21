@@ -50,6 +50,7 @@ const FirstSignal = lazy(() => import("./pages/FirstSignal"));
 const DecisionOutcomeLog = lazy(() => import("./pages/DecisionOutcomeLog"));
 const InfraOps = lazy(() => import("./pages/InfraOps"));
 const GovReadiness = lazy(() => import("./pages/GovReadiness"));
+const DecisionEngine = lazy(() => import("./pages/DecisionEngine"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
