@@ -561,9 +561,11 @@ Deno.serve(async (req) => {
         notes: `full-coverage audit | ${allSnapshots.length} total snapshots`,
       });
     }
+    const auditWriteMs = Date.now();
     if (auditEntries.length > 0) {
       await batchInsert("signal_audit_chain", auditEntries);
     }
+    const auditElapsedMs = Date.now() - auditWriteMs;
 
     // 6. Kill-switch evaluation
     // Kill-switch uses normalized metrics: MAPE > 50% or break rate > 60%
