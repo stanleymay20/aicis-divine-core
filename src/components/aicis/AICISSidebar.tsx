@@ -32,17 +32,20 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
-import { GitCompareArrows, Layers } from "lucide-react";
+import { GitCompareArrows, Layers, Brain, Target, FileText } from "lucide-react";
 
 const navigationItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/" },
   { id: "command", label: "Command Center", icon: Globe, path: "/command" },
   { id: "intelligence", label: "Intelligence Thread", icon: Layers, path: "/intelligence" },
+  { id: "adi", label: "Decision Intelligence", icon: Brain, path: "/adi" },
   { id: "compare", label: "Compare Countries", icon: GitCompareArrows, path: "/compare" },
   { id: "governance", label: "Governance", icon: Landmark, path: "/governance" },
   { id: "security", label: "Security & Conflict", icon: Swords, path: "/security" },
   { id: "health", label: "Health", icon: HeartPulse, path: "/health" },
   { id: "predictions", label: "Predictions", icon: TrendingUp, path: "/predictions" },
+  { id: "prediction-accuracy", label: "Prediction Accuracy", icon: Target, path: "/prediction-accuracy" },
+  { id: "weekly-briefs", label: "Weekly Briefs", icon: FileText, path: "/weekly-briefs" },
   { id: "federation", label: "Federation", icon: Zap, path: "/federation" },
   { id: "compliance", label: "Compliance", icon: FileCheck, path: "/compliance" },
   { id: "admin", label: "Admin", icon: Shield, path: "/admin" },

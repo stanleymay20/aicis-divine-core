@@ -164,9 +164,12 @@ const PredictionAccuracy = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Read-only validation layer — Does the engine predict reality?
             </p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">
+              AI-assisted analysis • Shadow mode • Not validated intelligence
+            </p>
           </div>
           <Badge variant="outline" className="text-xs font-mono">
-            {(validationResults || []).length} validations
+            {(validationResults || []).length >= 1000 ? "1,000+ (sampled)" : (validationResults || []).length} validations
           </Badge>
         </div>
 
@@ -203,8 +206,8 @@ const PredictionAccuracy = () => {
                 icon={<Zap className="h-5 w-5" />}
                 label="Vuln→Crisis Signals"
                 value={corr.total.toString()}
-                target={corr.total > 0 ? `Avg ${corr.avgDays}d lag` : "Accumulating..."}
-                status={corr.total > 5 ? "good" : "neutral"}
+                target={corr.total > 0 ? `Avg ${corr.avgDays}d lag` : "Not yet accumulated"}
+                status="neutral"
               />
             </div>
 
@@ -366,13 +369,20 @@ const PredictionAccuracy = () => {
 
             {/* ── Methodology Note ────────────────────────────── */}
             <Card className="border-muted/30 bg-muted/5">
-              <CardContent className="p-4">
+              <CardContent className="p-4 space-y-2">
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   <strong className="text-foreground">Validation Doctrine:</strong> This layer is strictly read-only — it never modifies forecast weights, 
                   calibration parameters, or model logic. Directional accuracy above 55% at 1-day horizon indicates the system 
-                  is not random. MAE decline over time proves learning. Vulnerability-crisis correlation with lead times of 
-                  3–14 days validates early-warning capability. No engine modifications will be made until 60–90 days of 
+                  is not random. MAE decline over time indicates learning. Vulnerability-crisis correlation with lead times of 
+                  3–14 days would validate early-warning capability. No engine modifications will be made until 60–90 days of 
                   validation evidence exists.
+                </p>
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                  ⚠️ Shadow mode: Results shown are limited to a 1,000-row sample from 31,000+ total validations. 
+                  Turning point accuracy ({(validationResults || []).filter((r: any) => r.actual_direction !== 'stable' && r.direction_hit).length}/
+                  {(validationResults || []).filter((r: any) => r.actual_direction !== 'stable').length} in sample) 
+                  reflects early-stage system behavior. The naive baseline (predict no change) scores 100% during stable periods — 
+                  AICIS is designed to outperform during structural transitions, not stability.
                 </p>
               </CardContent>
             </Card>
