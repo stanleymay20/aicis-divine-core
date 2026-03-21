@@ -35,6 +35,11 @@ interface DecisionRecord {
   created_at: string | null;
   status: string | null;
   actor_role: string | null;
+  criticality_tier: string | null;
+  requires_dual_approval: boolean | null;
+  second_reviewer_name: string | null;
+  second_review_status: string | null;
+  recommender_id: string | null;
 }
 
 const reviewStatusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
