@@ -14,14 +14,10 @@ const FEATURE_KEYS = [
 
 const DOMAINS = ["security", "health", "finance", "energy", "food", "governance"];
 
-// Label source weights for calibration
 const LABEL_WEIGHTS: Record<string, number> = {
-  real: 1.0,
-  measured: 1.2,
-  proxy: 0.35,
+  real: 1.0, measured: 1.2, proxy: 0.35,
 };
 
-// Domain-specific action policy defaults
 const DOMAIN_ACTION_POLICIES: Record<string, { act: number; consider: number; min_impact: number }> = {
   security: { act: 0.65, consider: 0.40, min_impact: 35 },
   health: { act: 0.70, consider: 0.45, min_impact: 40 },
@@ -31,71 +27,66 @@ const DOMAIN_ACTION_POLICIES: Record<string, { act: number; consider: number; mi
   governance: { act: 0.80, consider: 0.55, min_impact: 50 },
 };
 
-/**
- * Calibrate feature weights from training data using weighted correlation.
- * For each feature, compute how well it correlates with outcome_success,
- * weighted by label source credibility.
- */
-function calibrateWeights(
-  rows: any[],
-  existingWeights: Record<string, number>
-): Record<string, number> {
+function calibrateWeights(rows: any[], existingWeights: Record<string, number>): Record<string, number> {
   if (rows.length < 10) return existingWeights;
-
   const newWeights: Record<string, number> = {};
 
   for (const key of FEATURE_KEYS) {
-    // Compute weighted correlation between feature and outcome
     let sumWXY = 0, sumWX = 0, sumWY = 0, sumWX2 = 0, sumWY2 = 0, sumW = 0;
-
     for (const row of rows) {
-      const features = row.features || {};
-      const x = features[key] ?? 0;
+      if (row.overridden_by_real) continue;
+      const x = (row.features || {})[key] ?? 0;
       const y = row.outcome_success ? 1 : 0;
       const w = LABEL_WEIGHTS[row.label_source] || 0.35;
-      // If overridden by real data, skip proxy
-      if (row.overridden_by_real) continue;
-
-      sumW += w;
-      sumWX += w * x;
-      sumWY += w * y;
-      sumWXY += w * x * y;
-      sumWX2 += w * x * x;
-      sumWY2 += w * y * y;
+      sumW += w; sumWX += w * x; sumWY += w * y;
+      sumWXY += w * x * y; sumWX2 += w * x * x; sumWY2 += w * y * y;
     }
-
-    if (sumW === 0) {
-      newWeights[key] = existingWeights[key] || 0;
-      continue;
-    }
-
-    const meanX = sumWX / sumW;
-    const meanY = sumWY / sumW;
+    if (sumW === 0) { newWeights[key] = existingWeights[key] || 0; continue; }
+    const meanX = sumWX / sumW, meanY = sumWY / sumW;
     const covXY = sumWXY / sumW - meanX * meanY;
     const varX = sumWX2 / sumW - meanX * meanX;
     const varY = sumWY2 / sumW - meanY * meanY;
-
-    if (varX < 1e-10 || varY < 1e-10) {
-      newWeights[key] = existingWeights[key] || 0;
-      continue;
-    }
-
+    if (varX < 1e-10 || varY < 1e-10) { newWeights[key] = existingWeights[key] || 0; continue; }
     const correlation = covXY / Math.sqrt(varX * varY);
-
-    // Blend: 70% data-driven correlation, 30% prior weights
     const prior = existingWeights[key] || 0;
     newWeights[key] = Math.round((correlation * 0.7 + prior * 0.3) * 1000) / 1000;
   }
 
-  // Normalize so absolute weights sum to ~1
   const absSum = Object.values(newWeights).reduce((s, v) => s + Math.abs(v), 0);
   if (absSum > 0) {
-    for (const key of FEATURE_KEYS) {
-      newWeights[key] = Math.round((newWeights[key] / absSum) * 1000) / 1000;
-    }
+    for (const key of FEATURE_KEYS) newWeights[key] = Math.round((newWeights[key] / absSum) * 1000) / 1000;
   }
-
   return newWeights;
+}
+
+// Per-action adjustment learning
+function calibrateActionAdjustments(
+  rows: any[],
+  existingAdj: Record<string, Record<string, number>>
+): Record<string, Record<string, number>> {
+  const actionTypes = [...new Set(rows.map(r => r.action_type).filter(Boolean))];
+  const adjustments: Record<string, Record<string, number>> = { ...existingAdj };
+
+  for (const actionType of actionTypes) {
+    const actionRows = rows.filter(r => r.action_type === actionType && !r.overridden_by_real);
+    if (actionRows.length < 5) continue;
+
+    const adj: Record<string, number> = {};
+    for (const key of FEATURE_KEYS) {
+      const successRows = actionRows.filter(r => r.outcome_success);
+      const failRows = actionRows.filter(r => r.outcome_success === false);
+      if (successRows.length < 2 || failRows.length < 2) continue;
+
+      const avgSuccess = successRows.reduce((s, r) => s + ((r.features || {})[key] || 0), 0) / successRows.length;
+      const avgFail = failRows.reduce((s, r) => s + ((r.features || {})[key] || 0), 0) / failRows.length;
+      const diff = avgSuccess - avgFail;
+      if (Math.abs(diff) > 0.5) {
+        adj[key] = Math.round(diff * 100) / 100;
+      }
+    }
+    if (Object.keys(adj).length > 0) adjustments[actionType] = adj;
+  }
+  return adjustments;
 }
 
 serve(async (req) => {
@@ -107,7 +98,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // 1. Load all training data (excluding overridden proxy rows)
     const { data: allRows, error: fetchErr } = await supabase
       .from("decision_training_dataset")
       .select("iso3, domain, features, action_type, outcome_success, impact_score, label_source, label_confidence, overridden_by_real")
@@ -121,7 +111,6 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 2. Load current active model
     const { data: activeModel } = await supabase
       .from("decision_models")
       .select("*")
@@ -131,78 +120,62 @@ serve(async (req) => {
       .maybeSingle();
 
     const currentWeights = activeModel?.feature_weights || {};
+    const currentActionAdj = activeModel?.action_adjustment_weights || {};
 
-    // 3. Calibrate global weights
+    // Calibrate global + domain + per-action
     const globalWeights = calibrateWeights(allRows, currentWeights);
-
-    // 4. Calibrate per-domain weights
     const domainWeights: Record<string, Record<string, number>> = {};
     for (const domain of DOMAINS) {
       const domainRows = allRows.filter(r => r.domain === domain);
-      if (domainRows.length >= 5) {
-        domainWeights[domain] = calibrateWeights(domainRows, globalWeights);
-      }
+      if (domainRows.length >= 5) domainWeights[domain] = calibrateWeights(domainRows, globalWeights);
     }
+    const actionAdjustments = calibrateActionAdjustments(allRows, currentActionAdj as Record<string, Record<string, number>>);
 
-    // 5. Compute performance metrics
+    // Metrics
     const realRows = allRows.filter(r => r.label_source === "real" || r.label_source === "measured");
     const proxyRows = allRows.filter(r => r.label_source === "proxy");
-    const proxyAccuracy = proxyRows.length > 0
-      ? proxyRows.filter(r => r.outcome_success).length / proxyRows.length
-      : null;
-    const realAccuracy = realRows.length > 0
-      ? realRows.filter(r => r.outcome_success).length / realRows.length
-      : null;
+    const measuredCount = allRows.filter(r => r.label_source === "measured").length;
+    const successRate = (arr: typeof allRows) => {
+      const w = arr.filter(r => r.outcome_success !== null);
+      return w.length > 0 ? w.filter(r => r.outcome_success).length / w.length : null;
+    };
     const avgImpact = allRows.filter(r => r.impact_score != null).length > 0
       ? allRows.filter(r => r.impact_score != null).reduce((s, r) => s + (r.impact_score || 0), 0) / allRows.filter(r => r.impact_score != null).length
       : null;
 
-    // Determine training mode
-    const measuredCount = allRows.filter(r => r.label_source === "measured").length;
-    const realCount = realRows.length;
-    const proxyCount = proxyRows.length;
     let trainingMode = "heuristic";
-    if (measuredCount > 0 && proxyCount > 0) trainingMode = "hybrid";
-    else if (realCount > 0) trainingMode = "real";
-    else if (proxyCount > 0) trainingMode = "proxy";
+    if (measuredCount > 0 && proxyRows.length > 0) trainingMode = "hybrid";
+    else if (realRows.length > 0) trainingMode = "real";
+    else if (proxyRows.length > 0) trainingMode = "proxy";
 
     const maturityRatio = allRows.length > 0
-      ? (realCount * 1.0 + measuredCount * 1.5) / (allRows.length * 1.5)
-      : 0;
+      ? (realRows.length * 1.0 + measuredCount * 1.5) / (allRows.length * 1.5) : 0;
 
-    // 6. Create new model version (don't overwrite)
     const versionNum = activeModel ? parseInt(activeModel.version?.split("-").pop() || "0") + 1 : 1;
     const newVersion = `DL-cal-${versionNum}`;
 
-    // Deactivate old model
     if (activeModel) {
-      await supabase
-        .from("decision_models")
-        .update({ status: "superseded" })
-        .eq("id", activeModel.id);
+      await supabase.from("decision_models").update({ status: "superseded" }).eq("id", activeModel.id);
     }
 
-    // Insert new calibrated model
     const { error: insertErr } = await supabase.from("decision_models").insert({
       version: newVersion,
       model_type: "weighted_scoring",
       feature_schema: { features: FEATURE_KEYS },
       feature_weights: globalWeights,
       domain_feature_weights: domainWeights,
-      action_policies: {
-        global: { act_threshold: 0.75, consider_threshold: 0.50, min_impact: 40 },
-      },
+      action_adjustment_weights: actionAdjustments,
+      action_policies: { global: { act_threshold: 0.75, consider_threshold: 0.50, min_impact: 40 } },
       domain_action_policies: DOMAIN_ACTION_POLICIES,
       performance_metrics: {
-        proxy_accuracy: proxyAccuracy,
-        real_accuracy: realAccuracy,
-        global_weight_count: FEATURE_KEYS.length,
-        domain_weights_count: Object.keys(domainWeights).length,
+        proxy_accuracy: successRate(proxyRows),
+        real_accuracy: successRate(realRows),
+        action_types_calibrated: Object.keys(actionAdjustments).length,
       },
       training_sample_count: allRows.length,
       training_mode: trainingMode,
-      proxy_sample_count: proxyCount,
-      real_sample_count: realCount,
+      proxy_sample_count: proxyRows.length,
+      real_sample_count: realRows.length,
       measured_sample_count: measuredCount,
       avg_impact_score: avgImpact,
       outcome_maturity_ratio: Math.round(maturityRatio * 100) / 100,
@@ -212,14 +185,18 @@ serve(async (req) => {
 
     if (insertErr) throw insertErr;
 
+    // Trigger model evaluation
+    try {
+      await supabase.functions.invoke("evaluate-decision-models", { body: {} });
+    } catch (e) { console.error("Evaluation trigger failed (non-fatal):", e); }
+
     return new Response(JSON.stringify({
-      ok: true,
-      version: newVersion,
-      training_mode: trainingMode,
+      ok: true, version: newVersion, training_mode: trainingMode,
       global_weights: globalWeights,
       domain_weights_count: Object.keys(domainWeights).length,
-      samples: { total: allRows.length, proxy: proxyCount, real: realCount, measured: measuredCount },
-      metrics: { proxy_accuracy: proxyAccuracy, real_accuracy: realAccuracy, avg_impact: avgImpact },
+      action_adjustments_count: Object.keys(actionAdjustments).length,
+      samples: { total: allRows.length, proxy: proxyRows.length, real: realRows.length, measured: measuredCount },
+      metrics: { proxy_accuracy: successRate(proxyRows), real_accuracy: successRate(realRows), avg_impact: avgImpact },
       maturity_ratio: Math.round(maturityRatio * 100) / 100,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 

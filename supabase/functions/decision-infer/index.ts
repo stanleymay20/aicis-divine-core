@@ -13,21 +13,32 @@ const FEATURE_KEYS = [
   "anomaly_count", "alert_count", "crisis_severity_avg", "forecast_stability_score",
 ] as const;
 
-// ─── Default weights (updated by training) ───
 const DEFAULT_WEIGHTS: Record<string, number> = {
-  performance_index: -0.15,      // higher perf → lower risk → less urgent
-  momentum_score: -0.10,         // positive momentum → less concern
-  risk_pressure_score: 0.25,     // high risk → high urgency
-  systemic_fragility_score: 0.20,// high fragility → high urgency
-  confidence_score: 0.05,        // higher confidence → slightly more actionable
-  structural_break_count: 0.10,  // more breaks → more concern
-  anomaly_count: 0.10,           // more anomalies → more concern
-  alert_count: 0.10,             // more alerts → more concern
-  crisis_severity_avg: 0.10,     // higher severity → more concern
-  forecast_stability_score: -0.05,// stable forecast → less concern
+  performance_index: -0.15,
+  momentum_score: -0.10,
+  risk_pressure_score: 0.25,
+  systemic_fragility_score: 0.20,
+  confidence_score: 0.05,
+  structural_break_count: 0.10,
+  anomaly_count: 0.10,
+  alert_count: 0.10,
+  crisis_severity_avg: 0.10,
+  forecast_stability_score: -0.05,
 };
 
-// ─── Action Types ───
+const BOUNDS: Record<string, [number, number]> = {
+  performance_index: [0, 100],
+  momentum_score: [-50, 50],
+  risk_pressure_score: [0, 100],
+  systemic_fragility_score: [0, 100],
+  confidence_score: [0, 100],
+  structural_break_count: [0, 20],
+  anomaly_count: [0, 20],
+  alert_count: [0, 15],
+  crisis_severity_avg: [0, 10],
+  forecast_stability_score: [0, 100],
+};
+
 const ACTION_TYPES = [
   { type: "deploy_resources", label: "Deploy Additional Resources", domains: ["security", "health", "food"] },
   { type: "escalate_monitoring", label: "Escalate Monitoring", domains: ["all"] },
@@ -52,7 +63,6 @@ interface SignalData {
 function buildFeatures(signals: SignalData): Record<string, number> {
   const s = signals.snapshots;
   const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-
   return {
     performance_index: avg(s.map((x: any) => x.performance_index || 50)),
     momentum_score: avg(s.map((x: any) => x.momentum_score || 0)),
@@ -67,60 +77,76 @@ function buildFeatures(signals: SignalData): Record<string, number> {
   };
 }
 
-// ─── Scoring Engine ───
-function computeRiskScore(features: Record<string, number>, weights: Record<string, number>): number {
-  // Normalize features to 0-1 range using known bounds
-  const bounds: Record<string, [number, number]> = {
-    performance_index: [0, 100],
-    momentum_score: [-50, 50],
-    risk_pressure_score: [0, 100],
-    systemic_fragility_score: [0, 100],
-    confidence_score: [0, 100],
-    structural_break_count: [0, 20],
-    anomaly_count: [0, 20],
-    alert_count: [0, 15],
-    crisis_severity_avg: [0, 10],
-    forecast_stability_score: [0, 100],
-  };
+// ─── Scoring ───
+function normalizeFeature(key: string, value: number): number {
+  const [min, max] = BOUNDS[key] || [0, 100];
+  return Math.max(0, Math.min(1, (value - min) / (max - min)));
+}
 
+function computeRiskScore(features: Record<string, number>, weights: Record<string, number>): number {
   let score = 0;
   for (const key of FEATURE_KEYS) {
-    const [min, max] = bounds[key] || [0, 100];
-    const normalized = Math.max(0, Math.min(1, (features[key] - min) / (max - min)));
-    score += normalized * (weights[key] || 0);
+    score += normalizeFeature(key, features[key]) * (weights[key] || 0);
   }
-
-  // Convert to 0-100 probability-like scale
-  // Sigmoid-ish transformation: map [-1,1] → [0,100]
   return Math.max(0, Math.min(100, (score + 0.5) * 100));
 }
 
+// ─── Feature Contribution ───
+function computeFeatureContributions(
+  features: Record<string, number>,
+  weights: Record<string, number>
+): Array<{ feature: string; normalized: number; weight: number; contribution: number }> {
+  const contributions = FEATURE_KEYS.map(key => {
+    const normalized = normalizeFeature(key, features[key]);
+    const weight = weights[key] || 0;
+    return { feature: key, normalized: Math.round(normalized * 1000) / 1000, weight, contribution: Math.round(normalized * weight * 1000) / 1000 };
+  });
+  return contributions.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+}
+
+// ─── Action Selection with adjustments ───
 function selectActions(
   domain: string,
   riskScore: number,
   features: Record<string, number>,
-): Array<{ action_type: string; label: string; success_probability: number; impact_estimate: number; urgency: string }> {
+  actionAdjustments: Record<string, Record<string, number>>,
+  weights: Record<string, number>,
+): Array<{
+  action_type: string; label: string; success_probability: number;
+  impact_estimate: number; urgency: string;
+  top_drivers: Array<{ feature: string; contribution: number }>;
+  domain_override: boolean; action_adjusted: boolean;
+}> {
   const relevant = ACTION_TYPES.filter(a => a.domains.includes("all") || a.domains.includes(domain));
+  const contributions = computeFeatureContributions(features, weights);
 
   return relevant.map(action => {
-    // Each action has slightly different scoring based on feature relevance
     let actionScore = riskScore;
 
-    // Action-specific modifiers
+    // Static action modifiers
     if (action.type === "deploy_resources" && features.crisis_severity_avg > 5) actionScore += 8;
     if (action.type === "escalate_monitoring" && features.anomaly_count > 5) actionScore += 10;
     if (action.type === "early_warning_broadcast" && features.structural_break_count > 3) actionScore += 12;
     if (action.type === "diplomatic_engagement" && features.risk_pressure_score > 60) actionScore += 7;
     if (action.type === "supply_chain_intervention" && features.systemic_fragility_score > 50) actionScore += 9;
 
-    // Clamp
+    // Per-action learned adjustments
+    const adj = actionAdjustments[action.type];
+    let actionAdjusted = false;
+    if (adj) {
+      for (const key of FEATURE_KEYS) {
+        if (adj[key]) {
+          actionScore += normalizeFeature(key, features[key]) * adj[key] * 10;
+          actionAdjusted = true;
+        }
+      }
+    }
+
     actionScore = Math.max(5, Math.min(95, actionScore));
 
-    // Deterministic impact estimate: weighted combination of action score and feature relevance
     const featureRelevance = (features.risk_pressure_score + features.systemic_fragility_score) / 200;
     const impactEstimate = Math.round(Math.min(95, actionScore * 0.75 + featureRelevance * 20));
 
-    // Urgency from score
     let urgency: string;
     if (actionScore > 75) urgency = "immediate";
     else if (actionScore > 60) urgency = "24h";
@@ -134,16 +160,19 @@ function selectActions(
       success_probability: Math.round(actionScore) / 100,
       impact_estimate: impactEstimate,
       urgency,
+      top_drivers: contributions.slice(0, 3).map(c => ({ feature: c.feature, contribution: c.contribution })),
+      domain_override: false,
+      action_adjusted: actionAdjusted,
     };
   })
   .sort((a, b) => b.success_probability - a.success_probability)
-  .slice(0, 5); // Top 5
+  .slice(0, 5);
 }
 
 // ─── Policy Layer ───
 function classifyAction(
-  successProb: number, 
-  impact: number, 
+  successProb: number,
+  impact: number,
   domainPolicies?: Record<string, { act: number; consider: number; min_impact: number }>,
   domain?: string
 ): "ACT" | "CONSIDER" | "MONITOR" {
@@ -151,6 +180,44 @@ function classifyAction(
   if (successProb >= policy.act && impact >= policy.min_impact) return "ACT";
   if (successProb >= policy.consider || impact >= (policy.min_impact * 0.8)) return "CONSIDER";
   return "MONITOR";
+}
+
+// ─── Guardrails ───
+function applyGuardrails(
+  recommendations: Array<any>,
+  features: Record<string, number>,
+  domain: string
+): Array<any> {
+  return recommendations
+    // 1. Suppress low-confidence ACT for governance
+    .map(rec => {
+      if (domain === "governance" && rec.policy === "ACT" && rec.success_probability < 0.80) {
+        return { ...rec, policy: "CONSIDER" as const, guardrail_applied: "governance_caution" };
+      }
+      return { ...rec, guardrail_applied: null };
+    })
+    // 2. Require anomaly/crisis support for immediate urgency
+    .map(rec => {
+      if (rec.urgency === "immediate" && features.anomaly_count === 0 && features.crisis_severity_avg === 0) {
+        return { ...rec, urgency: "24h", guardrail_applied: rec.guardrail_applied || "no_crisis_support" };
+      }
+      return rec;
+    })
+    // 3. Cap confidence for weak signals
+    .map(rec => {
+      const signalDensity = features.anomaly_count + features.alert_count + features.crisis_severity_avg;
+      if (signalDensity < 2 && rec.success_probability > 0.70) {
+        return { ...rec, success_probability: 0.70, guardrail_applied: rec.guardrail_applied || "weak_signal_cap" };
+      }
+      return rec;
+    })
+    // 4. Deduplicate near-identical recommendations
+    .filter((rec, i, arr) => {
+      if (i === 0) return true;
+      const prev = arr[i - 1];
+      return Math.abs(rec.success_probability - prev.success_probability) > 0.02 ||
+        rec.action_type !== prev.action_type;
+    });
 }
 
 serve(async (req) => {
@@ -164,7 +231,7 @@ serve(async (req) => {
 
     const { iso3, domain, explain } = await req.json().catch(() => ({}));
 
-    // 1. Load active model weights (or use defaults)
+    // 1. Load active model
     const { data: activeModel } = await supabase
       .from("decision_models")
       .select("*")
@@ -173,14 +240,14 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    // Use domain-specific weights if available, else global
     const domainWeightsMap = activeModel?.domain_feature_weights || {};
     const globalWeights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
-    const { domain: reqDomain } = { domain: undefined, ...await req.clone().json().catch(() => ({})) };
-    const weights = (reqDomain && domainWeightsMap[reqDomain]) || globalWeights;
+    const weights = (domain && domainWeightsMap[domain]) || globalWeights;
     const domainActionPolicies = activeModel?.domain_action_policies || {};
+    const actionAdjustments = activeModel?.action_adjustment_weights || {};
     const modelVersion = activeModel?.version || "DL-heuristic-0.1";
     const trainingMode = activeModel?.training_mode || "heuristic";
+    const domainOverrideUsed = !!(domain && domainWeightsMap[domain]);
 
     // 2. Pull signals
     let snapshotQuery = supabase
@@ -209,54 +276,41 @@ serve(async (req) => {
 
     if (totalSignals < 3) {
       return new Response(JSON.stringify({
-        ok: true,
-        recommendations: [],
-        risk_score: 0,
-        decision_basis: "statistical_model",
-        model_version: modelVersion,
-        training_mode: trainingMode,
-        outcome_trained: trainingMode === "real" || trainingMode === "hybrid",
+        ok: true, recommendations: [], risk_score: 0,
+        decision_basis: "statistical_model", model_version: modelVersion,
+        training_mode: trainingMode, outcome_trained: trainingMode === "real" || trainingMode === "hybrid",
         message: "Insufficient signal data for model-driven inference",
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 3. Feature engineering
+    // 3. Features + scoring
     const features = buildFeatures(signalData);
-
-    // 4. Scoring
     const riskScore = computeRiskScore(features, weights as Record<string, number>);
+    const featureContributions = computeFeatureContributions(features, weights as Record<string, number>);
 
-    // 5. Action selection
+    // 4. Actions + policy + guardrails
     const targetDomain = domain || "all";
-    const actions = selectActions(targetDomain, riskScore, features);
-
-    // 6. Apply policy layer (domain-specific thresholds)
-    const recommendations = actions.map(a => ({
+    const rawActions = selectActions(targetDomain, riskScore, features, actionAdjustments as Record<string, Record<string, number>>, weights as Record<string, number>);
+    const withPolicy = rawActions.map(a => ({
       ...a,
       policy: classifyAction(a.success_probability, a.impact_estimate, domainActionPolicies, targetDomain),
+      domain_override: domainOverrideUsed,
     }));
+    const recommendations = applyGuardrails(withPolicy, features, targetDomain);
 
-    // 7. Optional LLM explanation
+    // 5. Optional LLM explanation
     let explanation: string | null = null;
     if (explain) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (LOVABLE_API_KEY) {
         try {
           const topRec = recommendations[0];
+          const topDrivers = featureContributions.slice(0, 3).map(c => `${c.feature}: ${c.contribution > 0 ? "+" : ""}${c.contribution}`).join(", ");
           const explainPrompt = `You are explaining a statistical decision model's output. Be concise (2-3 sentences).
-
-The model analyzed ${totalSignals} signals for ${iso3 || 'global'} / ${targetDomain}.
-Risk score: ${riskScore.toFixed(1)}/100
-Top recommendation: "${topRec.label}" with ${(topRec.success_probability * 100).toFixed(0)}% success probability.
-
-Key features driving this:
-- Risk pressure: ${features.risk_pressure_score.toFixed(1)}
-- Fragility: ${features.systemic_fragility_score.toFixed(1)}
-- Momentum: ${features.momentum_score.toFixed(1)}
-- Active anomalies: ${features.anomaly_count}
-- Active crises: ${features.crisis_severity_avg.toFixed(1)} avg severity
-
-Explain WHY this action has this success probability based on these features. Do NOT decide — only explain.`;
+Risk score: ${riskScore.toFixed(1)}/100 for ${iso3 || 'global'} / ${targetDomain}.
+Top recommendation: "${topRec?.label}" (${((topRec?.success_probability || 0) * 100).toFixed(0)}%).
+Top drivers: ${topDrivers}.
+Explain WHY based on features. Do NOT decide — only explain.`;
 
           const llmResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -266,24 +320,16 @@ Explain WHY this action has this success probability based on these features. Do
               messages: [{ role: "user", content: explainPrompt }],
             }),
           });
-
           if (llmResp.ok) {
             const llmData = await llmResp.json();
             explanation = llmData.choices?.[0]?.message?.content || null;
-          } else {
-            await llmResp.text(); // consume body
-          }
-        } catch (e) {
-          console.error("LLM explain error (non-fatal):", e);
-        }
+          } else { await llmResp.text(); }
+        } catch (e) { console.error("LLM explain error (non-fatal):", e); }
       }
     }
 
-    // 8. Compute deterministic inference hash for auditability
-    const canonicalInput = JSON.stringify(
-      { features, weights, modelVersion, trainingMode },
-      Object.keys({ features, weights, modelVersion, trainingMode }).sort()
-    );
+    // 6. Inference hash
+    const canonicalInput = JSON.stringify({ features, weights, modelVersion, trainingMode }, Object.keys({ features, weights, modelVersion, trainingMode }).sort());
     const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalInput));
     const inferenceHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
@@ -294,28 +340,24 @@ Explain WHY this action has this success probability based on these features. Do
       crises: signalData.crises.length,
     };
 
-    // 9. Log inference audit + decision log
+    // 7. Audit log
     await Promise.all([
       supabase.from("decision_inference_audit").insert({
-        model_version: modelVersion,
-        training_mode: trainingMode,
-        scope_iso3: iso3 || null,
-        scope_domain: domain || "all",
-        feature_vector: features,
-        weights_used: weights,
+        model_version: modelVersion, training_mode: trainingMode,
+        scope_iso3: iso3 || null, scope_domain: domain || "all",
+        feature_vector: features, weights_used: weights,
         risk_score: riskScore,
         chosen_actions: recommendations.map(r => ({ action_type: r.action_type, success_probability: r.success_probability })),
-        policy_classifications: recommendations.map(r => ({ action_type: r.action_type, policy: r.policy })),
-        signal_counts: signalCounts,
-        inference_hash: inferenceHash,
+        policy_classifications: recommendations.map(r => ({ action_type: r.action_type, policy: r.policy, guardrail: r.guardrail_applied })),
+        signal_counts: signalCounts, inference_hash: inferenceHash,
       }),
       supabase.from("ai_decision_logs").insert({
         division_key: domain || "system",
         model_name: modelVersion,
         input_summary: `Model inference for ${iso3 || 'global'} / ${targetDomain} | ${totalSignals} signals`,
-        output_summary: `Risk: ${riskScore.toFixed(1)} | Top: ${recommendations[0]?.label} (${(recommendations[0]?.success_probability * 100).toFixed(0)}%)`,
-        confidence: recommendations[0]?.success_probability * 100 || 0,
-        explanation: { features, risk_score: riskScore, model_version: modelVersion, training_mode: trainingMode, inference_hash: inferenceHash },
+        output_summary: `Risk: ${riskScore.toFixed(1)} | Top: ${recommendations[0]?.label} (${((recommendations[0]?.success_probability || 0) * 100).toFixed(0)}%)`,
+        confidence: (recommendations[0]?.success_probability || 0) * 100,
+        explanation: { features, risk_score: riskScore, model_version: modelVersion, training_mode: trainingMode, inference_hash: inferenceHash, feature_contributions: featureContributions.slice(0, 5) },
       }),
     ]);
 
@@ -323,12 +365,15 @@ Explain WHY this action has this success probability based on these features. Do
       ok: true,
       risk_score: Math.round(riskScore * 10) / 10,
       features,
+      feature_contributions: featureContributions,
       recommendations,
       explanation,
       decision_basis: "statistical_model",
       model_version: modelVersion,
       training_mode: trainingMode,
       outcome_trained: trainingMode === "real" || trainingMode === "hybrid",
+      domain_override_used: domainOverrideUsed,
+      action_adjustments_available: Object.keys(actionAdjustments).length,
       training_samples: activeModel?.training_sample_count || 0,
       real_samples: activeModel?.real_sample_count || 0,
       proxy_samples: activeModel?.proxy_sample_count || 0,
