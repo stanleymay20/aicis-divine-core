@@ -206,8 +206,8 @@ const PredictionAccuracy = () => {
                 icon={<Zap className="h-5 w-5" />}
                 label="Vuln→Crisis Signals"
                 value={corr.total.toString()}
-                target={corr.total > 0 ? `Avg ${corr.avgDays}d lag` : "Accumulating..."}
-                status={corr.total > 5 ? "good" : "neutral"}
+                target={corr.total > 0 ? `Avg ${corr.avgDays}d lag` : "Not yet accumulated"}
+                status="neutral"
               />
             </div>
 
