@@ -2039,6 +2039,39 @@ export type Database = {
           },
         ]
       }
+      decision_criticality_rules: {
+        Row: {
+          created_at: string | null
+          criticality_tier: string
+          domain: string
+          id: string
+          min_impact_for_critical: number | null
+          min_probability_for_critical: number | null
+          policy: string
+          requires_dual_approval: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          criticality_tier?: string
+          domain: string
+          id?: string
+          min_impact_for_critical?: number | null
+          min_probability_for_critical?: number | null
+          policy: string
+          requires_dual_approval?: boolean
+        }
+        Update: {
+          created_at?: string | null
+          criticality_tier?: string
+          domain?: string
+          id?: string
+          min_impact_for_critical?: number | null
+          min_probability_for_critical?: number | null
+          policy?: string
+          requires_dual_approval?: boolean
+        }
+        Relationships: []
+      }
       decision_inference_audit: {
         Row: {
           chosen_actions: Json
@@ -2174,6 +2207,7 @@ export type Database = {
           assigned_reviewer_role: string | null
           cost_of_action: number | null
           created_at: string | null
+          criticality_tier: string | null
           decision_features: Json | null
           domain: string | null
           event_confirmed: boolean | null
@@ -2201,8 +2235,10 @@ export type Database = {
           recommendation_accepted: boolean | null
           recommendation_rejected_reason: string | null
           recommended_action: string | null
+          recommender_id: string | null
           recorded_at: string | null
           recorded_by: string | null
+          requires_dual_approval: boolean | null
           review_completed_at: string | null
           review_due_at: string | null
           review_sla_hours: number | null
@@ -2210,6 +2246,11 @@ export type Database = {
           reviewer_name: string | null
           reviewer_role: string | null
           roi_estimate: number | null
+          second_review_completed_at: string | null
+          second_review_status: string | null
+          second_reviewer_name: string | null
+          second_reviewer_role: string | null
+          separation_of_duties_verified: boolean | null
           signal_confidence: number | null
           signal_date: string
           signal_direction: string | null
@@ -2230,6 +2271,7 @@ export type Database = {
           assigned_reviewer_role?: string | null
           cost_of_action?: number | null
           created_at?: string | null
+          criticality_tier?: string | null
           decision_features?: Json | null
           domain?: string | null
           event_confirmed?: boolean | null
@@ -2257,8 +2299,10 @@ export type Database = {
           recommendation_accepted?: boolean | null
           recommendation_rejected_reason?: string | null
           recommended_action?: string | null
+          recommender_id?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
+          requires_dual_approval?: boolean | null
           review_completed_at?: string | null
           review_due_at?: string | null
           review_sla_hours?: number | null
@@ -2266,6 +2310,11 @@ export type Database = {
           reviewer_name?: string | null
           reviewer_role?: string | null
           roi_estimate?: number | null
+          second_review_completed_at?: string | null
+          second_review_status?: string | null
+          second_reviewer_name?: string | null
+          second_reviewer_role?: string | null
+          separation_of_duties_verified?: boolean | null
           signal_confidence?: number | null
           signal_date: string
           signal_direction?: string | null
@@ -2286,6 +2335,7 @@ export type Database = {
           assigned_reviewer_role?: string | null
           cost_of_action?: number | null
           created_at?: string | null
+          criticality_tier?: string | null
           decision_features?: Json | null
           domain?: string | null
           event_confirmed?: boolean | null
@@ -2313,8 +2363,10 @@ export type Database = {
           recommendation_accepted?: boolean | null
           recommendation_rejected_reason?: string | null
           recommended_action?: string | null
+          recommender_id?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
+          requires_dual_approval?: boolean | null
           review_completed_at?: string | null
           review_due_at?: string | null
           review_sla_hours?: number | null
@@ -2322,6 +2374,11 @@ export type Database = {
           reviewer_name?: string | null
           reviewer_role?: string | null
           roi_estimate?: number | null
+          second_review_completed_at?: string | null
+          second_review_status?: string | null
+          second_reviewer_name?: string | null
+          second_reviewer_role?: string | null
+          separation_of_duties_verified?: boolean | null
           signal_confidence?: number | null
           signal_date?: string
           signal_direction?: string | null

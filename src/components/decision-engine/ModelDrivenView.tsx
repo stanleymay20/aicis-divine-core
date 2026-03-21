@@ -17,6 +17,8 @@ import TrustScorePanel from "./TrustScorePanel";
 import BaselineComparison from "./BaselineComparison";
 import DecisionGovernancePanel from "./DecisionGovernancePanel";
 import ReviewControlTower from "./ReviewControlTower";
+import OutcomeMaturityPanel from "./OutcomeMaturityPanel";
+import ReviewerWorkloadPanel from "./ReviewerWorkloadPanel";
 
 interface FeatureContribution {
   feature: string;
@@ -145,6 +147,18 @@ export default function ModelDrivenView({ domain }: Props) {
         return;
       }
 
+      // Look up criticality rules for domain + policy
+      const domainKey = domain !== "all" ? domain : "system";
+      const { data: critRule } = await supabase
+        .from("decision_criticality_rules")
+        .select("criticality_tier, requires_dual_approval")
+        .eq("domain", domainKey)
+        .eq("policy", rec.policy)
+        .maybeSingle();
+
+      const criticalityTier = (critRule as any)?.criticality_tier || "standard";
+      const requiresDual = (critRule as any)?.requires_dual_approval || false;
+
       // Auto-set SLA based on policy
       const slaMap: Record<string, number> = { ACT: 24, CONSIDER: 72, MONITOR: 168 };
       const slaHours = slaMap[rec.policy] || 72;
@@ -156,7 +170,7 @@ export default function ModelDrivenView({ domain }: Props) {
         signal_date: new Date().toISOString().split("T")[0],
         signal_direction: rec.policy === "ACT" ? "down" : "stable",
         signal_confidence: Math.round(rec.success_probability * 100),
-        domain: domain !== "all" ? domain : "system",
+        domain: domainKey,
         recommended_action: rec.label,
         hypothetical_decision_value: `Impact: ${rec.impact_estimate}/100, Prob: ${(rec.success_probability * 100).toFixed(0)}%`,
         evidence_type: "hypothetical",
@@ -169,6 +183,9 @@ export default function ModelDrivenView({ domain }: Props) {
         review_status: "pending",
         review_sla_hours: slaHours,
         review_due_at: reviewDueAt,
+        criticality_tier: criticalityTier,
+        requires_dual_approval: requiresDual,
+        recommender_id: `model-${data?.model_version}`,
       });
       if (error) throw error;
       toast.success(`Captured "${rec.label}" — track action & outcome in Decision Log`);
@@ -431,6 +448,8 @@ export default function ModelDrivenView({ domain }: Props) {
             <BaselineComparison />
           </div>
           <ActionLeaderboard />
+          <OutcomeMaturityPanel />
+          <ReviewerWorkloadPanel />
           <ReviewControlTower />
           <DecisionGovernancePanel />
 

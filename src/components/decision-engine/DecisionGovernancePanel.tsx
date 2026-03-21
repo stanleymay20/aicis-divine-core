@@ -35,6 +35,11 @@ interface DecisionRecord {
   created_at: string | null;
   status: string | null;
   actor_role: string | null;
+  criticality_tier: string | null;
+  requires_dual_approval: boolean | null;
+  second_reviewer_name: string | null;
+  second_review_status: string | null;
+  recommender_id: string | null;
 }
 
 const reviewStatusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -56,7 +61,7 @@ export default function DecisionGovernancePanel() {
     queryFn: async () => {
       const { data } = await supabase
         .from("decision_outcome_log")
-        .select("id, signal_title, action_type, domain, recommendation_accepted, recommendation_rejected_reason, review_status, reviewer_name, reviewer_role, override_reason, postmortem_note, review_completed_at, review_due_at, review_sla_hours, assigned_reviewer, outcome_success, impact_score, evidence_type, created_at, status, actor_role")
+        .select("id, signal_title, action_type, domain, recommendation_accepted, recommendation_rejected_reason, review_status, reviewer_name, reviewer_role, override_reason, postmortem_note, review_completed_at, review_due_at, review_sla_hours, assigned_reviewer, outcome_success, impact_score, evidence_type, created_at, status, actor_role, criticality_tier, requires_dual_approval, second_reviewer_name, second_review_status, recommender_id")
         .order("created_at", { ascending: false })
         .limit(20);
       return (data as any) || [];
@@ -94,9 +99,9 @@ export default function DecisionGovernancePanel() {
   });
 
   const handleReviewStatusChange = (rec: DecisionRecord, newStatus: string) => {
-    // Governance rules validation
     const reviewer = reviewerInput[rec.id] || { name: rec.reviewer_name || "", role: rec.reviewer_role || "" };
 
+    // Governance rules validation
     if (newStatus === "approved" && (!reviewer.name || !reviewer.role)) {
       toast.error("Reviewer name and role are required to approve a decision.");
       return;
@@ -109,9 +114,18 @@ export default function DecisionGovernancePanel() {
       }
     }
 
+    // Separation of duties: recommender cannot approve their own recommendation
+    if (["approved", "overridden"].includes(newStatus) && rec.actor_role && reviewer.name) {
+      if (rec.recommender_id && rec.recommender_id === reviewer.name) {
+        toast.error("Separation of duties violation: recommender cannot approve their own recommendation.");
+        return;
+      }
+    }
+
     const updates: Record<string, any> = {
       review_status: newStatus,
       review_completed_at: ["approved", "rejected", "overridden"].includes(newStatus) ? new Date().toISOString() : null,
+      separation_of_duties_verified: true,
     };
     if (reviewer.name) updates.reviewer_name = reviewer.name;
     if (reviewer.role) updates.reviewer_role = reviewer.role;
@@ -184,6 +198,17 @@ export default function DecisionGovernancePanel() {
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {rec.domain && <Badge variant="outline" className="text-[9px] h-4">{rec.domain}</Badge>}
                     <Badge variant={rvConfig.variant} className="text-[9px] h-4">{rvConfig.label}</Badge>
+                    {rec.criticality_tier === "critical" && (
+                      <Badge variant="destructive" className="text-[9px] h-4">Critical</Badge>
+                    )}
+                    {rec.criticality_tier === "elevated" && (
+                      <Badge variant="secondary" className="text-[9px] h-4">Elevated</Badge>
+                    )}
+                    {rec.requires_dual_approval && (
+                      <Badge variant="outline" className="text-[9px] h-4 border-destructive/50">
+                        {rec.second_review_status === "approved" ? "✓ Dual" : "⚠ Dual Required"}
+                      </Badge>
+                    )}
                     {isOverdue && (
                       <Badge variant="destructive" className="text-[9px] h-4">
                         <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />{Math.abs(slaHoursLeft!)}h overdue
