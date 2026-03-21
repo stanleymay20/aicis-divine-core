@@ -191,6 +191,7 @@ serve(async (req) => {
         label_confidence: Math.round(labelConfidence * 100) / 100,
         proxy_reason: reasons.join("; "),
         overridden_by_real: false,
+        context_window_days: CONTEXT_WINDOW_DAYS,
       };
     });
 
