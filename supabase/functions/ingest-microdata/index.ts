@@ -88,7 +88,7 @@ async function handleCatalog(supabase: any, provider?: string) {
             country: ds.nation,
             year_start: ds.year_start,
             year_end: ds.year_end,
-            data_access_type: ds.data_access_type, // "open" = public-use
+            data_access_type: ds.form_model === "public" ? "open" : (ds.data_access_type || ds.form_model || "unknown"),
             type: ds.type,
           });
         }
@@ -122,18 +122,26 @@ async function handleRegister(supabase: any, body: MicrodataRequest) {
 
   if (body.provider === "worldbank_microdata") {
     try {
+      // Use search API with high page size - match by numeric ID
+      // The individual catalog endpoint requires IDNO (string), not numeric ID
       const resp = await fetch(
-        `https://microdata.worldbank.org/index.php/api/catalog/${body.dataset_id}`,
+        `https://microdata.worldbank.org/index.php/api/catalog/search?ps=100&sort_by=popularity&sort_order=desc`,
         { headers: { Accept: "application/json" } }
       );
       if (resp.ok) {
         const data = await resp.json();
-        const ds = data?.dataset || data;
-        title = ds.title || title;
-        countries = ds.nation ? [ds.nation] : [];
-        years = ds.year_start ? [parseInt(ds.year_start)] : [];
-        licenseType = ds.data_access_type === "open" ? "public-use" : "licensed";
-        metadata = { raw_metadata: ds };
+        const rows = data?.result?.rows || [];
+        const match = rows.find((r: any) => String(r.id) === String(body.dataset_id));
+        if (match) {
+          title = match.title || title;
+          countries = match.nation ? [match.nation] : [];
+          years = match.year_start ? [parseInt(match.year_start)] : [];
+          licenseType = (match.form_model === "public" || match.form_model === "open") ? "public-use" : "licensed";
+          metadata = { raw_metadata: match, idno: match.idno };
+        } else {
+          // Dataset not found in top 100 popular - try direct fetch with idno if provided
+          console.warn(`Dataset ${body.dataset_id} not found in popular catalog search`);
+        }
       }
     } catch (e) {
       console.warn("Failed to fetch dataset metadata:", e);
@@ -206,43 +214,69 @@ async function handleIngest(supabase: any, sourceId: string) {
     let indicatorCount = 0;
 
     if (source.provider === "worldbank_microdata") {
-      // World Bank Microdata Library provides some pre-aggregated data via API
-      // We aggregate to national/subnational level before storing
+      // Use IDNO for the variables API (numeric ID doesn't work)
+      const idno = source.metadata?.idno || source.dataset_id;
+      
+      // Fetch variables using IDNO
       const resp = await fetch(
-        `https://microdata.worldbank.org/index.php/api/catalog/${source.dataset_id}/variables`,
+        `https://microdata.worldbank.org/index.php/api/catalog/${idno}/variables?limit=200`,
         { headers: { Accept: "application/json" } }
       );
 
       if (resp.ok) {
         const varData = await resp.json();
-        const variables = varData?.variables || varData?.result?.variables || [];
-
-        // Create aggregated indicators from variable metadata
-        // In production, this would download the actual data files and compute aggregates
-        for (const v of variables.slice(0, 50)) {
-          const countryIso3 = source.countries?.[0] || "UNKNOWN";
-          const year = source.years?.[0] || 2020;
-
-          // Only store if we have meaningful aggregate info
-          if (v.var_intrvl === "discrete" && v.catgry) {
-            const categories = Array.isArray(v.catgry) ? v.catgry : [];
-            for (const cat of categories.slice(0, 5)) {
-              if (cat.stats?.freq) {
-                await supabase.from("microdata_indicators").insert({
-                  source_id: sourceId,
-                  country_iso3: countryIso3,
-                  domain: inferDomain(v.var_grps || v.var_dcml || "general"),
-                  indicator: `${v.labl || v.name}:${cat.labl || cat.value}`,
-                  value: parseFloat(cat.stats.freq) || 0,
-                  unit: "frequency",
-                  year,
-                  aggregation_method: "count",
-                });
-                indicatorCount++;
-              }
-            }
+        const variables = varData?.variables || [];
+        const totalVars = varData?.total || variables.length;
+        
+        // Extract meaningful domain-relevant variables as aggregated indicators
+        // Group by inferred domain and count coverage
+        const domainCoverage: Record<string, { count: number; examples: string[] }> = {};
+        
+        for (const v of variables) {
+          const domain = inferDomain(v.labl || v.name || "");
+          if (!domainCoverage[domain]) {
+            domainCoverage[domain] = { count: 0, examples: [] };
+          }
+          domainCoverage[domain].count++;
+          if (domainCoverage[domain].examples.length < 5) {
+            domainCoverage[domain].examples.push(v.labl || v.name);
           }
         }
+
+        const countryIso3 = source.countries?.[0] || "UNKNOWN";
+        const year = source.years?.[0] || 2020;
+
+        // Create domain coverage indicators
+        for (const [domain, info] of Object.entries(domainCoverage)) {
+          if (domain === "general" && Object.keys(domainCoverage).length > 1) continue; // skip generic
+          
+          await supabase.from("microdata_indicators").insert({
+            source_id: sourceId,
+            country_iso3: countryIso3,
+            domain,
+            indicator: `survey_variable_coverage`,
+            value: info.count,
+            unit: "variables",
+            year,
+            aggregation_method: "count",
+            sample_size: totalVars,
+            confidence_interval: { examples: info.examples },
+          });
+          indicatorCount++;
+        }
+
+        // Also store total variable count as a meta-indicator
+        await supabase.from("microdata_indicators").insert({
+          source_id: sourceId,
+          country_iso3: countryIso3,
+          domain: "general",
+          indicator: `total_survey_variables`,
+          value: totalVars,
+          unit: "variables",
+          year,
+          aggregation_method: "count",
+        });
+        indicatorCount++;
       }
     }
 
