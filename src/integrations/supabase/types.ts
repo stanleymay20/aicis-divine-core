@@ -2077,6 +2077,7 @@ export type Database = {
           chosen_actions: Json
           created_at: string
           feature_vector: Json
+          guardrail_flags: Json | null
           id: string
           inference_hash: string | null
           model_version: string
@@ -2092,6 +2093,7 @@ export type Database = {
           chosen_actions: Json
           created_at?: string
           feature_vector: Json
+          guardrail_flags?: Json | null
           id?: string
           inference_hash?: string | null
           model_version: string
@@ -2107,6 +2109,7 @@ export type Database = {
           chosen_actions?: Json
           created_at?: string
           feature_vector?: Json
+          guardrail_flags?: Json | null
           id?: string
           inference_hash?: string | null
           model_version?: string
@@ -4733,6 +4736,7 @@ export type Database = {
           id: string
           improvement_over_heuristic: number | null
           improvement_over_previous: number | null
+          measured_count: number | null
           measured_success_rate: number | null
           metadata: Json | null
           model_version: string
@@ -4756,6 +4760,7 @@ export type Database = {
           id?: string
           improvement_over_heuristic?: number | null
           improvement_over_previous?: number | null
+          measured_count?: number | null
           measured_success_rate?: number | null
           metadata?: Json | null
           model_version: string
@@ -4779,6 +4784,7 @@ export type Database = {
           id?: string
           improvement_over_heuristic?: number | null
           improvement_over_previous?: number | null
+          measured_count?: number | null
           measured_success_rate?: number | null
           metadata?: Json | null
           model_version?: string
