@@ -47,6 +47,7 @@ const EnterpriseReadiness = lazy(() => import("./pages/EnterpriseReadiness"));
 const ValidatedPredictions = lazy(() => import("./pages/ValidatedPredictions"));
 const MicrodataRegistry = lazy(() => import("./pages/MicrodataRegistry"));
 const FirstSignal = lazy(() => import("./pages/FirstSignal"));
+const DecisionOutcomeLog = lazy(() => import("./pages/DecisionOutcomeLog"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
