@@ -40,6 +40,8 @@ const PilotRecordForm = ({ entry, onClose }: PilotRecordFormProps) => {
         measured_outcome: form.measured_outcome || null,
         measured_impact_score: form.measured_impact_score ? parseFloat(form.measured_impact_score) : null,
         evidence_type: form.evidence_type as any,
+        evidence_note: form.evidence_note || null,
+        evidence_source_type: form.evidence_source_type || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", entry.id);
