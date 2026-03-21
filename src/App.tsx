@@ -102,6 +102,7 @@ const App = () => (
             <Route path="/competitive-landscape" element={<Lazy><CompetitiveLandscape /></Lazy>} />
             <Route path="/enterprise-readiness" element={<Lazy><EnterpriseReadiness /></Lazy>} />
             <Route path="/validated-predictions" element={<Lazy><ValidatedPredictions /></Lazy>} />
+            <Route path="/microdata" element={<Lazy><MicrodataRegistry /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
