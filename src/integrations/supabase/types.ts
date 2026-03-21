@@ -3340,6 +3340,42 @@ export type Database = {
         }
         Relationships: []
       }
+      gov_readiness_scores: {
+        Row: {
+          details: Json | null
+          evidence_score: number | null
+          grade: string | null
+          id: string
+          ops_maturity_score: number | null
+          overall_score: number | null
+          reliability_score: number | null
+          scored_at: string | null
+          security_score: number | null
+        }
+        Insert: {
+          details?: Json | null
+          evidence_score?: number | null
+          grade?: string | null
+          id?: string
+          ops_maturity_score?: number | null
+          overall_score?: number | null
+          reliability_score?: number | null
+          scored_at?: string | null
+          security_score?: number | null
+        }
+        Update: {
+          details?: Json | null
+          evidence_score?: number | null
+          grade?: string | null
+          id?: string
+          ops_maturity_score?: number | null
+          overall_score?: number | null
+          reliability_score?: number | null
+          scored_at?: string | null
+          security_score?: number | null
+        }
+        Relationships: []
+      }
       governance_assets: {
         Row: {
           asset_name: string
@@ -5617,6 +5653,90 @@ export type Database = {
           published_date?: string | null
           reference_links?: Json | null
           severity?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      signal_audit_chain: {
+        Row: {
+          data_sources: Json | null
+          domain: string | null
+          generated_at: string
+          id: string
+          input_hash: string | null
+          iso3: string | null
+          model_version: string | null
+          notes: string | null
+          output_hash: string | null
+          parameters: Json | null
+          reproducible: boolean | null
+          signal_id: string
+          signal_type: string
+        }
+        Insert: {
+          data_sources?: Json | null
+          domain?: string | null
+          generated_at?: string
+          id?: string
+          input_hash?: string | null
+          iso3?: string | null
+          model_version?: string | null
+          notes?: string | null
+          output_hash?: string | null
+          parameters?: Json | null
+          reproducible?: boolean | null
+          signal_id: string
+          signal_type: string
+        }
+        Update: {
+          data_sources?: Json | null
+          domain?: string | null
+          generated_at?: string
+          id?: string
+          input_hash?: string | null
+          iso3?: string | null
+          model_version?: string | null
+          notes?: string | null
+          output_hash?: string | null
+          parameters?: Json | null
+          reproducible?: boolean | null
+          signal_id?: string
+          signal_type?: string
+        }
+        Relationships: []
+      }
+      sla_definitions: {
+        Row: {
+          alert_channel: string | null
+          created_at: string | null
+          id: string
+          max_consecutive_failures: number
+          max_stale_hours: number
+          pipeline_name: string
+          slo_response_minutes: number | null
+          target_uptime_pct: number
+          updated_at: string | null
+        }
+        Insert: {
+          alert_channel?: string | null
+          created_at?: string | null
+          id?: string
+          max_consecutive_failures?: number
+          max_stale_hours?: number
+          pipeline_name: string
+          slo_response_minutes?: number | null
+          target_uptime_pct?: number
+          updated_at?: string | null
+        }
+        Update: {
+          alert_channel?: string | null
+          created_at?: string | null
+          id?: string
+          max_consecutive_failures?: number
+          max_stale_hours?: number
+          pipeline_name?: string
+          slo_response_minutes?: number | null
+          target_uptime_pct?: number
           updated_at?: string | null
         }
         Relationships: []
