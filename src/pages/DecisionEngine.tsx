@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Brain, AlertTriangle, Clock, Target, Shield, RefreshCw, Zap, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Brain, AlertTriangle, Clock, Target, Shield, RefreshCw, Zap, TrendingUp,
+  ChevronDown, ChevronUp, Database, Eye, BookOpen, FileText, Info
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface Recommendation {
@@ -17,10 +20,11 @@ interface Recommendation {
   domain: string;
   affected_countries?: string[];
   signal_summary: string;
+  ai_reasoning?: string;
   recommended_action: string;
   alternatives?: string[];
   confidence: number;
-  urgency: "immediate" | "24h" | "7d" | "30d";
+  urgency: "immediate" | "24h" | "7d" | "30d" | "monitor";
   expected_impact?: string;
   risk_if_ignored?: string;
 }
@@ -30,6 +34,8 @@ interface DecisionResponse {
   recommendations: Recommendation[];
   global_assessment: string;
   signal_quality: "strong" | "moderate" | "weak" | "insufficient";
+  evidence_density: "strong" | "moderate" | "weak" | "insufficient";
+  outcome_trained: boolean;
   generated_at: string;
   scope: { country_iso3: string; domain: string };
   signal_counts: { snapshots: number; anomalies: number; alerts: number; crises: number };
@@ -42,11 +48,19 @@ const priorityConfig = {
   low: { color: "bg-muted text-muted-foreground", icon: Target },
 };
 
-const urgencyLabels = {
+const urgencyLabels: Record<string, string> = {
   immediate: "Act Now",
   "24h": "Within 24h",
   "7d": "This Week",
   "30d": "This Month",
+  monitor: "Monitor Only",
+};
+
+const densityConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  strong: { label: "Strong Evidence", variant: "default" },
+  moderate: { label: "Moderate Evidence", variant: "secondary" },
+  weak: { label: "Weak Evidence", variant: "outline" },
+  insufficient: { label: "Insufficient Evidence", variant: "destructive" },
 };
 
 const domains = [
@@ -62,13 +76,13 @@ const domains = [
 export default function DecisionEngine() {
   const [selectedDomain, setSelectedDomain] = useState("all");
   const [expandedRec, setExpandedRec] = useState<string | null>(null);
+  const [capturingId, setCapturingId] = useState<string | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery<DecisionResponse>({
     queryKey: ["decision-recommend", selectedDomain],
     queryFn: async () => {
       const body: Record<string, string> = {};
       if (selectedDomain !== "all") body.domain = selectedDomain;
-
       const { data, error } = await supabase.functions.invoke("decision-recommend", { body });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error || "Failed to generate recommendations");
@@ -83,6 +97,39 @@ export default function DecisionEngine() {
     refetch();
   };
 
+  const handleCaptureToLog = async (rec: Recommendation) => {
+    setCapturingId(rec.id);
+    try {
+      const { error } = await supabase.from("decision_outcome_log" as any).insert({
+        signal_source: "decision-engine",
+        signal_id: rec.id,
+        domain: rec.domain,
+        country_iso3: rec.affected_countries?.[0] || null,
+        recommendation_md: rec.recommended_action,
+        evidence_tier: "hypothetical",
+        detection_summary: rec.signal_summary,
+        ai_confidence: rec.confidence,
+        metadata: {
+          priority: rec.priority,
+          urgency: rec.urgency,
+          alternatives: rec.alternatives,
+          ai_reasoning: rec.ai_reasoning,
+          risk_if_ignored: rec.risk_if_ignored,
+          expected_impact: rec.expected_impact,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Captured "${rec.title}" to Decision Outcome Log for tracking`);
+    } catch (e) {
+      toast.error("Failed to capture recommendation to log");
+      console.error(e);
+    } finally {
+      setCapturingId(null);
+    }
+  };
+
+  const totalSignals = data ? Object.values(data.signal_counts).reduce((a, b) => a + b, 0) : 0;
+
   return (
     <AICISLayout>
       <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
@@ -91,10 +138,10 @@ export default function DecisionEngine() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Brain className="h-6 w-6 text-primary" />
-              Decision Engine
+              Decision Recommendation Engine
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              AI-powered recommendations from live intelligence signals
+              AI-assisted advisory recommendations from live AICIS intelligence signals
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -115,6 +162,16 @@ export default function DecisionEngine() {
           </div>
         </div>
 
+        {/* Advisory disclaimer */}
+        <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded border border-border">
+          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span>
+            Recommendations are AI-synthesized advisory signals based on AICIS evidence, not autonomous decisions.
+            Confidence scores are heuristic estimates, not calibrated probabilities.
+            {data && !data.outcome_trained && " This engine is not yet outcome-trained — no historical action effectiveness data is incorporated."}
+          </span>
+        </div>
+
         {/* Loading State */}
         {isLoading && (
           <Card>
@@ -126,31 +183,52 @@ export default function DecisionEngine() {
           </Card>
         )}
 
-        {/* Global Assessment */}
         {data && (
           <>
+            {/* Global Assessment + Evidence Summary */}
             <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="py-4">
+              <CardContent className="py-4 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Shield className="h-4 w-4 text-primary" />
                       <span className="text-sm font-semibold">Global Assessment</span>
-                      <Badge variant="outline" className="text-xs">
-                        Signal Quality: {data.signal_quality}
+                      <Badge variant={densityConfig[data.evidence_density]?.variant || "outline"} className="text-xs">
+                        <Database className="h-3 w-3 mr-1" />
+                        {densityConfig[data.evidence_density]?.label}
                       </Badge>
+                      {!data.outcome_trained && (
+                        <Badge variant="outline" className="text-xs">
+                          Not Outcome-Trained
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm">{data.global_assessment}</p>
                   </div>
-                  <div className="flex gap-3 text-xs text-muted-foreground">
-                    <span>{data.signal_counts.snapshots} snapshots</span>
-                    <span>{data.signal_counts.anomalies} anomalies</span>
-                    <span>{data.signal_counts.alerts} alerts</span>
-                    <span>{data.signal_counts.crises} crises</span>
-                  </div>
+                </div>
+                {/* Signal counts breakdown */}
+                <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
+                  <span className="font-medium">{totalSignals} total signals:</span>
+                  <span>{data.signal_counts.snapshots} snapshots</span>
+                  <span>{data.signal_counts.anomalies} anomalies</span>
+                  <span>{data.signal_counts.alerts} alerts</span>
+                  <span>{data.signal_counts.crises} crises</span>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Insufficient evidence state */}
+            {data.recommendations.length === 0 && (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <Eye className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                  <p className="font-medium">Monitor Only</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Insufficient evidence to generate actionable recommendations. The system continues monitoring.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recommendations */}
             <div className="space-y-3">
@@ -176,7 +254,7 @@ export default function DecisionEngine() {
                               <Badge variant="outline" className="text-xs">{rec.domain}</Badge>
                               <Badge variant="secondary" className="text-xs">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {urgencyLabels[rec.urgency]}
+                                {urgencyLabels[rec.urgency] || rec.urgency}
                               </Badge>
                             </div>
                             <CardDescription className="mt-1 line-clamp-2">
@@ -187,6 +265,7 @@ export default function DecisionEngine() {
                             <div className="text-right">
                               <div className="text-xs text-muted-foreground">Confidence</div>
                               <div className="text-sm font-bold">{rec.confidence}%</div>
+                              <div className="text-[10px] text-muted-foreground">heuristic</div>
                             </div>
                             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                           </div>
@@ -198,6 +277,24 @@ export default function DecisionEngine() {
                       <CardContent className="pt-0 space-y-4">
                         <Separator />
 
+                        {/* AICIS Evidence vs AI Reasoning */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="bg-primary/5 p-3 rounded border border-primary/10">
+                            <h4 className="text-xs font-semibold text-primary mb-1 flex items-center gap-1">
+                              <Database className="h-3 w-3" /> AICIS Evidence
+                            </h4>
+                            <p className="text-sm">{rec.signal_summary}</p>
+                          </div>
+                          {rec.ai_reasoning && (
+                            <div className="bg-secondary/30 p-3 rounded border border-secondary/20">
+                              <h4 className="text-xs font-semibold mb-1 flex items-center gap-1">
+                                <Brain className="h-3 w-3" /> AI Reasoning
+                              </h4>
+                              <p className="text-sm">{rec.ai_reasoning}</p>
+                            </div>
+                          )}
+                        </div>
+
                         {/* Recommended Action */}
                         <div>
                           <h4 className="text-sm font-semibold text-primary mb-1">Recommended Action</h4>
@@ -206,7 +303,6 @@ export default function DecisionEngine() {
                           </p>
                         </div>
 
-                        {/* Alternatives */}
                         {rec.alternatives && rec.alternatives.length > 0 && (
                           <div>
                             <h4 className="text-sm font-semibold mb-1">Alternatives</h4>
@@ -241,6 +337,24 @@ export default function DecisionEngine() {
                             ))}
                           </div>
                         )}
+
+                        {/* Capture to Decision Log */}
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <BookOpen className="h-3 w-3" />
+                            Track this recommendation's real-world outcome
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleCaptureToLog(rec); }}
+                            disabled={capturingId === rec.id}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            {capturingId === rec.id ? "Capturing..." : "Capture to Decision Log"}
+                          </Button>
+                        </div>
                       </CardContent>
                     )}
                   </Card>
@@ -250,7 +364,7 @@ export default function DecisionEngine() {
 
             {/* Footer */}
             <p className="text-xs text-muted-foreground text-center">
-              Generated {new Date(data.generated_at).toLocaleString()} · Scope: {data.scope.country_iso3} / {data.scope.domain} · Recommendations are AI-generated advisory signals, not directives
+              Generated {new Date(data.generated_at).toLocaleString()} · Scope: {data.scope.country_iso3} / {data.scope.domain} · LLM-guided advisory over proprietary AICIS signals · Not outcome-trained
             </p>
           </>
         )}
