@@ -45,6 +45,7 @@ const TrustLayer = lazy(() => import("./pages/TrustLayer"));
 const CompetitiveLandscape = lazy(() => import("./pages/CompetitiveLandscape"));
 const EnterpriseReadiness = lazy(() => import("./pages/EnterpriseReadiness"));
 const ValidatedPredictions = lazy(() => import("./pages/ValidatedPredictions"));
+const MicrodataRegistry = lazy(() => import("./pages/MicrodataRegistry"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
