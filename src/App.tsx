@@ -106,6 +106,7 @@ const App = () => (
             <Route path="/validated-predictions" element={<Lazy><ValidatedPredictions /></Lazy>} />
             <Route path="/microdata" element={<Lazy><MicrodataRegistry /></Lazy>} />
             <Route path="/first-signal" element={<Lazy><FirstSignal /></Lazy>} />
+            <Route path="/decision-log" element={<Lazy><DecisionOutcomeLog /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
