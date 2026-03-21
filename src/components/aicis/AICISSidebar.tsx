@@ -39,6 +39,7 @@ const navigationItems = [
   { id: "command", label: "Command Center", icon: Globe, path: "/command" },
   { id: "intelligence", label: "Intelligence Thread", icon: Layers, path: "/intelligence" },
   { id: "adi", label: "Decision Intelligence", icon: Brain, path: "/adi" },
+  { id: "decision-engine", label: "Decision Engine", icon: Target, path: "/decision-engine" },
   { id: "compare", label: "Compare Countries", icon: GitCompareArrows, path: "/compare" },
   { id: "governance", label: "Governance", icon: Landmark, path: "/governance" },
   { id: "security", label: "Security & Conflict", icon: Swords, path: "/security" },
