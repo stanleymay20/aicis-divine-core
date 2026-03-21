@@ -508,6 +508,24 @@ Deno.serve(async (req) => {
       batchInsert("forecast_residuals", allResiduals),
     ]);
 
+    // 5b. Write audit chain entries for reproducibility
+    const auditEntries = allSnapshots.slice(0, 50).map((s: any) => ({
+      signal_id: `snapshot-${s.iso3}-${s.domain}-${snapshotDate}`,
+      signal_type: "forecast_snapshot",
+      iso3: s.iso3,
+      domain: s.domain,
+      generated_at: new Date().toISOString(),
+      model_version: MODEL_VERSION,
+      data_sources: JSON.stringify(["country_profiles", "global_indicators"]),
+      input_hash: btoa(`${s.iso3}:${s.domain}:${snapshotDate}`).slice(0, 44),
+      output_hash: btoa(JSON.stringify({ pi: s.performance_index, m: s.momentum_score, f90: s.forecast_90d })).slice(0, 44),
+      parameters: JSON.stringify({ alpha: 0.55, beta: 0.3, breakThreshold: 1.5 }),
+      reproducible: true,
+    }));
+    if (auditEntries.length > 0) {
+      await batchInsert("signal_audit_chain", auditEntries);
+    }
+
     // 6. Kill-switch evaluation
     // Kill-switch uses normalized metrics: MAPE > 50% or break rate > 60%
     const avgMAPE = allCalibMetrics.filter(m => m.metric_name === "mape").reduce((s, m) => s + m.metric_value, 0) / Math.max(1, allCalibMetrics.filter(m => m.metric_name === "mape").length);
