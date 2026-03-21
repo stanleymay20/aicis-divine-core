@@ -2039,10 +2039,53 @@ export type Database = {
           },
         ]
       }
+      decision_models: {
+        Row: {
+          action_policies: Json
+          created_at: string
+          feature_schema: Json
+          feature_weights: Json
+          id: string
+          model_type: string
+          performance_metrics: Json | null
+          status: string
+          training_sample_count: number | null
+          version: string
+        }
+        Insert: {
+          action_policies?: Json
+          created_at?: string
+          feature_schema: Json
+          feature_weights?: Json
+          id?: string
+          model_type: string
+          performance_metrics?: Json | null
+          status?: string
+          training_sample_count?: number | null
+          version: string
+        }
+        Update: {
+          action_policies?: Json
+          created_at?: string
+          feature_schema?: Json
+          feature_weights?: Json
+          id?: string
+          model_type?: string
+          performance_metrics?: Json | null
+          status?: string
+          training_sample_count?: number | null
+          version?: string
+        }
+        Relationships: []
+      }
       decision_outcome_log: {
         Row: {
+          action_taken: boolean | null
+          action_timestamp: string | null
+          action_type: string | null
           action_window_days: number | null
           created_at: string | null
+          decision_features: Json | null
           domain: string | null
           event_confirmed: boolean | null
           event_confirmed_date: string | null
@@ -2052,9 +2095,12 @@ export type Database = {
           evidence_type: string
           hypothetical_decision_value: string | null
           id: string
+          impact_score: number | null
           iso3: string | null
           measured_impact_score: number | null
           measured_outcome: string | null
+          outcome_success: boolean | null
+          outcome_timestamp: string | null
           pilot_action_taken: string | null
           pilot_ended_at: string | null
           pilot_outcome: string | null
@@ -2069,11 +2115,16 @@ export type Database = {
           signal_id: string
           signal_title: string
           status: string
+          time_to_outcome_days: number | null
           updated_at: string | null
         }
         Insert: {
+          action_taken?: boolean | null
+          action_timestamp?: string | null
+          action_type?: string | null
           action_window_days?: number | null
           created_at?: string | null
+          decision_features?: Json | null
           domain?: string | null
           event_confirmed?: boolean | null
           event_confirmed_date?: string | null
@@ -2083,9 +2134,12 @@ export type Database = {
           evidence_type?: string
           hypothetical_decision_value?: string | null
           id?: string
+          impact_score?: number | null
           iso3?: string | null
           measured_impact_score?: number | null
           measured_outcome?: string | null
+          outcome_success?: boolean | null
+          outcome_timestamp?: string | null
           pilot_action_taken?: string | null
           pilot_ended_at?: string | null
           pilot_outcome?: string | null
@@ -2100,11 +2154,16 @@ export type Database = {
           signal_id: string
           signal_title: string
           status?: string
+          time_to_outcome_days?: number | null
           updated_at?: string | null
         }
         Update: {
+          action_taken?: boolean | null
+          action_timestamp?: string | null
+          action_type?: string | null
           action_window_days?: number | null
           created_at?: string | null
+          decision_features?: Json | null
           domain?: string | null
           event_confirmed?: boolean | null
           event_confirmed_date?: string | null
@@ -2114,9 +2173,12 @@ export type Database = {
           evidence_type?: string
           hypothetical_decision_value?: string | null
           id?: string
+          impact_score?: number | null
           iso3?: string | null
           measured_impact_score?: number | null
           measured_outcome?: string | null
+          outcome_success?: boolean | null
+          outcome_timestamp?: string | null
           pilot_action_taken?: string | null
           pilot_ended_at?: string | null
           pilot_outcome?: string | null
@@ -2131,6 +2193,7 @@ export type Database = {
           signal_id?: string
           signal_title?: string
           status?: string
+          time_to_outcome_days?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -2174,6 +2237,45 @@ export type Database = {
           scope_country_iso3?: string
           scope_domain?: string
           signal_counts?: Json
+        }
+        Relationships: []
+      }
+      decision_training_dataset: {
+        Row: {
+          action_type: string
+          created_at: string
+          domain: string | null
+          features: Json
+          id: string
+          impact_score: number | null
+          iso3: string | null
+          outcome_success: boolean | null
+          source_id: string | null
+          source_type: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          domain?: string | null
+          features: Json
+          id?: string
+          impact_score?: number | null
+          iso3?: string | null
+          outcome_success?: boolean | null
+          source_id?: string | null
+          source_type?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          domain?: string | null
+          features?: Json
+          id?: string
+          impact_score?: number | null
+          iso3?: string | null
+          outcome_success?: boolean | null
+          source_id?: string | null
+          source_type?: string
         }
         Relationships: []
       }
