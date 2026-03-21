@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, TrendingUp, TrendingDown, Minus, Target, AlertTriangle, CheckCircle2, XCircle, Zap } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Minus, Target, AlertTriangle, CheckCircle2, XCircle, Zap, Shield } from "lucide-react";
 import { format } from "date-fns";
 
 /* ── tiny sub-components ── */
