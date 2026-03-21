@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           api_endpoint: string | null
           api_key: string | null
+          api_key_hash: string | null
           contact_email: string | null
           country: string
           created_at: string | null
@@ -36,6 +37,7 @@ export type Database = {
         Insert: {
           api_endpoint?: string | null
           api_key?: string | null
+          api_key_hash?: string | null
           contact_email?: string | null
           country: string
           created_at?: string | null
@@ -54,6 +56,7 @@ export type Database = {
         Update: {
           api_endpoint?: string | null
           api_key?: string | null
+          api_key_hash?: string | null
           contact_email?: string | null
           country?: string
           created_at?: string | null
@@ -665,6 +668,13 @@ export type Database = {
             referencedRelation: "organizations_member_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       approvals: {
@@ -764,6 +774,13 @@ export type Database = {
             referencedRelation: "organizations_member_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "audit_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       automation_logs: {
@@ -827,6 +844,13 @@ export type Database = {
             referencedRelation: "organizations_member_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "billing_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       billing_usage_queue: {
@@ -867,6 +891,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations_member_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_usage_queue_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
             referencedColumns: ["id"]
           },
         ]
@@ -924,6 +955,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "organizations_member_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations_safe_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1417,6 +1455,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations_member_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_domains_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
             referencedColumns: ["id"]
           },
         ]
@@ -3902,6 +3947,13 @@ export type Database = {
             referencedRelation: "organizations_member_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ip_access_control_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ledger_entries: {
@@ -4541,6 +4593,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "organization_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "organization_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -4590,6 +4649,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations_member_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
             referencedColumns: ["id"]
           },
           {
@@ -6060,6 +6126,13 @@ export type Database = {
             referencedRelation: "organizations_member_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tenant_action_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tenant_metrics: {
@@ -6117,6 +6190,13 @@ export type Database = {
             referencedRelation: "organizations_member_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tenant_metrics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tenant_onboarding: {
@@ -6172,6 +6252,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "organizations_member_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_onboarding_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations_safe_view"
             referencedColumns: ["id"]
           },
         ]
@@ -6372,6 +6459,13 @@ export type Database = {
             referencedRelation: "organizations_member_view"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "usage_metrics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       usage_records: {
@@ -6424,6 +6518,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations_member_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe_view"
             referencedColumns: ["id"]
           },
         ]
@@ -6785,36 +6886,48 @@ export type Database = {
     Views: {
       accountability_nodes_public: {
         Row: {
+          contact_email: string | null
           country: string | null
           created_at: string | null
           id: string | null
           joined_at: string | null
           jurisdiction: string | null
           last_active_at: string | null
+          metadata: Json | null
           org_name: string | null
           org_type: Database["public"]["Enums"]["org_type"] | null
+          rate_limit_per_hour: number | null
+          updated_at: string | null
           verified: boolean | null
         }
         Insert: {
+          contact_email?: string | null
           country?: string | null
           created_at?: string | null
           id?: string | null
           joined_at?: string | null
           jurisdiction?: string | null
           last_active_at?: string | null
+          metadata?: Json | null
           org_name?: string | null
           org_type?: Database["public"]["Enums"]["org_type"] | null
+          rate_limit_per_hour?: number | null
+          updated_at?: string | null
           verified?: boolean | null
         }
         Update: {
+          contact_email?: string | null
           country?: string | null
           created_at?: string | null
           id?: string | null
           joined_at?: string | null
           jurisdiction?: string | null
           last_active_at?: string | null
+          metadata?: Json | null
           org_name?: string | null
           org_type?: Database["public"]["Enums"]["org_type"] | null
+          rate_limit_per_hour?: number | null
+          updated_at?: string | null
           verified?: boolean | null
         }
         Relationships: []
@@ -6886,6 +6999,74 @@ export type Database = {
           },
         ]
       }
+      organizations_safe_view: {
+        Row: {
+          api_enabled: boolean | null
+          billing_status: string | null
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          feature_flags: Json | null
+          id: string | null
+          max_api_keys: number | null
+          monthly_api_quota: number | null
+          name: string | null
+          owner_id: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+          white_label_enabled: boolean | null
+        }
+        Insert: {
+          api_enabled?: boolean | null
+          billing_status?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string | null
+          max_api_keys?: number | null
+          monthly_api_quota?: number | null
+          name?: string | null
+          owner_id?: string | null
+          status?: string | null
+          stripe_customer_id?: never
+          stripe_subscription_id?: never
+          tier?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+          white_label_enabled?: boolean | null
+        }
+        Update: {
+          api_enabled?: boolean | null
+          billing_status?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string | null
+          max_api_keys?: number | null
+          monthly_api_quota?: number | null
+          name?: string | null
+          owner_id?: string | null
+          status?: string | null
+          stripe_customer_id?: never
+          stripe_subscription_id?: never
+          tier?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+          white_label_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       aggregate_country_snapshots: {
@@ -6919,6 +7100,7 @@ export type Database = {
       }
       cleanup_expired_exports: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      cleanup_zombie_jobs: { Args: never; Returns: undefined }
       compute_intelligence_score: {
         Args: { _change_threshold?: number; _window_days?: number }
         Returns: Json

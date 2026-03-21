@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 interface AutomationLog {
   id: string;
   job_name: string;
-  status: "running" | "success" | "error";
+  status: "running" | "success" | "error" | "timeout";
   message: string;
   executed_at: string;
 }
@@ -129,6 +129,9 @@ export function AutomationMonitorPanel() {
                     )}
                     {log.status === "running" && (
                       <Loader2 className="h-5 w-5 text-warning animate-spin mt-0.5" />
+                    )}
+                    {log.status === "timeout" && (
+                      <XCircle className="h-5 w-5 text-warning mt-0.5" />
                     )}
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
