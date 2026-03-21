@@ -157,10 +157,10 @@ export default function DecisionEngine() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Brain className="h-6 w-6 text-primary" />
-              Decision Recommendation Engine
+              Decision Intelligence Engine
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              AI-assisted advisory recommendations from live AICIS intelligence signals
+              {mode === "model" ? "Statistical model-driven decisions from AICIS signals" : "LLM-assisted advisory from live intelligence signals"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -174,13 +174,36 @@ export default function DecisionEngine() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching}>
-              <RefreshCw className={`h-4 w-4 mr-1 ${isFetching ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
+            {mode === "llm" && (
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching}>
+                <RefreshCw className={`h-4 w-4 mr-1 ${isFetching ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            )}
           </div>
         </div>
 
+        {/* Mode Toggle */}
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "model" | "llm")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="model" className="flex items-center gap-1.5">
+              <Activity className="h-3.5 w-3.5" /> Model-Driven
+            </TabsTrigger>
+            <TabsTrigger value="llm" className="flex items-center gap-1.5">
+              <Brain className="h-3.5 w-3.5" /> LLM-Assisted
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Outcome Maturity Panel */}
+        <OutcomeMaturityPanel />
+
+        {/* Model-Driven View */}
+        {mode === "model" && <ModelDrivenView domain={selectedDomain} />}
+
+        {/* LLM-Assisted View (original) */}
+        {mode === "llm" && (
+          <>
         {/* Advisory disclaimer */}
         <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded border border-border">
           <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -201,9 +224,6 @@ export default function DecisionEngine() {
             </CardContent>
           </Card>
         )}
-
-        {/* Outcome Maturity Panel */}
-        <OutcomeMaturityPanel />
 
         {data && (
           <>
