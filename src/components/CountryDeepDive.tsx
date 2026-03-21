@@ -25,6 +25,7 @@ import { ModeAwareSection, ExecutiveBrief } from "@/components/intelligence/Mode
 import { TrendDecomposition } from "@/components/intelligence/TrendDecomposition";
 import { TemporalLayer } from "@/components/intelligence/TemporalLayer";
 import { ScenarioEngine } from "@/components/governance/ScenarioEngine";
+import { MicrodataEnrichmentBadge } from "@/components/intelligence/MicrodataEnrichmentBadge";
 import { useViewModePersistence } from "@/hooks/useViewModePersistence";
 import { 
   computeNationalPerformanceV2 as computeNationalPerformance, getMomentumArrow, getMomentumColor,
