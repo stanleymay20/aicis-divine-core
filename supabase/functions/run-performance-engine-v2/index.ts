@@ -18,7 +18,7 @@ const ENGINE_PARAMS = { alpha: 0.55, beta: 0.3, breakThreshold: 1.5 } as const;
 
 // ─── Engine Math (self-contained, no src/ imports) ──────────────────
 
-function holtSmoothing(series: number[], alpha = 0.55, beta = 0.3) {
+function holtSmoothing(series: number[], alpha = ENGINE_PARAMS.alpha, beta = ENGINE_PARAMS.beta) {
   if (series.length === 0) return { level: 0, trend: 0 };
   if (series.length === 1) return { level: series[0], trend: 0 };
   let level = series[0], trend = series[1] - series[0];
