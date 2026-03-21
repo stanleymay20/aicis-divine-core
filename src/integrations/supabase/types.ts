@@ -6919,6 +6919,7 @@ export type Database = {
       }
       cleanup_expired_exports: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      cleanup_zombie_jobs: { Args: never; Returns: undefined }
       compute_intelligence_score: {
         Args: { _change_threshold?: number; _window_days?: number }
         Returns: Json
