@@ -262,14 +262,12 @@ serve(async (req) => {
     }
 
     // ── 3. Naive Baseline Comparison ────────────────────────────────
-    // "Tomorrow = today" model: predict no change, measure how often that's correct
     let naiveHits = 0;
     let naiveTotal = 0;
     let aicisDirectionAcc: number | null = null;
     let naiveDirectionAcc: number | null = null;
 
     if (totalValidated > 0) {
-      // Re-query the 1-day results we just inserted to compute naive baseline
       const { data: recentResults } = await sb
         .from("forecast_validation_results")
         .select("predicted_direction, actual_direction")
@@ -279,7 +277,6 @@ serve(async (req) => {
       if (recentResults?.length) {
         for (const r of recentResults) {
           naiveTotal++;
-          // Naive model always predicts "stable" (no change)
           if (r.actual_direction === "stable") naiveHits++;
         }
 
@@ -288,7 +285,6 @@ serve(async (req) => {
         naiveDirectionAcc = naiveTotal > 0
           ? Math.round(naiveHits / naiveTotal * 100) : null;
 
-        // Store both metrics in calibration_metrics
         const metricsToInsert = [
           {
             model_version: 'APE-V2.1',
@@ -328,7 +324,100 @@ serve(async (req) => {
       }
     }
 
-    // ── 4. Log telemetry ─────────────────────────────────────────────
+    // ── 4. TRUE INTELLIGENCE SCORE ───────────────────────────────────
+    // Filters out stable periods. Measures only what matters: change detection.
+    const CHANGE_THRESHOLD = 1.5;
+    const WINDOW_DAYS = 30;
+
+    const { data: windowResults } = await sb
+      .from("forecast_validation_results")
+      .select("predicted_direction, actual_direction, actual_value, predicted_value, absolute_error, horizon_days")
+      .gte("realized_date", new Date(Date.now() - WINDOW_DAYS * 86400000).toISOString().split("T")[0]);
+
+    let intelligenceScore: any = null;
+
+    if (windowResults?.length) {
+      // Turning Point Accuracy: only during actual direction changes
+      const changePeriods = windowResults.filter(r => r.actual_direction !== "stable");
+      const changeHits = changePeriods.filter(r => r.predicted_direction === r.actual_direction).length;
+      const tpAccuracy = changePeriods.length > 0 ? Math.round(changeHits / changePeriods.length * 100 * 10) / 10 : 0;
+
+      // Break Detection: only significant moves
+      const breakPeriods = windowResults.filter(r => Math.abs((r.actual_value ?? 0) - (r.predicted_value ?? 0)) > CHANGE_THRESHOLD);
+      const breakHits = breakPeriods.filter(r => r.predicted_direction === r.actual_direction).length;
+      const breakScore = breakPeriods.length > 0 ? Math.round(breakHits / breakPeriods.length * 100 * 10) / 10 : 0;
+
+      // Filtered accuracy: AICIS vs naive ONLY during change periods
+      const filteredAicis = changePeriods.length > 0
+        ? Math.round(changeHits / changePeriods.length * 100 * 10) / 10
+        : 0;
+      const filteredNaive = 0; // naive always says "stable" → 0% during changes
+
+      // MAE comparison during change periods
+      const aicisMaeDuringChange = changePeriods.length > 0
+        ? Math.round(changePeriods.reduce((s, r) => s + (r.absolute_error ?? 0), 0) / changePeriods.length * 100) / 100
+        : 0;
+
+      // Intelligence Grade
+      const grade = tpAccuracy >= 60 ? "ANTICIPATING"
+        : tpAccuracy >= 40 ? "PREDICTING"
+        : tpAccuracy >= 20 ? "DETECTING"
+        : "SENSING";
+
+      intelligenceScore = {
+        turning_point_accuracy: tpAccuracy,
+        turning_point_total: changePeriods.length,
+        turning_point_hits: changeHits,
+        naive_turning_point_accuracy: 0,
+        break_detection_score: breakScore,
+        break_detection_total: breakPeriods.length,
+        break_detection_hits: breakHits,
+        filtered_aicis_accuracy: filteredAicis,
+        filtered_naive_accuracy: filteredNaive,
+        filtered_delta: filteredAicis - filteredNaive,
+        intelligence_grade: grade,
+        mae_during_change: aicisMaeDuringChange,
+        total_forecasts: windowResults.length,
+        change_period_pct: Math.round(changePeriods.length / windowResults.length * 100 * 100) / 100,
+      };
+
+      // Store snapshot
+      await sb.from("intelligence_score_snapshots").insert({
+        turning_point_accuracy: tpAccuracy,
+        turning_point_total: changePeriods.length,
+        turning_point_hits: changeHits,
+        naive_turning_point_accuracy: 0,
+        break_detection_score: breakScore,
+        break_detection_total: breakPeriods.length,
+        break_detection_hits: breakHits,
+        filtered_aicis_accuracy: filteredAicis,
+        filtered_naive_accuracy: filteredNaive,
+        filtered_delta: filteredAicis - filteredNaive,
+        intelligence_grade: grade,
+        evaluation_window_days: WINDOW_DAYS,
+        total_forecasts_evaluated: windowResults.length,
+        change_period_pct: Math.round(changePeriods.length / windowResults.length * 100 * 100) / 100,
+        metadata: intelligenceScore,
+      });
+
+      // Also store as calibration metrics for dashboard visibility
+      const intMetrics = [
+        { metric_name: 'turning_point_accuracy', metric_value: tpAccuracy, sample_size: changePeriods.length },
+        { metric_name: 'break_detection_score', metric_value: breakScore, sample_size: breakPeriods.length },
+        { metric_name: 'intelligence_filtered_delta', metric_value: filteredAicis - filteredNaive, sample_size: changePeriods.length },
+      ];
+      for (const m of intMetrics) {
+        await sb.from("calibration_metrics").insert({
+          model_version: 'APE-V2.1', ...m, domain: 'all',
+          window_start: new Date(Date.now() - WINDOW_DAYS * 86400000).toISOString(),
+          window_end: new Date().toISOString(),
+        });
+      }
+
+      structuredLog("info", FN, `Intelligence Score: Grade=${grade}, TP=${tpAccuracy}%, Break=${breakScore}%, Delta=+${filteredAicis}% vs naive`);
+    }
+
+    // ── 5. Log telemetry ─────────────────────────────────────────────
     await sb.from("operational_telemetry").insert({
       function_name: FN,
       execution_time_ms: Date.now() - start,
@@ -342,13 +431,14 @@ serve(async (req) => {
         naive_baseline_accuracy: naiveDirectionAcc,
         accuracy_delta: aicisDirectionAcc !== null && naiveDirectionAcc !== null
           ? aicisDirectionAcc - naiveDirectionAcc : null,
+        intelligence_score: intelligenceScore,
       },
     });
 
     await sb.from("automation_logs").insert({
       job_name: FN,
       status: "success",
-      message: `Validated ${totalValidated} forecasts (1d: ${horizonResults[1]?.checked || 0}, 7d: ${horizonResults[7]?.checked || 0}), ${correlationsFound} vuln correlations`,
+      message: `Validated ${totalValidated} forecasts. Intelligence: ${intelligenceScore?.intelligence_grade || 'N/A'}, TP=${intelligenceScore?.turning_point_accuracy || 0}%, Break=${intelligenceScore?.break_detection_score || 0}%`,
     });
 
     structuredLog("info", FN, "Validation cycle complete", undefined, start);
@@ -360,6 +450,7 @@ serve(async (req) => {
       direction_accuracy: totalValidated > 0 ? Math.round(totalDirectionHits / totalValidated * 100) : null,
       horizons: horizonResults,
       vulnerability_correlations: correlationsFound,
+      intelligence_score: intelligenceScore,
       execution_time_ms: Date.now() - start,
     });
   } catch (error) {
