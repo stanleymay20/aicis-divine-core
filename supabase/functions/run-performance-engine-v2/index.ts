@@ -14,10 +14,11 @@ const corsHeaders = {
 };
 
 const MODEL_VERSION = "APE-V2.1";
+const ENGINE_PARAMS = { alpha: 0.55, beta: 0.3, breakThreshold: 1.5 } as const;
 
 // ─── Engine Math (self-contained, no src/ imports) ──────────────────
 
-function holtSmoothing(series: number[], alpha = 0.55, beta = 0.3) {
+function holtSmoothing(series: number[], alpha = ENGINE_PARAMS.alpha, beta = ENGINE_PARAMS.beta) {
   if (series.length === 0) return { level: 0, trend: 0 };
   if (series.length === 1) return { level: series[0], trend: 0 };
   let level = series[0], trend = series[1] - series[0];
@@ -532,7 +533,7 @@ Deno.serve(async (req) => {
     for (const s of allSnapshots) {
       const inputCanonical = canonicalize({
         iso3: s.iso3, domain: s.domain, snapshot_date: snapshotDate,
-        model_version: MODEL_VERSION, alpha: 0.55, beta: 0.3, break_threshold: 1.5,
+        model_version: MODEL_VERSION, ...ENGINE_PARAMS,
         sources: ["country_profiles", "global_indicators"],
       });
       const outputCanonical = canonicalize({
@@ -556,7 +557,7 @@ Deno.serve(async (req) => {
         data_sources: JSON.stringify(["country_profiles", "global_indicators"]),
         input_hash: inputHash,
         output_hash: outputHash,
-        parameters: JSON.stringify({ alpha: 0.55, beta: 0.3, breakThreshold: 1.5 }),
+        parameters: JSON.stringify(ENGINE_PARAMS),
         reproducible: true,
         notes: `full-coverage audit | ${allSnapshots.length} total snapshots`,
       });
