@@ -246,42 +246,40 @@ const FirstSignal = () => {
           </CardContent>
         </Card>
 
-        {/* Case studies */}
+        {/* Dynamic Signal Catalog */}
         <div className="space-y-4">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-success" />
-            Documented Signal Detections
+            Documented Signal Detections ({signals?.length || 0})
           </h2>
+          <p className="text-xs text-muted-foreground">
+            Each entry represents a unique country-domain combination where AICIS detected directional change before reality confirmed it.
+            This catalog updates automatically as new validated wins accumulate.
+          </p>
 
-          <CaseStudyCard
-            title="China Climate Shift — Upward Trajectory Detected"
-            iso3="CHN"
-            domain="climate"
-            predictedDir="up"
-            actualDir="up"
-            predictedVal={2}
-            actualVal={21}
-            forecastDate="2026-03-11"
-            realizedDate="2026-03-18"
-            error={19}
-            narrative="AICIS identified an upward climate indicator trajectory for China several days before the jump materialized in observed data. The naive baseline predicted no change."
-            impact="Early detection of climate metric shifts enables proactive resource allocation for climate adaptation programs. A 7-day advance signal on agricultural or environmental policy could affect procurement cycles worth millions in large economies."
-          />
-
-          <CaseStudyCard
-            title="Argentina Climate Decline — Downward Shift Detected"
-            iso3="ARG"
-            domain="climate"
-            predictedDir="down"
-            actualDir="down"
-            predictedVal={20}
-            actualVal={6}
-            forecastDate="2026-03-11"
-            realizedDate="2026-03-18"
-            error={14}
-            narrative="AICIS detected a downward climate trajectory for Argentina before the decline from 21 to 6 was confirmed. The naive model maintained 'stable' throughout."
-            impact="In agricultural economies like Argentina, a multi-day advance warning of deteriorating climate indicators can inform commodity hedging, insurance adjustments, and emergency food security planning."
-          />
+          {signals && signals.length > 0 ? signals.map((s: any, idx: number) => (
+            <CaseStudyCard
+              key={`${s.iso3}-${s.domain}-${idx}`}
+              title={`${s.iso3} ${s.domain.charAt(0).toUpperCase() + s.domain.slice(1)} — ${s.actual_direction === "up" ? "Upward" : "Downward"} Shift Detected`}
+              iso3={s.iso3}
+              domain={s.domain}
+              predictedDir={s.predicted_direction}
+              actualDir={s.actual_direction}
+              predictedVal={Number(s.predicted_value)}
+              actualVal={Number(s.actual_value)}
+              forecastDate={s.forecast_date}
+              realizedDate={s.realized_date}
+              error={Number(s.absolute_error)}
+              narrative={`AICIS identified a ${s.actual_direction === "up" ? "upward" : "downward"} ${s.domain} trajectory for ${s.iso3} before the shift was confirmed in observed data. The naive baseline predicted no change.`}
+              impact={`Advance directional detection in the ${s.domain} domain enables earlier resource allocation, policy adjustment, and risk mitigation for ${s.iso3}.`}
+            />
+          )) : (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                No validated signal detections yet. The catalog will populate automatically as turning-point hits accumulate.
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Decision Value Layer */}
