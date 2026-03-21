@@ -422,6 +422,7 @@ export default function ModelDrivenView({ domain }: Props) {
             <BaselineComparison />
           </div>
           <ActionLeaderboard />
+          <DecisionGovernancePanel />
 
           <p className="text-xs text-muted-foreground text-center">
             Generated {new Date(data.generated_at).toLocaleString()} · {data.model_version} · {data.training_mode} · Hash: {data.inference_hash?.slice(0, 12)}…
