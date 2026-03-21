@@ -240,13 +240,22 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const domainWeightsMap = activeModel?.domain_feature_weights || {};
-    const globalWeights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
+    // Reject inference if no active model exists
+    if (!activeModel) {
+      return new Response(JSON.stringify({
+        ok: false, recommendations: [], risk_score: 0,
+        error: "No active decision model. Run calibration first.",
+        decision_basis: "none", model_version: "none",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const domainWeightsMap = activeModel.domain_feature_weights || {};
+    const globalWeights = activeModel.feature_weights || DEFAULT_WEIGHTS;
     const weights = (domain && domainWeightsMap[domain]) || globalWeights;
-    const domainActionPolicies = activeModel?.domain_action_policies || {};
-    const actionAdjustments = activeModel?.action_adjustment_weights || {};
-    const modelVersion = activeModel?.version || "DL-heuristic-0.1";
-    const trainingMode = activeModel?.training_mode || "heuristic";
+    const domainActionPolicies = activeModel.domain_action_policies || {};
+    const actionAdjustments = activeModel.action_adjustment_weights || {};
+    const modelVersion = activeModel.version;
+    const trainingMode = activeModel.training_mode || "heuristic";
     const domainOverrideUsed = !!(domain && domainWeightsMap[domain]);
 
     // 2. Pull signals
