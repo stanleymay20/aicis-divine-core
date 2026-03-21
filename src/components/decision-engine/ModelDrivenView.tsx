@@ -450,8 +450,11 @@ export default function ModelDrivenView({ domain }: Props) {
             <TrustScorePanel />
             <BaselineComparison />
           </div>
+          <DecisionKPIPanel />
           <ActionLeaderboard />
           <OutcomeMaturityPanel />
+          <ModelPromotionLog />
+          <LearningCycleHealth />
           <ReviewerWorkloadPanel />
           <ReviewControlTower />
           <DecisionGovernancePanel />
