@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
     for (const s of allSnapshots) {
       const inputCanonical = canonicalize({
         iso3: s.iso3, domain: s.domain, snapshot_date: snapshotDate,
-        model_version: MODEL_VERSION, alpha: 0.55, beta: 0.3, break_threshold: 1.5,
+        model_version: MODEL_VERSION, ...ENGINE_PARAMS,
         sources: ["country_profiles", "global_indicators"],
       });
       const outputCanonical = canonicalize({
