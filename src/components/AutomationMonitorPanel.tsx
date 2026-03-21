@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 interface AutomationLog {
   id: string;
   job_name: string;
-  status: "running" | "success" | "error";
+  status: "running" | "success" | "error" | "timeout";
   message: string;
   executed_at: string;
 }
