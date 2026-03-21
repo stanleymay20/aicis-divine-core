@@ -78,6 +78,7 @@ const domains = [
 
 export default function DecisionEngine() {
   const [selectedDomain, setSelectedDomain] = useState("all");
+  const [mode, setMode] = useState<"model" | "llm">("model");
   const [expandedRec, setExpandedRec] = useState<string | null>(null);
   const [capturingId, setCapturingId] = useState<string | null>(null);
 
