@@ -14,6 +14,7 @@ const corsHeaders = {
 };
 
 const MODEL_VERSION = "APE-V2.1";
+const ENGINE_PARAMS = { alpha: 0.55, beta: 0.3, breakThreshold: 1.5 } as const;
 
 // ─── Engine Math (self-contained, no src/ imports) ──────────────────
 
