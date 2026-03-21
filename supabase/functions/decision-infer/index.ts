@@ -350,6 +350,7 @@ Explain WHY based on features. Do NOT decide — only explain.`;
         chosen_actions: recommendations.map(r => ({ action_type: r.action_type, success_probability: r.success_probability })),
         policy_classifications: recommendations.map(r => ({ action_type: r.action_type, policy: r.policy, guardrail: r.guardrail_applied })),
         signal_counts: signalCounts, inference_hash: inferenceHash,
+        guardrail_flags: recommendations.filter(r => r.guardrail_applied).map(r => ({ action: r.action_type, guardrail: r.guardrail_applied })),
       }),
       supabase.from("ai_decision_logs").insert({
         division_key: domain || "system",
