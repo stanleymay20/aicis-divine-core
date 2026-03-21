@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import ActionLeaderboard from "./ActionLeaderboard";
+import TrustScorePanel from "./TrustScorePanel";
+import BaselineComparison from "./BaselineComparison";
 
 interface FeatureContribution {
   feature: string;
