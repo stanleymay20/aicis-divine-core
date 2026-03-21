@@ -1960,6 +1960,8 @@ export type Database = {
           event_confirmed: boolean | null
           event_confirmed_date: string | null
           event_description: string | null
+          evidence_note: string | null
+          evidence_source_type: string | null
           evidence_type: string
           hypothetical_decision_value: string | null
           id: string
@@ -1972,6 +1974,8 @@ export type Database = {
           pilot_partner: string | null
           pilot_started_at: string | null
           recommended_action: string | null
+          recorded_at: string | null
+          recorded_by: string | null
           signal_confidence: number | null
           signal_date: string
           signal_direction: string | null
@@ -1987,6 +1991,8 @@ export type Database = {
           event_confirmed?: boolean | null
           event_confirmed_date?: string | null
           event_description?: string | null
+          evidence_note?: string | null
+          evidence_source_type?: string | null
           evidence_type?: string
           hypothetical_decision_value?: string | null
           id?: string
@@ -1999,6 +2005,8 @@ export type Database = {
           pilot_partner?: string | null
           pilot_started_at?: string | null
           recommended_action?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
           signal_confidence?: number | null
           signal_date: string
           signal_direction?: string | null
@@ -2014,6 +2022,8 @@ export type Database = {
           event_confirmed?: boolean | null
           event_confirmed_date?: string | null
           event_description?: string | null
+          evidence_note?: string | null
+          evidence_source_type?: string | null
           evidence_type?: string
           hypothetical_decision_value?: string | null
           id?: string
@@ -2026,6 +2036,8 @@ export type Database = {
           pilot_partner?: string | null
           pilot_started_at?: string | null
           recommended_action?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
           signal_confidence?: number | null
           signal_date?: string
           signal_direction?: string | null
