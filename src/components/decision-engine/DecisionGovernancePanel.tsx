@@ -198,6 +198,17 @@ export default function DecisionGovernancePanel() {
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {rec.domain && <Badge variant="outline" className="text-[9px] h-4">{rec.domain}</Badge>}
                     <Badge variant={rvConfig.variant} className="text-[9px] h-4">{rvConfig.label}</Badge>
+                    {rec.criticality_tier === "critical" && (
+                      <Badge variant="destructive" className="text-[9px] h-4">Critical</Badge>
+                    )}
+                    {rec.criticality_tier === "elevated" && (
+                      <Badge variant="secondary" className="text-[9px] h-4">Elevated</Badge>
+                    )}
+                    {rec.requires_dual_approval && (
+                      <Badge variant="outline" className="text-[9px] h-4 border-destructive/50">
+                        {rec.second_review_status === "approved" ? "✓ Dual" : "⚠ Dual Required"}
+                      </Badge>
+                    )}
                     {isOverdue && (
                       <Badge variant="destructive" className="text-[9px] h-4">
                         <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />{Math.abs(slaHoursLeft!)}h overdue
