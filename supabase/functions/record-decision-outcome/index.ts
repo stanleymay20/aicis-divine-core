@@ -49,6 +49,9 @@ serve(async (req) => {
       updatePayload.action_timestamp = now;
     }
     if (execution_note) updatePayload.execution_note = execution_note;
+    if (execution_owner) updatePayload.execution_owner = execution_owner;
+    if (body_execution_status) updatePayload.execution_status = body_execution_status;
+    if (execution_blocker !== undefined) updatePayload.execution_blocker = execution_blocker || null;
 
     // --- Outcome tracking ---
     if (outcome_success !== undefined) {
