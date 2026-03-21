@@ -230,10 +230,10 @@ serve(async (req) => {
     const targetDomain = domain || "all";
     const actions = selectActions(targetDomain, riskScore, features);
 
-    // 6. Apply policy layer
+    // 6. Apply policy layer (domain-specific thresholds)
     const recommendations = actions.map(a => ({
       ...a,
-      policy: classifyAction(a.success_probability, a.impact_estimate),
+      policy: classifyAction(a.success_probability, a.impact_estimate, domainActionPolicies, targetDomain),
     }));
 
     // 7. Optional LLM explanation

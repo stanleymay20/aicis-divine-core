@@ -17,40 +17,42 @@ serve(async (req) => {
   );
 
   try {
-    // Log start
     await supabase.from("automation_logs").insert({
       job_name: "cron-daily-learn",
       status: "running",
-      message: "Starting daily learning cycle",
+      message: "Starting daily learning cycle + decision calibration",
     });
 
-    // Invoke the auto-learn-cycle function
-    const { data, error } = await supabase.functions.invoke("auto-learn-cycle", {
-      body: {}
-    });
+    // 1. Run auto-learn-cycle
+    const { data: learnData, error: learnErr } = await supabase.functions.invoke("auto-learn-cycle", { body: {} });
 
-    if (error) throw error;
+    // 2. Run decision weight calibration
+    const { data: calData, error: calErr } = await supabase.functions.invoke("calibrate-decision-weights", { body: {} });
 
-    // Log success
+    const messages: string[] = [];
+    if (learnErr) messages.push(`learn-cycle error: ${learnErr.message}`);
+    else messages.push(`learn: ${learnData?.evaluation?.divisions || 0} impacts, ${learnData?.learning?.updated || 0} weights`);
+
+    if (calErr) messages.push(`calibration error: ${calErr.message}`);
+    else messages.push(`calibration: v${calData?.version || '?'}, ${calData?.samples?.total || 0} samples, mode=${calData?.training_mode || '?'}`);
+
     await supabase.from("automation_logs").insert({
       job_name: "cron-daily-learn",
-      status: "success",
-      message: `Learning cycle complete: ${data?.evaluation?.divisions || 0} impacts, ${data?.learning?.updated || 0} weights`,
+      status: learnErr || calErr ? "partial" : "success",
+      message: messages.join(" | "),
     });
 
     return new Response(
-      JSON.stringify({ ok: true, result: data }),
+      JSON.stringify({ ok: true, learn: learnData, calibration: calData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
     console.error("Error in cron-daily-learn:", e);
-    
     await supabase.from("automation_logs").insert({
       job_name: "cron-daily-learn",
       status: "error",
       message: (e as Error).message,
     });
-
     return new Response(
       JSON.stringify({ error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
