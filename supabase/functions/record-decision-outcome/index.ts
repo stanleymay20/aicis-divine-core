@@ -15,11 +15,12 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    const body = await req.json();
     const {
       decision_id, action_taken, outcome_success, impact_score,
       outcome_description, recommendation_accepted, recommendation_rejected_reason,
-      actor_role
-    } = await req.json();
+      actor_role, cost_of_action: body_cost_of_action
+    } = body;
 
     if (!decision_id) {
       return new Response(JSON.stringify({ error: "decision_id is required" }), {
