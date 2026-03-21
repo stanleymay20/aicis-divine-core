@@ -2090,15 +2090,21 @@ export type Database = {
       decision_models: {
         Row: {
           action_policies: Json
+          avg_impact_score: number | null
           created_at: string
+          domain_action_policies: Json | null
+          domain_feature_weights: Json | null
           feature_schema: Json
           feature_weights: Json
           id: string
+          last_calibrated_at: string | null
           measured_sample_count: number
           model_type: string
+          outcome_maturity_ratio: number | null
           performance_metrics: Json | null
           proxy_sample_count: number
           real_sample_count: number
+          recommendation_acceptance_rate: number | null
           status: string
           training_mode: string
           training_sample_count: number | null
@@ -2106,15 +2112,21 @@ export type Database = {
         }
         Insert: {
           action_policies?: Json
+          avg_impact_score?: number | null
           created_at?: string
+          domain_action_policies?: Json | null
+          domain_feature_weights?: Json | null
           feature_schema: Json
           feature_weights?: Json
           id?: string
+          last_calibrated_at?: string | null
           measured_sample_count?: number
           model_type: string
+          outcome_maturity_ratio?: number | null
           performance_metrics?: Json | null
           proxy_sample_count?: number
           real_sample_count?: number
+          recommendation_acceptance_rate?: number | null
           status?: string
           training_mode?: string
           training_sample_count?: number | null
@@ -2122,15 +2134,21 @@ export type Database = {
         }
         Update: {
           action_policies?: Json
+          avg_impact_score?: number | null
           created_at?: string
+          domain_action_policies?: Json | null
+          domain_feature_weights?: Json | null
           feature_schema?: Json
           feature_weights?: Json
           id?: string
+          last_calibrated_at?: string | null
           measured_sample_count?: number
           model_type?: string
+          outcome_maturity_ratio?: number | null
           performance_metrics?: Json | null
           proxy_sample_count?: number
           real_sample_count?: number
+          recommendation_acceptance_rate?: number | null
           status?: string
           training_mode?: string
           training_sample_count?: number | null
@@ -2303,6 +2321,7 @@ export type Database = {
       decision_training_dataset: {
         Row: {
           action_type: string
+          context_window_days: number | null
           created_at: string
           domain: string | null
           features: Json
@@ -2319,6 +2338,7 @@ export type Database = {
         }
         Insert: {
           action_type: string
+          context_window_days?: number | null
           created_at?: string
           domain?: string | null
           features: Json
@@ -2335,6 +2355,7 @@ export type Database = {
         }
         Update: {
           action_type?: string
+          context_window_days?: number | null
           created_at?: string
           domain?: string | null
           features?: Json

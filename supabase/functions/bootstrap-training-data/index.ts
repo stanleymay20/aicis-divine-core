@@ -48,26 +48,40 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Pull corresponding snapshots for feature context
+    // Pull corresponding snapshots for feature context (by iso3+domain)
     const uniqueIso3s = [...new Set(validations.map(v => v.iso3))];
+    const uniqueDomains = [...new Set(validations.map(v => v.domain))];
+
+    // Build date range for time-windowed context
+    const dates = validations.map(v => new Date(v.realized_date));
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())) - 30 * 86400000).toISOString();
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())) + 30 * 86400000).toISOString();
+
     const [snapshotsRes, anomaliesRes, alertsRes, crisesRes] = await Promise.all([
       supabase
         .from("country_performance_snapshots")
-        .select("iso3, domain, performance_index, momentum_score, risk_pressure_score, systemic_fragility_score, confidence_score, structural_break_count, forecast_stability_score")
+        .select("iso3, domain, performance_index, momentum_score, risk_pressure_score, systemic_fragility_score, confidence_score, structural_break_count, forecast_stability_score, snapshot_date")
         .in("iso3", uniqueIso3s)
-        .limit(500),
+        .in("domain", uniqueDomains)
+        .limit(2000),
       supabase
         .from("anomaly_detections")
-        .select("division, severity")
-        .limit(500),
+        .select("division, severity, created_at")
+        .gte("created_at", minDate)
+        .lte("created_at", maxDate)
+        .limit(1000),
       supabase
         .from("critical_alerts")
-        .select("country, severity")
-        .limit(500),
+        .select("country, severity, iso3, triggered_at")
+        .gte("triggered_at", minDate)
+        .lte("triggered_at", maxDate)
+        .limit(1000),
       supabase
         .from("crisis_events")
-        .select("region, severity")
-        .limit(200),
+        .select("region, severity, opened_at")
+        .gte("opened_at", minDate)
+        .lte("opened_at", maxDate)
+        .limit(500),
     ]);
 
     const snapshotMap = new Map<string, any>();
@@ -75,16 +89,30 @@ serve(async (req) => {
       snapshotMap.set(`${s.iso3}-${s.domain}`, s);
     });
 
-    // Count anomalies/alerts/crises per domain for enrichment
-    const anomalyCountByDomain = new Map<string, number>();
-    (anomaliesRes.data || []).forEach(a => {
-      const key = a.division || "unknown";
-      anomalyCountByDomain.set(key, (anomalyCountByDomain.get(key) || 0) + 1);
-    });
-    const alertCount = (alertsRes.data || []).length;
-    const avgCrisisSeverity = (crisesRes.data || []).length > 0
-      ? (crisesRes.data || []).reduce((s, c) => s + (c.severity || 0), 0) / (crisesRes.data || []).length
-      : 0;
+    // Build time-windowed context maps per iso3+domain
+    const anomalies = anomaliesRes.data || [];
+    const alerts = alertsRes.data || [];
+    const crises = crisesRes.data || [];
+
+    function countInWindow(items: any[], dateField: string, centerDate: string, windowDays: number, filterFn?: (item: any) => boolean): number {
+      const center = new Date(centerDate).getTime();
+      const halfWindow = windowDays * 86400000 / 2;
+      return items.filter(item => {
+        const t = new Date(item[dateField]).getTime();
+        return Math.abs(t - center) <= halfWindow && (!filterFn || filterFn(item));
+      }).length;
+    }
+
+    function avgSeverityInWindow(items: any[], dateField: string, centerDate: string, windowDays: number): number {
+      const center = new Date(centerDate).getTime();
+      const halfWindow = windowDays * 86400000 / 2;
+      const matched = items.filter(item => {
+        const t = new Date(item[dateField]).getTime();
+        return Math.abs(t - center) <= halfWindow;
+      });
+      if (matched.length === 0) return 0;
+      return matched.reduce((s, c) => s + (c.severity || 0), 0) / matched.length;
+    }
 
     // Generate proxy training samples
     const actionMap: Record<string, string> = {
@@ -96,9 +124,17 @@ serve(async (req) => {
       governance: "governance_reform",
     };
 
+    const CONTEXT_WINDOW_DAYS = 60;
+
     const trainingRows = validations.map(v => {
       const snap = snapshotMap.get(`${v.iso3}-${v.domain}`);
-      const domainAnomalies = anomalyCountByDomain.get(v.domain) || 0;
+      
+      // Time-windowed, geography-specific context
+      const localAnomalyCount = countInWindow(anomalies, "created_at", v.realized_date, CONTEXT_WINDOW_DAYS, 
+        (a) => a.division === v.domain);
+      const localAlertCount = countInWindow(alerts, "triggered_at", v.realized_date, CONTEXT_WINDOW_DAYS,
+        (a) => a.iso3 === v.iso3 || a.country === v.iso3);
+      const localCrisisSeverity = avgSeverityInWindow(crises, "opened_at", v.realized_date, CONTEXT_WINDOW_DAYS);
 
       const features = snap ? {
         performance_index: snap.performance_index || 50,
@@ -108,15 +144,15 @@ serve(async (req) => {
         confidence_score: snap.confidence_score || 50,
         structural_break_count: snap.structural_break_count || 0,
         forecast_stability_score: snap.forecast_stability_score || 50,
-        anomaly_count: domainAnomalies,
-        alert_count: Math.min(alertCount, 15),
-        crisis_severity_avg: avgCrisisSeverity,
+        anomaly_count: localAnomalyCount,
+        alert_count: Math.min(localAlertCount, 15),
+        crisis_severity_avg: localCrisisSeverity,
       } : {
         performance_index: 50, momentum_score: 0, risk_pressure_score: 30,
         systemic_fragility_score: 30, confidence_score: 50,
         structural_break_count: 0, forecast_stability_score: 50,
-        anomaly_count: domainAnomalies, alert_count: Math.min(alertCount, 15),
-        crisis_severity_avg: avgCrisisSeverity,
+        anomaly_count: localAnomalyCount, alert_count: Math.min(localAlertCount, 15),
+        crisis_severity_avg: localCrisisSeverity,
       };
 
       // Proxy label logic
@@ -129,7 +165,7 @@ serve(async (req) => {
       const errorQuality = errorSmall ? 0.3 : 0.1;
       const dirQuality = directionCorrect ? 0.3 : 0.0;
       const contextQuality = hasSnapshot ? 0.2 : 0.05;
-      const signalDensity = (domainAnomalies > 0 ? 0.1 : 0) + (alertCount > 0 ? 0.05 : 0) + (avgCrisisSeverity > 0 ? 0.05 : 0);
+      const signalDensity = (localAnomalyCount > 0 ? 0.1 : 0) + (localAlertCount > 0 ? 0.05 : 0) + (localCrisisSeverity > 0 ? 0.05 : 0);
       const labelConfidence = Math.min(0.95, errorQuality + dirQuality + contextQuality + signalDensity);
 
       // Proxy reason
@@ -155,6 +191,7 @@ serve(async (req) => {
         label_confidence: Math.round(labelConfidence * 100) / 100,
         proxy_reason: reasons.join("; "),
         overridden_by_real: false,
+        context_window_days: CONTEXT_WINDOW_DAYS,
       };
     });
 

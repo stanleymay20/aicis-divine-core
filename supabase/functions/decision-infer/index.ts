@@ -141,9 +141,15 @@ function selectActions(
 }
 
 // ─── Policy Layer ───
-function classifyAction(successProb: number, impact: number): "ACT" | "CONSIDER" | "MONITOR" {
-  if (successProb >= 0.75 && impact >= 60) return "ACT";
-  if (successProb >= 0.50 || impact >= 40) return "CONSIDER";
+function classifyAction(
+  successProb: number, 
+  impact: number, 
+  domainPolicies?: Record<string, { act: number; consider: number; min_impact: number }>,
+  domain?: string
+): "ACT" | "CONSIDER" | "MONITOR" {
+  const policy = (domain && domainPolicies?.[domain]) || { act: 0.75, consider: 0.50, min_impact: 40 };
+  if (successProb >= policy.act && impact >= policy.min_impact) return "ACT";
+  if (successProb >= policy.consider || impact >= (policy.min_impact * 0.8)) return "CONSIDER";
   return "MONITOR";
 }
 
@@ -167,7 +173,12 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const weights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
+    // Use domain-specific weights if available, else global
+    const domainWeightsMap = activeModel?.domain_feature_weights || {};
+    const globalWeights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
+    const { domain: reqDomain } = { domain: undefined, ...await req.clone().json().catch(() => ({})) };
+    const weights = (reqDomain && domainWeightsMap[reqDomain]) || globalWeights;
+    const domainActionPolicies = activeModel?.domain_action_policies || {};
     const modelVersion = activeModel?.version || "DL-heuristic-0.1";
     const trainingMode = activeModel?.training_mode || "heuristic";
 
@@ -219,10 +230,10 @@ serve(async (req) => {
     const targetDomain = domain || "all";
     const actions = selectActions(targetDomain, riskScore, features);
 
-    // 6. Apply policy layer
+    // 6. Apply policy layer (domain-specific thresholds)
     const recommendations = actions.map(a => ({
       ...a,
-      policy: classifyAction(a.success_probability, a.impact_estimate),
+      policy: classifyAction(a.success_probability, a.impact_estimate, domainActionPolicies, targetDomain),
     }));
 
     // 7. Optional LLM explanation

@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  Brain, RefreshCw, Target, AlertTriangle, Zap, TrendingUp,
-  Activity, BarChart3, Info, ChevronDown, ChevronUp
+  Brain, RefreshCw, Target, Zap, TrendingUp,
+  Activity, BarChart3, Info, ChevronDown, ChevronUp,
+  FileText, CheckCircle, ClipboardCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -46,6 +47,13 @@ const urgencyLabels: Record<string, string> = {
   immediate: "Immediate", "24h": "24h", "7d": "7d", "30d": "30d", monitor: "Monitor",
 };
 
+const trainingModeLabels: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  real: { label: "Real-Outcome-Trained", variant: "default" },
+  hybrid: { label: "Hybrid-Trained", variant: "secondary" },
+  proxy: { label: "Proxy-Trained", variant: "outline" },
+  heuristic: { label: "Heuristic Weights", variant: "outline" },
+};
+
 interface Props {
   domain: string;
 }
@@ -53,6 +61,7 @@ interface Props {
 export default function ModelDrivenView({ domain }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showExplain, setShowExplain] = useState(false);
+  const [capturingAction, setCapturingAction] = useState<string | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery<ModelInferResponse>({
     queryKey: ["decision-infer", domain],
@@ -68,18 +77,137 @@ export default function ModelDrivenView({ domain }: Props) {
     refetchOnWindowFocus: false,
   });
 
+  // Active model metadata
+  const { data: activeModel } = useQuery({
+    queryKey: ["active-decision-model"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("decision_models")
+        .select("version, training_mode, training_sample_count, proxy_sample_count, real_sample_count, measured_sample_count, last_calibrated_at, avg_impact_score, outcome_maturity_ratio, performance_metrics, domain_feature_weights")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 60_000,
+  });
+
   const totalSignals = data ? Object.values(data.signal_counts).reduce((a, b) => a + b, 0) : 0;
+
+  const handleCaptureRecommendation = async (rec: ModelInferResponse["recommendations"][0]) => {
+    setCapturingAction(rec.action_type);
+    try {
+      const { data: existing } = await supabase
+        .from("decision_outcome_log")
+        .select("id")
+        .eq("signal_id", `model-${rec.action_type}-${data?.generated_at}`)
+        .maybeSingle();
+
+      if (existing) {
+        toast.info("This recommendation is already captured");
+        setCapturingAction(null);
+        return;
+      }
+
+      const { error } = await supabase.from("decision_outcome_log").insert({
+        signal_id: `model-${rec.action_type}-${data?.generated_at}`,
+        signal_title: rec.label,
+        signal_date: new Date().toISOString().split("T")[0],
+        signal_direction: rec.policy === "ACT" ? "down" : "stable",
+        signal_confidence: Math.round(rec.success_probability * 100),
+        domain: domain !== "all" ? domain : "system",
+        recommended_action: rec.label,
+        hypothetical_decision_value: `Impact: ${rec.impact_estimate}/100, Prob: ${(rec.success_probability * 100).toFixed(0)}%`,
+        evidence_type: "hypothetical",
+        evidence_source_type: "decision-model",
+        evidence_note: `Model: ${data?.model_version} | Mode: ${data?.training_mode} | Hash: ${data?.inference_hash?.slice(0, 16)}`,
+        decision_features: data?.features || {},
+        action_type: rec.action_type,
+        status: "pending",
+      });
+      if (error) throw error;
+      toast.success(`Captured "${rec.label}" — track action & outcome in Decision Log`);
+    } catch (e: any) {
+      if (e?.code === "23505") {
+        toast.info("Already captured");
+      } else {
+        toast.error("Failed to capture");
+        console.error(e);
+      }
+    } finally {
+      setCapturingAction(null);
+    }
+  };
+
+  const modeInfo = trainingModeLabels[data?.training_mode || "heuristic"] || trainingModeLabels.heuristic;
+  const maturityPct = activeModel?.outcome_maturity_ratio != null
+    ? Math.round(activeModel.outcome_maturity_ratio * 100)
+    : 0;
+  const domainWeightsCount = activeModel?.domain_feature_weights
+    ? Object.keys(activeModel.domain_feature_weights).length
+    : 0;
 
   return (
     <div className="space-y-4">
       {/* Model info bar */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded border border-border flex-wrap">
-        <Info className="h-3.5 w-3.5 shrink-0" />
+      <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded border border-border">
+        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
         <span>
           <strong>Model-driven inference</strong> — decisions generated by weighted statistical scoring, not LLM reasoning.
-          {data && !data.outcome_trained && " Weights are heuristic defaults, not yet calibrated from outcomes."}
+          {data && !data.outcome_trained && " Weights are not yet calibrated from real outcomes."}
+          {data?.training_mode === "proxy" && " ⚠ Training uses proxy labels from validated forecasts, not real-world decision outcomes."}
         </span>
       </div>
+
+      {/* Outcome Maturity Summary */}
+      {activeModel && (
+        <Card className="border-accent/20">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5 text-accent-foreground" />
+                Model Calibration Status
+              </span>
+              <Badge variant={modeInfo.variant} className="text-xs">{modeInfo.label}</Badge>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+              <div className="p-1.5 rounded bg-muted/30">
+                <p className="text-sm font-bold">{activeModel.training_sample_count || 0}</p>
+                <p className="text-[9px] text-muted-foreground">Total Samples</p>
+              </div>
+              <div className="p-1.5 rounded bg-muted/30">
+                <p className="text-sm font-bold">{activeModel.proxy_sample_count || 0}</p>
+                <p className="text-[9px] text-muted-foreground">Proxy</p>
+              </div>
+              <div className="p-1.5 rounded bg-accent/10">
+                <p className="text-sm font-bold">{activeModel.real_sample_count || 0}</p>
+                <p className="text-[9px] text-muted-foreground">Real</p>
+              </div>
+              <div className="p-1.5 rounded bg-primary/10">
+                <p className="text-sm font-bold">{activeModel.measured_sample_count || 0}</p>
+                <p className="text-[9px] text-muted-foreground">Measured</p>
+              </div>
+              <div className="p-1.5 rounded bg-muted/30">
+                <p className="text-sm font-bold">{maturityPct}%</p>
+                <p className="text-[9px] text-muted-foreground">Maturity</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground flex-wrap">
+              <span>v{activeModel.version}</span>
+              {activeModel.last_calibrated_at && (
+                <span>Calibrated: {new Date(activeModel.last_calibrated_at).toLocaleDateString()}</span>
+              )}
+              {domainWeightsCount > 0 && (
+                <span>{domainWeightsCount} domain-specific weight sets</span>
+              )}
+              {activeModel.avg_impact_score != null && (
+                <span>Avg impact: {activeModel.avg_impact_score.toFixed(1)}</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -117,20 +245,6 @@ export default function ModelDrivenView({ domain }: Props) {
                   <Badge variant="outline" className="text-xs">
                     <Activity className="h-3 w-3 mr-1" />
                     {data.model_version}
-                  </Badge>
-                  <Badge variant={data.training_mode === "real" ? "default" : data.training_mode === "proxy" ? "secondary" : "outline"} className="text-xs">
-                    {data.training_mode === "real" ? "Real-Outcome-Trained" :
-                     data.training_mode === "hybrid" ? "Hybrid-Trained" :
-                     data.training_mode === "proxy" ? "Proxy-Trained" :
-                     "Heuristic Weights"}
-                  </Badge>
-                  {data.training_mode === "proxy" && (
-                    <Badge variant="outline" className="text-xs text-warning">
-                      ⚠ Proxy labels only
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className="text-xs">
-                    {data.proxy_samples} proxy / {data.real_samples} real
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     {totalSignals} signals
@@ -214,7 +328,7 @@ export default function ModelDrivenView({ domain }: Props) {
                     {isExpanded && (
                       <CardContent className="pt-0 pb-3">
                         <Separator className="mb-3" />
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3 mb-3">
                           <div className="bg-primary/5 p-2 rounded">
                             <p className="text-xs text-muted-foreground">Impact Estimate</p>
                             <p className="text-sm font-bold">{rec.impact_estimate}/100</p>
@@ -223,6 +337,23 @@ export default function ModelDrivenView({ domain }: Props) {
                             <p className="text-xs text-muted-foreground">Decision Basis</p>
                             <p className="text-sm font-bold">Statistical Model</p>
                           </div>
+                        </div>
+                        {/* Operator capture workflow */}
+                        <Separator className="mb-3" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <ClipboardCheck className="h-3 w-3" />
+                            Capture to track action → outcome → impact
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleCaptureRecommendation(rec); }}
+                            disabled={capturingAction === rec.action_type}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            {capturingAction === rec.action_type ? "Capturing..." : "Capture to Log"}
+                          </Button>
                         </div>
                       </CardContent>
                     )}
