@@ -14,6 +14,8 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
+  const runStartedAt = new Date().toISOString();
+
   try {
     console.log("Starting weekly decision learning cycle...");
     const results: Record<string, any> = {};
@@ -44,6 +46,7 @@ serve(async (req) => {
     };
 
     // Step 2: Run calibration
+    let calibrationVersion: string | null = null;
     const { data: calData, error: calError } = await supabase.functions.invoke(
       "calibrate-decision-weights", { body: {} }
     );
@@ -51,15 +54,18 @@ serve(async (req) => {
       results.calibration = { error: calError.message };
     } else {
       results.calibration = { ok: true, version: calData?.version };
+      calibrationVersion = calData?.version || null;
     }
 
     // Step 3: Run evaluation
+    let evalResult: Record<string, any> | null = null;
     const { data: evalData, error: evalError } = await supabase.functions.invoke(
       "evaluate-decision-models", { body: {} }
     );
     if (evalError) {
       results.evaluation = { error: evalError.message };
     } else {
+      evalResult = evalData?.evaluation || null;
       results.evaluation = {
         ok: true,
         improvement_over_heuristic: evalData?.evaluation?.improvement_over_heuristic,
@@ -68,31 +74,49 @@ serve(async (req) => {
     }
 
     // Step 4: Run governance alerts
-    const { error: govError } = await supabase.functions.invoke(
+    const { data: govData, error: govError } = await supabase.functions.invoke(
       "governance-alerts", { body: {} }
     );
-    results.governance_alerts = govError ? { error: govError.message } : { ok: true };
+    results.governance_alerts = govError
+      ? { error: govError.message }
+      : { ok: true, alerts_detected: govData?.alerts_detected || 0, alerts_inserted: govData?.alerts_inserted || 0 };
 
-    // Step 5: Log summary
+    const runFinishedAt = new Date().toISOString();
+
+    // Step 5: Log comprehensive summary
     await supabase.from("system_logs").insert({
       action: "weekly_decision_learning",
       result: JSON.stringify({
+        run_started_at: runStartedAt,
+        run_finished_at: runFinishedAt,
+        duration_ms: new Date(runFinishedAt).getTime() - new Date(runStartedAt).getTime(),
         weekly_stats: results.weekly_stats,
         calibration: results.calibration?.ok ? "success" : "error",
+        calibration_version: calibrationVersion,
         evaluation: results.evaluation?.ok ? "success" : "error",
+        evaluation_result: evalResult ? {
+          improvement_over_heuristic: evalResult.improvement_over_heuristic,
+          calibration_error: evalResult.calibration_error,
+        } : null,
+        governance_alerts: results.governance_alerts,
       }),
       log_level: "info",
       division: "decision-engine",
     });
 
-    return new Response(JSON.stringify({ ok: true, results }), {
+    return new Response(JSON.stringify({ ok: true, results, run_started_at: runStartedAt, run_finished_at: runFinishedAt }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const runFinishedAt = new Date().toISOString();
     console.error("Weekly learning error:", error);
     await supabase.from("system_logs").insert({
       action: "weekly_decision_learning",
-      result: `Error: ${error instanceof Error ? error.message : "Unknown"}`,
+      result: JSON.stringify({
+        run_started_at: runStartedAt,
+        run_finished_at: runFinishedAt,
+        error: error instanceof Error ? error.message : "Unknown",
+      }),
       log_level: "error",
       division: "decision-engine",
     });
