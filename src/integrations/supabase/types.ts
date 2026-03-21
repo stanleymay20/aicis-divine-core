@@ -6886,7 +6886,6 @@ export type Database = {
     Views: {
       accountability_nodes_public: {
         Row: {
-          contact_email: string | null
           country: string | null
           created_at: string | null
           id: string | null
@@ -6901,7 +6900,6 @@ export type Database = {
           verified: boolean | null
         }
         Insert: {
-          contact_email?: string | null
           country?: string | null
           created_at?: string | null
           id?: string | null
@@ -6916,7 +6914,6 @@ export type Database = {
           verified?: boolean | null
         }
         Update: {
-          contact_email?: string | null
           country?: string | null
           created_at?: string | null
           id?: string | null
@@ -7149,6 +7146,34 @@ export type Database = {
           population_est: number
           urban_rural: string
         }[]
+      }
+      get_user_org: {
+        Args: { _user_id: string }
+        Returns: {
+          api_enabled: boolean | null
+          billing_status: string | null
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          feature_flags: Json | null
+          id: string
+          max_api_keys: number | null
+          monthly_api_quota: number | null
+          name: string
+          owner_id: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+          white_label_enabled: boolean | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_village_dashboard: {
         Args: { _region_id: string }
