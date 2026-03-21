@@ -124,9 +124,17 @@ serve(async (req) => {
       governance: "governance_reform",
     };
 
+    const CONTEXT_WINDOW_DAYS = 60;
+
     const trainingRows = validations.map(v => {
       const snap = snapshotMap.get(`${v.iso3}-${v.domain}`);
-      const domainAnomalies = anomalyCountByDomain.get(v.domain) || 0;
+      
+      // Time-windowed, geography-specific context
+      const localAnomalyCount = countInWindow(anomalies, "created_at", v.realized_date, CONTEXT_WINDOW_DAYS, 
+        (a) => a.division === v.domain);
+      const localAlertCount = countInWindow(alerts, "triggered_at", v.realized_date, CONTEXT_WINDOW_DAYS,
+        (a) => a.iso3 === v.iso3 || a.country === v.iso3);
+      const localCrisisSeverity = avgSeverityInWindow(crises, "opened_at", v.realized_date, CONTEXT_WINDOW_DAYS);
 
       const features = snap ? {
         performance_index: snap.performance_index || 50,
@@ -136,15 +144,15 @@ serve(async (req) => {
         confidence_score: snap.confidence_score || 50,
         structural_break_count: snap.structural_break_count || 0,
         forecast_stability_score: snap.forecast_stability_score || 50,
-        anomaly_count: domainAnomalies,
-        alert_count: Math.min(alertCount, 15),
-        crisis_severity_avg: avgCrisisSeverity,
+        anomaly_count: localAnomalyCount,
+        alert_count: Math.min(localAlertCount, 15),
+        crisis_severity_avg: localCrisisSeverity,
       } : {
         performance_index: 50, momentum_score: 0, risk_pressure_score: 30,
         systemic_fragility_score: 30, confidence_score: 50,
         structural_break_count: 0, forecast_stability_score: 50,
-        anomaly_count: domainAnomalies, alert_count: Math.min(alertCount, 15),
-        crisis_severity_avg: avgCrisisSeverity,
+        anomaly_count: localAnomalyCount, alert_count: Math.min(localAlertCount, 15),
+        crisis_severity_avg: localCrisisSeverity,
       };
 
       // Proxy label logic
