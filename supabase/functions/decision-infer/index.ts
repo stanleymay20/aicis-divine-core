@@ -173,7 +173,12 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const weights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
+    // Use domain-specific weights if available, else global
+    const domainWeightsMap = activeModel?.domain_feature_weights || {};
+    const globalWeights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
+    const { domain: reqDomain } = { domain: undefined, ...await req.clone().json().catch(() => ({})) };
+    const weights = (reqDomain && domainWeightsMap[reqDomain]) || globalWeights;
+    const domainActionPolicies = activeModel?.domain_action_policies || {};
     const modelVersion = activeModel?.version || "DL-heuristic-0.1";
     const trainingMode = activeModel?.training_mode || "heuristic";
 
