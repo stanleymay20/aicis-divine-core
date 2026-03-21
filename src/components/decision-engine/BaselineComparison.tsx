@@ -16,11 +16,11 @@ export default function BaselineComparison() {
     queryFn: async () => {
       const { data } = await supabase
         .from("model_evaluations")
-        .select("model_version, compared_to_version, proxy_success_rate, real_success_rate, measured_success_rate, heuristic_success_rate, improvement_over_previous, improvement_over_heuristic, avg_roi, total_net_value, sample_count, measured_count, evaluated_at, calibration_error, acceptance_rate")
+        .select("*")
         .order("evaluated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      return data;
+      return data as any;
     },
     staleTime: 120_000,
   });
