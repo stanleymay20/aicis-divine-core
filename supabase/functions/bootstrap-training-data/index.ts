@@ -48,26 +48,40 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Pull corresponding snapshots for feature context
+    // Pull corresponding snapshots for feature context (by iso3+domain)
     const uniqueIso3s = [...new Set(validations.map(v => v.iso3))];
+    const uniqueDomains = [...new Set(validations.map(v => v.domain))];
+
+    // Build date range for time-windowed context
+    const dates = validations.map(v => new Date(v.realized_date));
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())) - 30 * 86400000).toISOString();
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())) + 30 * 86400000).toISOString();
+
     const [snapshotsRes, anomaliesRes, alertsRes, crisesRes] = await Promise.all([
       supabase
         .from("country_performance_snapshots")
-        .select("iso3, domain, performance_index, momentum_score, risk_pressure_score, systemic_fragility_score, confidence_score, structural_break_count, forecast_stability_score")
+        .select("iso3, domain, performance_index, momentum_score, risk_pressure_score, systemic_fragility_score, confidence_score, structural_break_count, forecast_stability_score, snapshot_date")
         .in("iso3", uniqueIso3s)
-        .limit(500),
+        .in("domain", uniqueDomains)
+        .limit(2000),
       supabase
         .from("anomaly_detections")
-        .select("division, severity")
-        .limit(500),
+        .select("division, severity, created_at")
+        .gte("created_at", minDate)
+        .lte("created_at", maxDate)
+        .limit(1000),
       supabase
         .from("critical_alerts")
-        .select("country, severity")
-        .limit(500),
+        .select("country, severity, iso3, triggered_at")
+        .gte("triggered_at", minDate)
+        .lte("triggered_at", maxDate)
+        .limit(1000),
       supabase
         .from("crisis_events")
-        .select("region, severity")
-        .limit(200),
+        .select("region, severity, opened_at")
+        .gte("opened_at", minDate)
+        .lte("opened_at", maxDate)
+        .limit(500),
     ]);
 
     const snapshotMap = new Map<string, any>();
