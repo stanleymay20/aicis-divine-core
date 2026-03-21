@@ -88,7 +88,7 @@ async function handleCatalog(supabase: any, provider?: string) {
             country: ds.nation,
             year_start: ds.year_start,
             year_end: ds.year_end,
-            data_access_type: ds.data_access_type, // "open" = public-use
+            data_access_type: ds.form_model === "public" ? "open" : (ds.data_access_type || ds.form_model || "unknown"),
             type: ds.type,
           });
         }
