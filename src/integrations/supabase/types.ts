@@ -3821,6 +3821,134 @@ export type Database = {
           },
         ]
       }
+      microdata_indicators: {
+        Row: {
+          aggregation_method: string | null
+          confidence_interval: Json | null
+          country_iso3: string
+          created_at: string | null
+          domain: string
+          id: string
+          indicator: string
+          region_name: string | null
+          sample_size: number | null
+          source_id: string
+          unit: string | null
+          value: number
+          year: number
+        }
+        Insert: {
+          aggregation_method?: string | null
+          confidence_interval?: Json | null
+          country_iso3: string
+          created_at?: string | null
+          domain: string
+          id?: string
+          indicator: string
+          region_name?: string | null
+          sample_size?: number | null
+          source_id: string
+          unit?: string | null
+          value: number
+          year: number
+        }
+        Update: {
+          aggregation_method?: string | null
+          confidence_interval?: Json | null
+          country_iso3?: string
+          created_at?: string | null
+          domain?: string
+          id?: string
+          indicator?: string
+          region_name?: string | null
+          sample_size?: number | null
+          source_id?: string
+          unit?: string | null
+          value?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "microdata_indicators_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "microdata_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      microdata_sources: {
+        Row: {
+          aggregation_level: string
+          countries: string[] | null
+          created_at: string | null
+          dataset_id: string
+          deidentification_status: string
+          description: string | null
+          domains: string[] | null
+          error_message: string | null
+          id: string
+          indicator_count: number | null
+          ingested_at: string | null
+          license_type: string
+          license_url: string | null
+          metadata: Json | null
+          provider: string
+          record_count: number | null
+          source_name: string
+          status: string
+          title: string
+          updated_at: string | null
+          years: number[] | null
+        }
+        Insert: {
+          aggregation_level?: string
+          countries?: string[] | null
+          created_at?: string | null
+          dataset_id: string
+          deidentification_status?: string
+          description?: string | null
+          domains?: string[] | null
+          error_message?: string | null
+          id?: string
+          indicator_count?: number | null
+          ingested_at?: string | null
+          license_type: string
+          license_url?: string | null
+          metadata?: Json | null
+          provider: string
+          record_count?: number | null
+          source_name: string
+          status?: string
+          title: string
+          updated_at?: string | null
+          years?: number[] | null
+        }
+        Update: {
+          aggregation_level?: string
+          countries?: string[] | null
+          created_at?: string | null
+          dataset_id?: string
+          deidentification_status?: string
+          description?: string | null
+          domains?: string[] | null
+          error_message?: string | null
+          id?: string
+          indicator_count?: number | null
+          ingested_at?: string | null
+          license_type?: string
+          license_url?: string | null
+          metadata?: Json | null
+          provider?: string
+          record_count?: number | null
+          source_name?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+          years?: number[] | null
+        }
+        Relationships: []
+      }
       model_calibration_profiles: {
         Row: {
           created_at: string
