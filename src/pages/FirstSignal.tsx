@@ -197,7 +197,6 @@ const FirstSignal = () => {
         .order("realized_date", { ascending: false })
         .limit(200);
       if (!data || data.length === 0) return [];
-      // Deduplicate: keep earliest forecast per iso3+domain combo
       const seen = new Map<string, any>();
       for (const row of data) {
         const key = `${row.iso3}-${row.domain}`;
@@ -208,6 +207,29 @@ const FirstSignal = () => {
       return Array.from(seen.values());
     },
     enabled: !!user,
+  });
+
+  // Fetch audit chain entries for these signals
+  const { data: auditEntries } = useQuery({
+    queryKey: ["first-signal-audit-entries", signals?.map((s: any) => `${s.iso3}-${s.domain}`).join(",")],
+    queryFn: async () => {
+      if (!signals || signals.length === 0) return {};
+      const ids = signals.map((s: any) => `snapshot-${s.iso3}-${s.domain}-%`);
+      const { data } = await supabase
+        .from("signal_audit_chain" as any)
+        .select("signal_id, input_hash, output_hash, model_version, generated_at")
+        .eq("signal_type", "forecast_snapshot")
+        .order("generated_at", { ascending: false })
+        .limit(500);
+      if (!data) return {};
+      const map: Record<string, any> = {};
+      for (const entry of data) {
+        const key = (entry.signal_id as string).replace("snapshot-", "").replace(/-\d{4}-\d{2}-\d{2}$/, "");
+        if (!map[key]) map[key] = entry;
+      }
+      return map;
+    },
+    enabled: !!user && !!signals && signals.length > 0,
   });
 
   if (authLoading || !user) return null;
