@@ -20,6 +20,9 @@ serve(async (req) => {
     // Run health check
     await supabase.functions.invoke("enterprise-health-check");
 
+    // Cleanup zombie jobs (stuck >1h)
+    await supabase.rpc("cleanup_zombie_jobs");
+
     // Cleanup old rate limits
     await supabase.rpc("cleanup_rate_limits");
 

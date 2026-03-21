@@ -42,8 +42,8 @@ const SystemStatus = () => {
       const pipelineMap = new Map<string, { total: number; success: number; error: number; lastRun: string | null; lastStatus: string }>();
 
       for (const log of logs) {
-        if (log.status === "running") continue;
-        const existing = pipelineMap.get(log.job_name) || { total: 0, success: 0, error: 0, lastRun: null, lastStatus: "unknown" };
+        if (log.status === "running" || log.status === "timeout") continue;
+        const existing = pipelineMap.get(log.job_name) || { total: 0, success: 0, error: 0, timeout: 0, lastRun: null, lastStatus: "unknown" };
         existing.total++;
         if (log.status === "success") existing.success++;
         if (log.status === "error") existing.error++;
