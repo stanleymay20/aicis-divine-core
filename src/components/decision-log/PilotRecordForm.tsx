@@ -139,6 +139,34 @@ const PilotRecordForm = ({ entry, onClose }: PilotRecordFormProps) => {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] text-muted-foreground font-medium mb-1 block">Evidence Source Type</label>
+            <Select value={form.evidence_source_type} onValueChange={(v) => setForm({ ...form, evidence_source_type: v })}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select source type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="internal_report">Internal Report</SelectItem>
+                <SelectItem value="partner_memo">Partner Memo</SelectItem>
+                <SelectItem value="media_source">Media Source</SelectItem>
+                <SelectItem value="field_observation">Field Observation</SelectItem>
+                <SelectItem value="quantitative_analysis">Quantitative Analysis</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground font-medium mb-1 block">Evidence Note</label>
+            <Input
+              className="h-8 text-xs"
+              placeholder="Brief note on evidence basis"
+              value={form.evidence_note}
+              onChange={(e) => setForm({ ...form, evidence_note: e.target.value })}
+            />
+          </div>
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" size="sm" className="text-xs" onClick={onClose}>Cancel</Button>
           <Button size="sm" className="text-xs" onClick={handleSave} disabled={saving}>
