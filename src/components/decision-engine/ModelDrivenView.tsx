@@ -19,6 +19,9 @@ import DecisionGovernancePanel from "./DecisionGovernancePanel";
 import ReviewControlTower from "./ReviewControlTower";
 import OutcomeMaturityPanel from "./OutcomeMaturityPanel";
 import ReviewerWorkloadPanel from "./ReviewerWorkloadPanel";
+import ModelPromotionLog from "./ModelPromotionLog";
+import LearningCycleHealth from "./LearningCycleHealth";
+import DecisionKPIPanel from "./DecisionKPIPanel";
 
 interface FeatureContribution {
   feature: string;
