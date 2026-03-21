@@ -2039,6 +2039,54 @@ export type Database = {
           },
         ]
       }
+      decision_inference_audit: {
+        Row: {
+          chosen_actions: Json
+          created_at: string
+          feature_vector: Json
+          id: string
+          inference_hash: string | null
+          model_version: string
+          policy_classifications: Json
+          risk_score: number
+          scope_domain: string | null
+          scope_iso3: string | null
+          signal_counts: Json | null
+          training_mode: string
+          weights_used: Json
+        }
+        Insert: {
+          chosen_actions: Json
+          created_at?: string
+          feature_vector: Json
+          id?: string
+          inference_hash?: string | null
+          model_version: string
+          policy_classifications: Json
+          risk_score: number
+          scope_domain?: string | null
+          scope_iso3?: string | null
+          signal_counts?: Json | null
+          training_mode: string
+          weights_used: Json
+        }
+        Update: {
+          chosen_actions?: Json
+          created_at?: string
+          feature_vector?: Json
+          id?: string
+          inference_hash?: string | null
+          model_version?: string
+          policy_classifications?: Json
+          risk_score?: number
+          scope_domain?: string | null
+          scope_iso3?: string | null
+          signal_counts?: Json | null
+          training_mode?: string
+          weights_used?: Json
+        }
+        Relationships: []
+      }
       decision_models: {
         Row: {
           action_policies: Json
@@ -2046,9 +2094,13 @@ export type Database = {
           feature_schema: Json
           feature_weights: Json
           id: string
+          measured_sample_count: number
           model_type: string
           performance_metrics: Json | null
+          proxy_sample_count: number
+          real_sample_count: number
           status: string
+          training_mode: string
           training_sample_count: number | null
           version: string
         }
@@ -2058,9 +2110,13 @@ export type Database = {
           feature_schema: Json
           feature_weights?: Json
           id?: string
+          measured_sample_count?: number
           model_type: string
           performance_metrics?: Json | null
+          proxy_sample_count?: number
+          real_sample_count?: number
           status?: string
+          training_mode?: string
           training_sample_count?: number | null
           version: string
         }
@@ -2070,9 +2126,13 @@ export type Database = {
           feature_schema?: Json
           feature_weights?: Json
           id?: string
+          measured_sample_count?: number
           model_type?: string
           performance_metrics?: Json | null
+          proxy_sample_count?: number
+          real_sample_count?: number
           status?: string
+          training_mode?: string
           training_sample_count?: number | null
           version?: string
         }
@@ -2249,7 +2309,11 @@ export type Database = {
           id: string
           impact_score: number | null
           iso3: string | null
+          label_confidence: number | null
+          label_source: string
           outcome_success: boolean | null
+          overridden_by_real: boolean
+          proxy_reason: string | null
           source_id: string | null
           source_type: string
         }
@@ -2261,7 +2325,11 @@ export type Database = {
           id?: string
           impact_score?: number | null
           iso3?: string | null
+          label_confidence?: number | null
+          label_source?: string
           outcome_success?: boolean | null
+          overridden_by_real?: boolean
+          proxy_reason?: string | null
           source_id?: string | null
           source_type?: string
         }
@@ -2273,7 +2341,11 @@ export type Database = {
           id?: string
           impact_score?: number | null
           iso3?: string | null
+          label_confidence?: number | null
+          label_source?: string
           outcome_success?: boolean | null
+          overridden_by_real?: boolean
+          proxy_reason?: string | null
           source_id?: string | null
           source_type?: string
         }

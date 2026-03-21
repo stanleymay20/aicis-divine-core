@@ -26,8 +26,12 @@ interface ModelInferResponse {
   explanation: string | null;
   decision_basis: string;
   model_version: string;
+  training_mode: string;
   outcome_trained: boolean;
   training_samples: number;
+  real_samples: number;
+  proxy_samples: number;
+  inference_hash: string;
   signal_counts: Record<string, number>;
   generated_at: string;
 }
@@ -114,8 +118,19 @@ export default function ModelDrivenView({ domain }: Props) {
                     <Activity className="h-3 w-3 mr-1" />
                     {data.model_version}
                   </Badge>
-                  <Badge variant={data.outcome_trained ? "default" : "secondary"} className="text-xs">
-                    {data.outcome_trained ? `Trained (${data.training_samples})` : "Heuristic Weights"}
+                  <Badge variant={data.training_mode === "real" ? "default" : data.training_mode === "proxy" ? "secondary" : "outline"} className="text-xs">
+                    {data.training_mode === "real" ? "Real-Outcome-Trained" :
+                     data.training_mode === "hybrid" ? "Hybrid-Trained" :
+                     data.training_mode === "proxy" ? "Proxy-Trained" :
+                     "Heuristic Weights"}
+                  </Badge>
+                  {data.training_mode === "proxy" && (
+                    <Badge variant="outline" className="text-xs text-warning">
+                      ⚠ Proxy labels only
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs">
+                    {data.proxy_samples} proxy / {data.real_samples} real
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     {totalSignals} signals
@@ -218,7 +233,7 @@ export default function ModelDrivenView({ domain }: Props) {
           )}
 
           <p className="text-xs text-muted-foreground text-center">
-            Generated {new Date(data.generated_at).toLocaleString()} · Model: {data.model_version} · Basis: {data.decision_basis}
+            Generated {new Date(data.generated_at).toLocaleString()} · Model: {data.model_version} · Mode: {data.training_mode} · Hash: {data.inference_hash?.slice(0, 12)}…
           </p>
         </>
       )}

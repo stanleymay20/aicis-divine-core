@@ -116,8 +116,9 @@ function selectActions(
     // Clamp
     actionScore = Math.max(5, Math.min(95, actionScore));
 
-    // Impact estimate based on how much the action addresses the dominant risk
-    const impactEstimate = Math.round(Math.min(95, actionScore * 0.8 + Math.random() * 5));
+    // Deterministic impact estimate: weighted combination of action score and feature relevance
+    const featureRelevance = (features.risk_pressure_score + features.systemic_fragility_score) / 200;
+    const impactEstimate = Math.round(Math.min(95, actionScore * 0.75 + featureRelevance * 20));
 
     // Urgency from score
     let urgency: string;
@@ -168,6 +169,7 @@ serve(async (req) => {
 
     const weights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
     const modelVersion = activeModel?.version || "DL-heuristic-0.1";
+    const trainingMode = activeModel?.training_mode || "heuristic";
 
     // 2. Pull signals
     let snapshotQuery = supabase
@@ -201,7 +203,8 @@ serve(async (req) => {
         risk_score: 0,
         decision_basis: "statistical_model",
         model_version: modelVersion,
-        outcome_trained: !!activeModel,
+        training_mode: trainingMode,
+        outcome_trained: trainingMode === "real" || trainingMode === "hybrid",
         message: "Insufficient signal data for model-driven inference",
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -265,15 +268,45 @@ Explain WHY this action has this success probability based on these features. Do
       }
     }
 
-    // 8. Log inference
-    await supabase.from("ai_decision_logs").insert({
-      division_key: domain || "system",
-      model_name: modelVersion,
-      input_summary: `Model inference for ${iso3 || 'global'} / ${targetDomain} | ${totalSignals} signals`,
-      output_summary: `Risk: ${riskScore.toFixed(1)} | Top: ${recommendations[0]?.label} (${(recommendations[0]?.success_probability * 100).toFixed(0)}%)`,
-      confidence: recommendations[0]?.success_probability * 100 || 0,
-      explanation: { features, risk_score: riskScore, model_version: modelVersion },
-    });
+    // 8. Compute deterministic inference hash for auditability
+    const canonicalInput = JSON.stringify(
+      { features, weights, modelVersion, trainingMode },
+      Object.keys({ features, weights, modelVersion, trainingMode }).sort()
+    );
+    const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalInput));
+    const inferenceHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+    const signalCounts = {
+      snapshots: signalData.snapshots.length,
+      anomalies: signalData.anomalies.length,
+      alerts: signalData.alerts.length,
+      crises: signalData.crises.length,
+    };
+
+    // 9. Log inference audit + decision log
+    await Promise.all([
+      supabase.from("decision_inference_audit").insert({
+        model_version: modelVersion,
+        training_mode: trainingMode,
+        scope_iso3: iso3 || null,
+        scope_domain: domain || "all",
+        feature_vector: features,
+        weights_used: weights,
+        risk_score: riskScore,
+        chosen_actions: recommendations.map(r => ({ action_type: r.action_type, success_probability: r.success_probability })),
+        policy_classifications: recommendations.map(r => ({ action_type: r.action_type, policy: r.policy })),
+        signal_counts: signalCounts,
+        inference_hash: inferenceHash,
+      }),
+      supabase.from("ai_decision_logs").insert({
+        division_key: domain || "system",
+        model_name: modelVersion,
+        input_summary: `Model inference for ${iso3 || 'global'} / ${targetDomain} | ${totalSignals} signals`,
+        output_summary: `Risk: ${riskScore.toFixed(1)} | Top: ${recommendations[0]?.label} (${(recommendations[0]?.success_probability * 100).toFixed(0)}%)`,
+        confidence: recommendations[0]?.success_probability * 100 || 0,
+        explanation: { features, risk_score: riskScore, model_version: modelVersion, training_mode: trainingMode, inference_hash: inferenceHash },
+      }),
+    ]);
 
     return new Response(JSON.stringify({
       ok: true,
@@ -283,14 +316,13 @@ Explain WHY this action has this success probability based on these features. Do
       explanation,
       decision_basis: "statistical_model",
       model_version: modelVersion,
-      outcome_trained: !!activeModel,
+      training_mode: trainingMode,
+      outcome_trained: trainingMode === "real" || trainingMode === "hybrid",
       training_samples: activeModel?.training_sample_count || 0,
-      signal_counts: {
-        snapshots: signalData.snapshots.length,
-        anomalies: signalData.anomalies.length,
-        alerts: signalData.alerts.length,
-        crises: signalData.crises.length,
-      },
+      real_samples: activeModel?.real_sample_count || 0,
+      proxy_samples: activeModel?.proxy_sample_count || 0,
+      inference_hash: inferenceHash,
+      signal_counts: signalCounts,
       generated_at: new Date().toISOString(),
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
