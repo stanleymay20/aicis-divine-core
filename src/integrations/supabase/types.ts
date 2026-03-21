@@ -2173,9 +2173,11 @@ export type Database = {
           model_type: string
           outcome_maturity_ratio: number | null
           performance_metrics: Json | null
+          promotion_status: string | null
           proxy_sample_count: number
           real_sample_count: number
           recommendation_acceptance_rate: number | null
+          rejection_reason: string | null
           status: string
           training_mode: string
           training_sample_count: number | null
@@ -2197,9 +2199,11 @@ export type Database = {
           model_type: string
           outcome_maturity_ratio?: number | null
           performance_metrics?: Json | null
+          promotion_status?: string | null
           proxy_sample_count?: number
           real_sample_count?: number
           recommendation_acceptance_rate?: number | null
+          rejection_reason?: string | null
           status?: string
           training_mode?: string
           training_sample_count?: number | null
@@ -2221,9 +2225,11 @@ export type Database = {
           model_type?: string
           outcome_maturity_ratio?: number | null
           performance_metrics?: Json | null
+          promotion_status?: string | null
           proxy_sample_count?: number
           real_sample_count?: number
           recommendation_acceptance_rate?: number | null
+          rejection_reason?: string | null
           status?: string
           training_mode?: string
           training_sample_count?: number | null
@@ -2252,6 +2258,7 @@ export type Database = {
           evidence_note: string | null
           evidence_source_type: string | null
           evidence_type: string
+          execution_note: string | null
           hypothetical_decision_value: string | null
           id: string
           impact_score: number | null
@@ -2259,6 +2266,7 @@ export type Database = {
           measured_impact_score: number | null
           measured_outcome: string | null
           net_value: number | null
+          outcome_source: string | null
           outcome_success: boolean | null
           outcome_timestamp: string | null
           override_reason: string | null
@@ -2316,6 +2324,7 @@ export type Database = {
           evidence_note?: string | null
           evidence_source_type?: string | null
           evidence_type?: string
+          execution_note?: string | null
           hypothetical_decision_value?: string | null
           id?: string
           impact_score?: number | null
@@ -2323,6 +2332,7 @@ export type Database = {
           measured_impact_score?: number | null
           measured_outcome?: string | null
           net_value?: number | null
+          outcome_source?: string | null
           outcome_success?: boolean | null
           outcome_timestamp?: string | null
           override_reason?: string | null
@@ -2380,6 +2390,7 @@ export type Database = {
           evidence_note?: string | null
           evidence_source_type?: string | null
           evidence_type?: string
+          execution_note?: string | null
           hypothetical_decision_value?: string | null
           id?: string
           impact_score?: number | null
@@ -2387,6 +2398,7 @@ export type Database = {
           measured_impact_score?: number | null
           measured_outcome?: string | null
           net_value?: number | null
+          outcome_source?: string | null
           outcome_success?: boolean | null
           outcome_timestamp?: string | null
           override_reason?: string | null
