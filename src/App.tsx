@@ -94,6 +94,7 @@ const App = () => (
             <Route path="/weekly-briefs" element={<Lazy><WeeklyBriefs /></Lazy>} />
             <Route path="/prediction-accuracy" element={<Lazy><PredictionAccuracy /></Lazy>} />
             <Route path="/adi" element={<Lazy><ADIDashboard /></Lazy>} />
+            <Route path="/trust" element={<Lazy><TrustLayer /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
