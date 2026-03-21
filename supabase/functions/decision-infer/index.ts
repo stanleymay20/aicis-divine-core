@@ -203,7 +203,8 @@ serve(async (req) => {
         risk_score: 0,
         decision_basis: "statistical_model",
         model_version: modelVersion,
-        outcome_trained: !!activeModel,
+        training_mode: trainingMode,
+        outcome_trained: trainingMode === "real" || trainingMode === "hybrid",
         message: "Insufficient signal data for model-driven inference",
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
