@@ -199,6 +199,9 @@ export default function DecisionEngine() {
           </Card>
         )}
 
+        {/* Outcome Maturity Panel */}
+        <OutcomeMaturityPanel />
+
         {data && (
           <>
             {/* Global Assessment + Evidence Summary */}
