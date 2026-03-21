@@ -282,6 +282,56 @@ const GovReadiness = () => {
           })}
         </div>
 
+        {/* SLA Breaches + Audit Chain Status */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className={slaBreaches && slaBreaches.length > 0 ? "border-destructive/30" : "border-success/30"}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Siren className="h-4 w-4" />
+                SLA Breaches
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!slaBreaches || slaBreaches.length === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-success">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  No active SLA breaches
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {slaBreaches.map((b, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className={`h-3 w-3 ${b.severity === "critical" ? "text-destructive" : "text-warning"}`} />
+                        <span className="font-mono">{b.pipeline}</span>
+                      </div>
+                      <span className="text-muted-foreground">{b.type}: {b.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                Signal Audit Chain
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{(auditChainCount as number)?.toLocaleString() || 0}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Auditable signal entries</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Each entry records model version, data sources, input/output hashes for full reproducibility.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Roadmap timeline */}
         <Card>
           <CardHeader>
