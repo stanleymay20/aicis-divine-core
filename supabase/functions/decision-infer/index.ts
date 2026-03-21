@@ -116,8 +116,9 @@ function selectActions(
     // Clamp
     actionScore = Math.max(5, Math.min(95, actionScore));
 
-    // Impact estimate based on how much the action addresses the dominant risk
-    const impactEstimate = Math.round(Math.min(95, actionScore * 0.8 + Math.random() * 5));
+    // Deterministic impact estimate: weighted combination of action score and feature relevance
+    const featureRelevance = (features.risk_pressure_score + features.systemic_fragility_score) / 200;
+    const impactEstimate = Math.round(Math.min(95, actionScore * 0.75 + featureRelevance * 20));
 
     // Urgency from score
     let urgency: string;
