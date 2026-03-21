@@ -6305,6 +6305,10 @@ export type Database = {
         Args: { _change_threshold?: number; _window_days?: number }
         Returns: Json
       }
+      compute_intelligence_score_v2: {
+        Args: { _change_threshold?: number; _window_days?: number }
+        Returns: Json
+      }
       count_districts_needing_settlements: { Args: never; Returns: number }
       count_uncovered_regions: { Args: never; Returns: number }
       get_countries_needing_villages: {
