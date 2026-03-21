@@ -61,7 +61,7 @@ export default function DecisionGovernancePanel() {
     queryFn: async () => {
       const { data } = await supabase
         .from("decision_outcome_log")
-        .select("id, signal_title, action_type, domain, recommendation_accepted, recommendation_rejected_reason, review_status, reviewer_name, reviewer_role, override_reason, postmortem_note, review_completed_at, review_due_at, review_sla_hours, assigned_reviewer, outcome_success, impact_score, evidence_type, created_at, status, actor_role")
+        .select("id, signal_title, action_type, domain, recommendation_accepted, recommendation_rejected_reason, review_status, reviewer_name, reviewer_role, override_reason, postmortem_note, review_completed_at, review_due_at, review_sla_hours, assigned_reviewer, outcome_success, impact_score, evidence_type, created_at, status, actor_role, criticality_tier, requires_dual_approval, second_reviewer_name, second_review_status, recommender_id")
         .order("created_at", { ascending: false })
         .limit(20);
       return (data as any) || [];
