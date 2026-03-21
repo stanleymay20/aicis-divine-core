@@ -114,6 +114,14 @@ const CaseStudyCard = ({ title, iso3, domain, predictedDir, actualDir, predicted
         <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
         <span>Direction was correct; magnitude error was {error} points. The system identified the right trajectory but not the exact scale.</span>
       </div>
+
+      {/* Audit proof badge */}
+      <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/20 rounded-lg px-3 py-2">
+        <Shield className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+        <span>
+          <strong className="text-foreground">Auditable</strong> — SHA-256 hash trail · Model: APE-V2.1 · Full-coverage audit chain · Reproducible
+        </span>
+      </div>
     </CardContent>
   </Card>
 );

@@ -104,7 +104,7 @@ serve(async (req) => {
       }
     }
 
-    // Auto-resolve: mark old sla_breach alerts as acknowledged if pipeline recovered
+    // Auto-resolve: mark old sla_breach alerts when pipeline recovered
     const recoveredPipelines = (slas as any[])
       .map(s => s.pipeline_name)
       .filter(name => !breaches.some(b => b.pipeline_name === name));
@@ -113,14 +113,19 @@ serve(async (req) => {
       for (const name of recoveredPipelines) {
         await supabase
           .from("critical_alerts")
-          .update({ acknowledged: true, ack_by: "system-auto-resolve" })
+          .update({ acknowledged: true, ack_by: "system-auto-resolved" })
           .eq("event_type", "sla_breach")
           .eq("acknowledged", false)
           .contains("meta", { pipeline_name: name });
       }
     }
 
-    return new Response(JSON.stringify({ breaches, checked: slas.length, timestamp: new Date().toISOString() }), {
+    return new Response(JSON.stringify({
+      breaches,
+      checked: slas.length,
+      recovered: recoveredPipelines.length,
+      timestamp: new Date().toISOString(),
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
