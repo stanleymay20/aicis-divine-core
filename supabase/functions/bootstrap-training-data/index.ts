@@ -165,7 +165,7 @@ serve(async (req) => {
       const errorQuality = errorSmall ? 0.3 : 0.1;
       const dirQuality = directionCorrect ? 0.3 : 0.0;
       const contextQuality = hasSnapshot ? 0.2 : 0.05;
-      const signalDensity = (domainAnomalies > 0 ? 0.1 : 0) + (alertCount > 0 ? 0.05 : 0) + (avgCrisisSeverity > 0 ? 0.05 : 0);
+      const signalDensity = (localAnomalyCount > 0 ? 0.1 : 0) + (localAlertCount > 0 ? 0.05 : 0) + (localCrisisSeverity > 0 ? 0.05 : 0);
       const labelConfidence = Math.min(0.95, errorQuality + dirQuality + contextQuality + signalDensity);
 
       // Proxy reason
