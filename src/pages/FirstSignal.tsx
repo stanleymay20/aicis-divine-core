@@ -259,6 +259,65 @@ const FirstSignal = () => {
           />
         </div>
 
+        {/* Decision Value Layer */}
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              What Changes If You Use AICIS?
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Translating signal detection into concrete decision advantage
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              {[
+                {
+                  title: "Earlier Action",
+                  icon: "⏱️",
+                  without: "Policy response begins after official quarterly data confirms a shift — typically 3–6 months after onset.",
+                  with: "AICIS directional signal available 7+ days before confirmation, enabling proactive positioning.",
+                },
+                {
+                  title: "Better Prioritization",
+                  icon: "🎯",
+                  without: "All 211 countries appear equally important until a crisis becomes visible to media.",
+                  with: "Turning-point detection highlights which countries are entering structural change — focusing analyst attention where it matters.",
+                },
+                {
+                  title: "Reduced Blind Spots",
+                  icon: "🔍",
+                  without: "Naive baselines miss 100% of directional changes. Analysts rely on news cycle for awareness.",
+                  with: "AICIS detects 20% of turning points that baselines miss entirely — converting zero visibility to partial coverage.",
+                },
+                {
+                  title: "Resource Allocation",
+                  icon: "💰",
+                  without: "Emergency procurement, hedging, and humanitarian pre-positioning triggered only after damage is visible.",
+                  with: "Advance climate and food security signals enable earlier commodity hedging, insurance adjustment, and supply chain preparation.",
+                },
+              ].map((item, idx) => (
+                <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <span>{item.icon}</span> {item.title}
+                  </p>
+                  <div className="space-y-1.5">
+                    <div className="flex items-start gap-2">
+                      <XCircle className="h-3 w-3 text-destructive flex-shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-muted-foreground"><strong>Without AICIS:</strong> {item.without}</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-success flex-shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-muted-foreground"><strong>With AICIS:</strong> {item.with}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Honest limitations */}
         <Card className="border-warning/20 bg-warning/5">
           <CardContent className="p-4 space-y-2">
