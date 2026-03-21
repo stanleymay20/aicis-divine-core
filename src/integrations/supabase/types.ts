@@ -5864,6 +5864,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reviewer_routing_rules: {
+        Row: {
+          created_at: string | null
+          criticality_tier: string
+          default_reviewer: string
+          default_reviewer_role: string
+          domain: string
+          enabled: boolean | null
+          id: string
+          max_active_assignments: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          criticality_tier?: string
+          default_reviewer: string
+          default_reviewer_role?: string
+          domain: string
+          enabled?: boolean | null
+          id?: string
+          max_active_assignments?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          criticality_tier?: string
+          default_reviewer?: string
+          default_reviewer_role?: string
+          domain?: string
+          enabled?: boolean | null
+          id?: string
+          max_active_assignments?: number | null
+        }
+        Relationships: []
+      }
       risk_predictions: {
         Row: {
           affected_divisions: string[]

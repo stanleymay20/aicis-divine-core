@@ -110,6 +110,43 @@ serve(async (req) => {
       });
     }
 
+    // 5a. Accepted but not started beyond SLA
+    const { data: staleExec } = await supabase
+      .from("decision_outcome_log")
+      .select("id, signal_title, review_sla_hours, created_at")
+      .eq("recommendation_accepted", true)
+      .or("execution_status.is.null,execution_status.eq.not_started")
+      .eq("action_taken", false);
+
+    const staleCount = (staleExec || []).filter((r: any) => {
+      if (!r.created_at || !r.review_sla_hours) return false;
+      const age = (now.getTime() - new Date(r.created_at).getTime()) / 3600000;
+      return age > r.review_sla_hours;
+    }).length;
+
+    if (staleCount > 0) {
+      alerts.push({
+        title: `${staleCount} accepted decision(s) not executed beyond SLA`,
+        message: "Accepted recommendations have exceeded their SLA without execution starting.",
+        severity: "high", division: "governance",
+      });
+    }
+
+    // 5b. Completed execution without outcome review
+    const { count: noOutcomeReview } = await supabase
+      .from("decision_outcome_log")
+      .select("id", { count: "exact", head: true })
+      .eq("execution_status", "completed")
+      .is("outcome_success", null);
+
+    if ((noOutcomeReview ?? 0) > 0) {
+      alerts.push({
+        title: `${noOutcomeReview} completed execution(s) without outcome review`,
+        message: "Execution completed but no outcome has been recorded.",
+        severity: "medium", division: "governance",
+      });
+    }
+
     // --- SILENT FAILURE DETECTION + STATE TRACKING ---
 
     // 5. No measured outcomes in 14d
