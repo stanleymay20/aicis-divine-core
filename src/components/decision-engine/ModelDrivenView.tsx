@@ -449,6 +449,7 @@ export default function ModelDrivenView({ domain }: Props) {
           </div>
           <ActionLeaderboard />
           <OutcomeMaturityPanel />
+          <ReviewerWorkloadPanel />
           <ReviewControlTower />
           <DecisionGovernancePanel />
 

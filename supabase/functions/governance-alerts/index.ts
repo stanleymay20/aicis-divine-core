@@ -70,6 +70,23 @@ serve(async (req) => {
       });
     }
 
+    // 4. Critical decisions pending dual approval
+    const { data: dualPending } = await supabase
+      .from("decision_outcome_log")
+      .select("id, signal_title")
+      .eq("requires_dual_approval", true)
+      .or("second_review_status.is.null,second_review_status.eq.pending")
+      .or("review_status.is.null,review_status.eq.pending,review_status.eq.approved");
+
+    if (dualPending && dualPending.length > 0) {
+      alerts.push({
+        title: `${dualPending.length} critical decision(s) awaiting dual approval`,
+        message: `High-criticality decisions require a second reviewer but dual approval is not yet complete.`,
+        severity: "high",
+        division: "governance",
+      });
+    }
+
     // Write alerts (deduplicate by title within 6h)
     let inserted = 0;
     for (const alert of alerts) {
