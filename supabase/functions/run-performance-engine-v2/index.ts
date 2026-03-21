@@ -515,12 +515,21 @@ Deno.serve(async (req) => {
       return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    function canonicalize(obj: Record<string, unknown>): string {
-      return JSON.stringify(obj, Object.keys(obj).sort());
+    function canonicalize(value: unknown): string {
+      if (value === null || value === undefined) return "null";
+      if (typeof value === "number" || typeof value === "boolean") return String(value);
+      if (typeof value === "string") return JSON.stringify(value);
+      if (Array.isArray(value)) return "[" + value.map(canonicalize).join(",") + "]";
+      if (typeof value === "object") {
+        const keys = Object.keys(value as Record<string, unknown>).sort();
+        return "{" + keys.map(k => JSON.stringify(k) + ":" + canonicalize((value as Record<string, unknown>)[k])).join(",") + "}";
+      }
+      return String(value);
     }
 
+    // Full coverage: audit ALL snapshots, not sampled
     const auditEntries = [];
-    for (const s of allSnapshots.slice(0, 50)) {
+    for (const s of allSnapshots) {
       const inputCanonical = canonicalize({
         iso3: s.iso3, domain: s.domain, snapshot_date: snapshotDate,
         model_version: MODEL_VERSION, alpha: 0.55, beta: 0.3, break_threshold: 1.5,
@@ -549,6 +558,7 @@ Deno.serve(async (req) => {
         output_hash: outputHash,
         parameters: JSON.stringify({ alpha: 0.55, beta: 0.3, breakThreshold: 1.5 }),
         reproducible: true,
+        notes: `full-coverage audit | ${allSnapshots.length} total snapshots`,
       });
     }
     if (auditEntries.length > 0) {
