@@ -16,6 +16,7 @@ import ActionLeaderboard from "./ActionLeaderboard";
 import TrustScorePanel from "./TrustScorePanel";
 import BaselineComparison from "./BaselineComparison";
 import DecisionGovernancePanel from "./DecisionGovernancePanel";
+import ReviewControlTower from "./ReviewControlTower";
 
 interface FeatureContribution {
   feature: string;
@@ -144,6 +145,11 @@ export default function ModelDrivenView({ domain }: Props) {
         return;
       }
 
+      // Auto-set SLA based on policy
+      const slaMap: Record<string, number> = { ACT: 24, CONSIDER: 72, MONITOR: 168 };
+      const slaHours = slaMap[rec.policy] || 72;
+      const reviewDueAt = new Date(Date.now() + slaHours * 3600000).toISOString();
+
       const { error } = await supabase.from("decision_outcome_log").insert({
         signal_id: `model-${rec.action_type}-${data?.generated_at}`,
         signal_title: rec.label,
@@ -160,6 +166,9 @@ export default function ModelDrivenView({ domain }: Props) {
         action_type: rec.action_type,
         status: "pending",
         recommendation_accepted: true,
+        review_status: "pending",
+        review_sla_hours: slaHours,
+        review_due_at: reviewDueAt,
       });
       if (error) throw error;
       toast.success(`Captured "${rec.label}" — track action & outcome in Decision Log`);
@@ -416,12 +425,13 @@ export default function ModelDrivenView({ domain }: Props) {
             </div>
           )}
 
-          {/* Strategic Panels */}
+           {/* Strategic Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <TrustScorePanel />
             <BaselineComparison />
           </div>
           <ActionLeaderboard />
+          <ReviewControlTower />
           <DecisionGovernancePanel />
 
           <p className="text-xs text-muted-foreground text-center">

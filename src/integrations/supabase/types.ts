@@ -2170,6 +2170,8 @@ export type Database = {
           action_type: string | null
           action_window_days: number | null
           actor_role: string | null
+          assigned_reviewer: string | null
+          assigned_reviewer_role: string | null
           cost_of_action: number | null
           created_at: string | null
           decision_features: Json | null
@@ -2189,16 +2191,24 @@ export type Database = {
           net_value: number | null
           outcome_success: boolean | null
           outcome_timestamp: string | null
+          override_reason: string | null
           pilot_action_taken: string | null
           pilot_ended_at: string | null
           pilot_outcome: string | null
           pilot_partner: string | null
           pilot_started_at: string | null
+          postmortem_note: string | null
           recommendation_accepted: boolean | null
           recommendation_rejected_reason: string | null
           recommended_action: string | null
           recorded_at: string | null
           recorded_by: string | null
+          review_completed_at: string | null
+          review_due_at: string | null
+          review_sla_hours: number | null
+          review_status: string | null
+          reviewer_name: string | null
+          reviewer_role: string | null
           roi_estimate: number | null
           signal_confidence: number | null
           signal_date: string
@@ -2216,6 +2226,8 @@ export type Database = {
           action_type?: string | null
           action_window_days?: number | null
           actor_role?: string | null
+          assigned_reviewer?: string | null
+          assigned_reviewer_role?: string | null
           cost_of_action?: number | null
           created_at?: string | null
           decision_features?: Json | null
@@ -2235,16 +2247,24 @@ export type Database = {
           net_value?: number | null
           outcome_success?: boolean | null
           outcome_timestamp?: string | null
+          override_reason?: string | null
           pilot_action_taken?: string | null
           pilot_ended_at?: string | null
           pilot_outcome?: string | null
           pilot_partner?: string | null
           pilot_started_at?: string | null
+          postmortem_note?: string | null
           recommendation_accepted?: boolean | null
           recommendation_rejected_reason?: string | null
           recommended_action?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
+          review_completed_at?: string | null
+          review_due_at?: string | null
+          review_sla_hours?: number | null
+          review_status?: string | null
+          reviewer_name?: string | null
+          reviewer_role?: string | null
           roi_estimate?: number | null
           signal_confidence?: number | null
           signal_date: string
@@ -2262,6 +2282,8 @@ export type Database = {
           action_type?: string | null
           action_window_days?: number | null
           actor_role?: string | null
+          assigned_reviewer?: string | null
+          assigned_reviewer_role?: string | null
           cost_of_action?: number | null
           created_at?: string | null
           decision_features?: Json | null
@@ -2281,16 +2303,24 @@ export type Database = {
           net_value?: number | null
           outcome_success?: boolean | null
           outcome_timestamp?: string | null
+          override_reason?: string | null
           pilot_action_taken?: string | null
           pilot_ended_at?: string | null
           pilot_outcome?: string | null
           pilot_partner?: string | null
           pilot_started_at?: string | null
+          postmortem_note?: string | null
           recommendation_accepted?: boolean | null
           recommendation_rejected_reason?: string | null
           recommended_action?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
+          review_completed_at?: string | null
+          review_due_at?: string | null
+          review_sla_hours?: number | null
+          review_status?: string | null
+          reviewer_name?: string | null
+          reviewer_role?: string | null
           roi_estimate?: number | null
           signal_confidence?: number | null
           signal_date?: string
@@ -2344,6 +2374,47 @@ export type Database = {
           signal_counts?: Json
         }
         Relationships: []
+      }
+      decision_review_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_role: string | null
+          decision_id: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_role?: string | null
+          decision_id: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_role?: string | null
+          decision_id?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_review_history_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decision_outcome_log"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       decision_training_dataset: {
         Row: {
