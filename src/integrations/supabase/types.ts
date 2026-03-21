@@ -2173,11 +2173,15 @@ export type Database = {
           model_type: string
           outcome_maturity_ratio: number | null
           performance_metrics: Json | null
+          promoted_from_version: string | null
           promotion_status: string | null
           proxy_sample_count: number
           real_sample_count: number
           recommendation_acceptance_rate: number | null
           rejection_reason: string | null
+          rollback_reason: string | null
+          rollback_required: boolean | null
+          rolled_back_from_version: string | null
           status: string
           training_mode: string
           training_sample_count: number | null
@@ -2199,11 +2203,15 @@ export type Database = {
           model_type: string
           outcome_maturity_ratio?: number | null
           performance_metrics?: Json | null
+          promoted_from_version?: string | null
           promotion_status?: string | null
           proxy_sample_count?: number
           real_sample_count?: number
           recommendation_acceptance_rate?: number | null
           rejection_reason?: string | null
+          rollback_reason?: string | null
+          rollback_required?: boolean | null
+          rolled_back_from_version?: string | null
           status?: string
           training_mode?: string
           training_sample_count?: number | null
@@ -2225,11 +2233,15 @@ export type Database = {
           model_type?: string
           outcome_maturity_ratio?: number | null
           performance_metrics?: Json | null
+          promoted_from_version?: string | null
           promotion_status?: string | null
           proxy_sample_count?: number
           real_sample_count?: number
           recommendation_acceptance_rate?: number | null
           rejection_reason?: string | null
+          rollback_reason?: string | null
+          rollback_required?: boolean | null
+          rolled_back_from_version?: string | null
           status?: string
           training_mode?: string
           training_sample_count?: number | null
@@ -2258,7 +2270,12 @@ export type Database = {
           evidence_note: string | null
           evidence_source_type: string | null
           evidence_type: string
+          execution_blocker: string | null
+          execution_completed_at: string | null
           execution_note: string | null
+          execution_owner: string | null
+          execution_started_at: string | null
+          execution_status: string | null
           hypothetical_decision_value: string | null
           id: string
           impact_score: number | null
@@ -2324,7 +2341,12 @@ export type Database = {
           evidence_note?: string | null
           evidence_source_type?: string | null
           evidence_type?: string
+          execution_blocker?: string | null
+          execution_completed_at?: string | null
           execution_note?: string | null
+          execution_owner?: string | null
+          execution_started_at?: string | null
+          execution_status?: string | null
           hypothetical_decision_value?: string | null
           id?: string
           impact_score?: number | null
@@ -2390,7 +2412,12 @@ export type Database = {
           evidence_note?: string | null
           evidence_source_type?: string | null
           evidence_type?: string
+          execution_blocker?: string | null
+          execution_completed_at?: string | null
           execution_note?: string | null
+          execution_owner?: string | null
+          execution_started_at?: string | null
+          execution_status?: string | null
           hypothetical_decision_value?: string | null
           id?: string
           impact_score?: number | null
@@ -3945,6 +3972,47 @@ export type Database = {
         }
         Relationships: []
       }
+      governance_discrepancies: {
+        Row: {
+          decision_id: string | null
+          description: string
+          detected_at: string | null
+          discrepancy_type: string
+          id: string
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          decision_id?: string | null
+          description: string
+          detected_at?: string | null
+          discrepancy_type: string
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          decision_id?: string | null
+          description?: string
+          detected_at?: string | null
+          discrepancy_type?: string
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "governance_discrepancies_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decision_outcome_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       governance_global: {
         Row: {
           category: string | null
@@ -4861,6 +4929,42 @@ export type Database = {
           status?: string
           structural_break_method?: string
           weight_vector_hash?: string | null
+        }
+        Relationships: []
+      }
+      model_rollback_history: {
+        Row: {
+          calibration_error: number | null
+          created_at: string | null
+          id: string
+          improvement_over_heuristic: number | null
+          rollback_reason: string
+          rolled_back_to_version: string
+          rolled_back_version: string
+          triggered_by: string | null
+          trust_score_before: number | null
+        }
+        Insert: {
+          calibration_error?: number | null
+          created_at?: string | null
+          id?: string
+          improvement_over_heuristic?: number | null
+          rollback_reason: string
+          rolled_back_to_version: string
+          rolled_back_version: string
+          triggered_by?: string | null
+          trust_score_before?: number | null
+        }
+        Update: {
+          calibration_error?: number | null
+          created_at?: string | null
+          id?: string
+          improvement_over_heuristic?: number | null
+          rollback_reason?: string
+          rolled_back_to_version?: string
+          rolled_back_version?: string
+          triggered_by?: string | null
+          trust_score_before?: number | null
         }
         Relationships: []
       }
@@ -6346,6 +6450,39 @@ export type Database = {
           reproducible?: boolean | null
           signal_id?: string
           signal_type?: string
+        }
+        Relationships: []
+      }
+      silent_failure_state: {
+        Row: {
+          description: string
+          detected_at: string | null
+          failure_type: string
+          id: string
+          metadata: Json | null
+          resolved: boolean | null
+          resolved_at: string | null
+          severity: string | null
+        }
+        Insert: {
+          description: string
+          detected_at?: string | null
+          failure_type: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          severity?: string | null
+        }
+        Update: {
+          description?: string
+          detected_at?: string | null
+          failure_type?: string
+          id?: string
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          severity?: string | null
         }
         Relationships: []
       }

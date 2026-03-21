@@ -22,6 +22,11 @@ import ReviewerWorkloadPanel from "./ReviewerWorkloadPanel";
 import ModelPromotionLog from "./ModelPromotionLog";
 import LearningCycleHealth from "./LearningCycleHealth";
 import DecisionKPIPanel from "./DecisionKPIPanel";
+import ModelSafetyPanel from "./ModelSafetyPanel";
+import ExecutionPipelinePanel from "./ExecutionPipelinePanel";
+import ReviewerAccountabilityPanel from "./ReviewerAccountabilityPanel";
+import MeasuredEvidenceProgressPanel from "./MeasuredEvidenceProgressPanel";
+import SilentFailurePanel from "./SilentFailurePanel";
 
 interface FeatureContribution {
   feature: string;
@@ -445,23 +450,32 @@ export default function ModelDrivenView({ domain }: Props) {
             </div>
           )}
 
-           {/* Strategic Panels */}
+           {/* Operational Safety */}
+          <ModelSafetyPanel />
+          <SilentFailurePanel />
+
+          {/* Strategic Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <TrustScorePanel />
             <BaselineComparison />
           </div>
+
+          {/* Execution & KPIs */}
           <DecisionKPIPanel />
+          <ExecutionPipelinePanel />
+          <MeasuredEvidenceProgressPanel />
           <ActionLeaderboard />
           <OutcomeMaturityPanel />
+
+          {/* Model History */}
           <ModelPromotionLog />
           <LearningCycleHealth />
+
+          {/* Governance */}
+          <ReviewerAccountabilityPanel />
           <ReviewerWorkloadPanel />
           <ReviewControlTower />
           <DecisionGovernancePanel />
-
-          <p className="text-xs text-muted-foreground text-center">
-            Generated {new Date(data.generated_at).toLocaleString()} · {data.model_version} · {data.training_mode} · Hash: {data.inference_hash?.slice(0, 12)}…
-          </p>
         </>
       )}
     </div>
