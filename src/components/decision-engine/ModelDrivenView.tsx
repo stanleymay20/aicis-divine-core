@@ -16,6 +16,7 @@ import ActionLeaderboard from "./ActionLeaderboard";
 import TrustScorePanel from "./TrustScorePanel";
 import BaselineComparison from "./BaselineComparison";
 import DecisionGovernancePanel from "./DecisionGovernancePanel";
+import ReviewControlTower from "./ReviewControlTower";
 
 interface FeatureContribution {
   feature: string;
