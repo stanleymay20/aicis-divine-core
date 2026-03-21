@@ -425,12 +425,13 @@ export default function ModelDrivenView({ domain }: Props) {
             </div>
           )}
 
-          {/* Strategic Panels */}
+           {/* Strategic Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <TrustScorePanel />
             <BaselineComparison />
           </div>
           <ActionLeaderboard />
+          <ReviewControlTower />
           <DecisionGovernancePanel />
 
           <p className="text-xs text-muted-foreground text-center">
