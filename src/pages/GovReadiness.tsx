@@ -107,31 +107,38 @@ const GovReadiness = () => {
   const measuredEntries = decisionEntries?.filter((e: any) => e.evidence_type === "measured").length || 0;
   const totalDecisions = decisionEntries?.length || 0;
 
+  // HONEST scoring — no free points, penalize empty infrastructure
+  const auditChainPopulated = (auditChainCount as number) > 0;
   const reliabilityScore = Math.min(100, Math.round(
-    (pipelineUptime * 0.4) + (hasSLAs ? 20 : 0) + (totalPipelines > 10 ? 20 : totalPipelines * 2) + 20
+    (totalPipelines > 0 ? pipelineUptime * 0.4 : 0) +
+    (hasSLAs ? 20 : 0) +
+    (totalPipelines > 10 ? 20 : totalPipelines * 2) +
+    (totalPipelines > 0 ? 10 : 0) // only if pipelines are tracked
   ));
 
   const securityScore = Math.min(100, Math.round(
-    25 + // RLS exists
+    20 + // RLS exists (verified in lockdown sprint)
     15 + // RBAC exists
     10 + // GDPR page exists
     10 + // advisory mode
     (hasSLAs ? 10 : 0) +
-    10 // encryption at rest (Supabase default)
+    10 + // encryption at rest (Supabase default)
+    (auditChainPopulated ? 15 : 0) // audit chain must have real data
   ));
 
   const evidenceScore = Math.min(100, Math.round(
     Math.min(30, ((validations as number) / 1000) * 30) +
     Math.min(25, pilotEntries * 5) +
     Math.min(25, measuredEntries * 10) +
-    (totalDecisions > 0 ? 20 : 0)
+    (totalDecisions > 0 ? 10 : 0) + // reduced from 20
+    (auditChainPopulated ? 10 : 0) // audit chain contributes to evidence
   ));
 
   const opsScore = Math.min(100, Math.round(
     (totalPipelines > 0 ? 25 : 0) +
     (hasSLAs ? 25 : 0) +
-    25 + // lifecycle registry exists
-    15 // infra-ops page exists
+    (totalPipelines > 0 ? 15 : 0) + // lifecycle only counts if pipelines exist
+    (totalPipelines > 0 ? 10 : 0) // infra-ops only meaningful with data
   ));
 
   const overallScore = Math.round((reliabilityScore + securityScore + evidenceScore + opsScore) / 4);
@@ -166,7 +173,7 @@ const GovReadiness = () => {
       target: 95,
       icon: Shield,
       items: [
-        { name: "Row-Level Security", status: "done", detail: "All tables protected" },
+        { name: "Row-Level Security", status: "done", detail: "Hardened in security lockdown" },
         { name: "Role-based access (RBAC)", status: "done", detail: "Admin/observer/analyst" },
         { name: "GDPR data rights", status: "done", detail: "/compliance portal" },
         { name: "Audit trail", status: "partial", detail: "audit_log table active" },
@@ -325,18 +332,25 @@ const GovReadiness = () => {
                 <p className="text-2xl font-bold">{(auditChainCount as number)?.toLocaleString() || 0}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">Auditable signal entries</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <div className="text-center bg-muted/20 rounded-lg p-2">
-                  <p className="text-xs font-bold">Full</p>
-                  <p className="text-[9px] text-muted-foreground">Coverage scope</p>
+              {(auditChainCount as number) === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-warning mt-3 bg-warning/10 rounded-lg p-2">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>Audit chain not yet populated. Engine must run to generate entries.</span>
                 </div>
-                <div className="text-center bg-muted/20 rounded-lg p-2">
-                  <p className="text-xs font-bold">SHA-256</p>
-                  <p className="text-[9px] text-muted-foreground">Hash algorithm</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <div className="text-center bg-muted/20 rounded-lg p-2">
+                    <p className="text-xs font-bold">Full</p>
+                    <p className="text-[9px] text-muted-foreground">Coverage scope</p>
+                  </div>
+                  <div className="text-center bg-muted/20 rounded-lg p-2">
+                    <p className="text-xs font-bold">SHA-256</p>
+                    <p className="text-[9px] text-muted-foreground">Hash algorithm</p>
+                  </div>
                 </div>
-              </div>
+              )}
               <p className="text-[10px] text-muted-foreground mt-2">
-                Recursive canonical JSON + SHA-256. Every snapshot is audited with input/output hashes.
+                Recursive canonical JSON + SHA-256. {(auditChainCount as number) > 0 ? "Every snapshot is audited with input/output hashes." : "Infrastructure ready — awaiting first engine run."}
               </p>
             </CardContent>
           </Card>
