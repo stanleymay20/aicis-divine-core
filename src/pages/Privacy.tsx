@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Shield, Database, Eye, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Privacy = () => {
@@ -20,152 +21,219 @@ const Privacy = () => {
 
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader>
-            <CardTitle className="text-3xl font-orbitron">Privacy Policy</CardTitle>
-            <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
+            <CardTitle className="text-3xl font-orbitron flex items-center gap-3">
+              <Shield className="h-7 w-7 text-primary" />
+              Privacy Policy
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">Version 2.0</Badge>
+              <p className="text-muted-foreground text-sm">Effective: March 21, 2026</p>
+            </div>
           </CardHeader>
           <CardContent className="prose prose-sm dark:prose-invert max-w-none space-y-6">
+
+            {/* Core Principle Banner */}
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <p className="text-sm text-foreground font-medium flex items-center gap-2">
+                <Lock className="h-4 w-4 text-primary shrink-0" />
+                AICIS is a decision-support platform built on publicly available macro-level data. We do not collect, process, or store personal data of individuals observed or analyzed by the system. The platform analyzes country-level indicators, not individual behavior.
+              </p>
+            </div>
+
             <section>
-              <h2 className="text-2xl font-semibold mb-3">1. Introduction</h2>
+              <h2 className="text-2xl font-semibold mb-3">1. Introduction &amp; Scope</h2>
               <p className="text-muted-foreground">
-                AICIS ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains
-                how we collect, use, disclose, and safeguard your information when you use our platform.
+                AICIS (Autonomous Intelligent Cybernetic Intervention System) is an AI-assisted geopolitical and socioeconomic intelligence platform. This Privacy Policy explains how we handle data in two categories:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+                <li><strong>Platform user data</strong> — your account credentials, usage patterns, and preferences</li>
+                <li><strong>Analytical data</strong> — publicly sourced country-level indicators used for intelligence generation</li>
+              </ul>
+              <p className="text-muted-foreground mt-2">
+                This policy is designed to comply with the General Data Protection Regulation (GDPR), the EU AI Act, and applicable international data protection frameworks.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">2. Information We Collect</h2>
-              <h3 className="text-xl font-semibold mb-2">Personal Information</h3>
-              <p className="text-muted-foreground mb-2">We collect information that you provide directly to us:</p>
+              <h2 className="text-2xl font-semibold mb-3">2. Data We Collect</h2>
+              
+              <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                <Database className="h-4 w-4 text-primary" />
+                2.1 User Account Data
+              </h3>
+              <p className="text-muted-foreground mb-2">When you create an account, we collect:</p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Name and contact information (email, phone)</li>
-                <li>Account credentials</li>
-                <li>Organization details</li>
-                <li>Billing and payment information</li>
-                <li>Communications with us</li>
+                <li>Email address and display name</li>
+                <li>Organization affiliation (if provided)</li>
+                <li>Authentication credentials (stored encrypted, never in plaintext)</li>
+                <li>Role and access level within the platform</li>
               </ul>
 
-              <h3 className="text-xl font-semibold mb-2 mt-4">Automatically Collected Information</h3>
+              <h3 className="text-xl font-semibold mb-2 mt-4">2.2 Usage Data</h3>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Usage data (pages viewed, features used, time spent)</li>
-                <li>Device information (browser type, IP address, operating system)</li>
-                <li>Log data (access times, error logs)</li>
-                <li>Cookies and similar tracking technologies</li>
+                <li>Pages viewed and features accessed</li>
+                <li>Query history within the intelligence interface</li>
+                <li>Session duration and access timestamps</li>
+                <li>Device type and browser information</li>
               </ul>
-            </section>
 
-            <section>
-              <h2 className="text-2xl font-semibold mb-3">3. How We Use Your Information</h2>
-              <p className="text-muted-foreground mb-2">We use collected information for:</p>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Providing, maintaining, and improving our services</li>
-                <li>Processing transactions and sending related information</li>
-                <li>Sending administrative information, updates, and security alerts</li>
-                <li>Responding to your comments, questions, and customer service requests</li>
-                <li>Monitoring and analyzing trends, usage, and activities</li>
-                <li>Detecting, preventing, and addressing technical issues and security threats</li>
-                <li>Training and improving our AI models (with your consent)</li>
-                <li>Complying with legal obligations</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold mb-3">4. AI & Machine Learning</h2>
-              <p className="text-muted-foreground">
-                AICIS uses artificial intelligence and machine learning technologies. We want to be transparent about how
-                your data may be used:
+              <h3 className="text-xl font-semibold mb-2 mt-4 flex items-center gap-2">
+                <Eye className="h-4 w-4 text-primary" />
+                2.3 Analytical Data (Non-Personal)
+              </h3>
+              <p className="text-muted-foreground mb-2">
+                AICIS processes publicly available macro-level data from recognized international sources:
               </p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Aggregated, anonymized data may be used to train and improve our AI models</li>
-                <li>You can opt out of having your data used for AI training purposes</li>
-                <li>All AI decisions are logged and auditable</li>
-                <li>You have the right to request human review of AI decisions affecting you</li>
+                <li>World Bank Development Indicators</li>
+                <li>WHO Global Health Observatory</li>
+                <li>FAO Food Security data</li>
+                <li>GDELT Project (event data)</li>
+                <li>NASA POWER (climate data)</li>
+                <li>Our World in Data (energy, health)</li>
+              </ul>
+              <p className="text-muted-foreground mt-2">
+                <strong>This data contains no personally identifiable information.</strong> All indicators are aggregated at national, regional, or settlement level. No individual surveillance, tracking, or profiling is performed.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3">3. Data We Do NOT Collect</h2>
+              <p className="text-muted-foreground mb-2">AICIS explicitly does not:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>Monitor, track, or profile individual citizens of any country</li>
+                <li>Collect biometric data, location data of individuals, or social media profiles</li>
+                <li>Scrape private communications, personal records, or restricted databases</li>
+                <li>Use facial recognition, behavioral tracking, or individual sentiment analysis</li>
+                <li>Process data that could identify specific persons within analyzed populations</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">5. Data Sharing & Disclosure</h2>
-              <p className="text-muted-foreground mb-2">We may share your information:</p>
+              <h2 className="text-2xl font-semibold mb-3">4. How We Use Data</h2>
+              <p className="text-muted-foreground mb-2">
+                <strong>User data</strong> is used exclusively for:
+              </p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li><strong>With your consent:</strong> We may share your information with your explicit consent</li>
-                <li><strong>Service providers:</strong> Third-party vendors who perform services on our behalf</li>
-                <li><strong>Legal requirements:</strong> When required by law or to protect our rights</li>
-                <li><strong>Business transfers:</strong> In connection with a merger, sale, or acquisition</li>
-                <li><strong>Aggregated data:</strong> Anonymized data that cannot identify you personally</li>
+                <li>Account authentication and session management</li>
+                <li>Access control and role-based permissions</li>
+                <li>Platform improvement and error resolution</li>
+                <li>Compliance with audit and governance requirements</li>
+              </ul>
+              <p className="text-muted-foreground mt-3 mb-2">
+                <strong>Analytical data</strong> is used for:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>Generating AI-assisted geopolitical and socioeconomic assessments</li>
+                <li>Computing risk indicators, vulnerability scores, and trend analyses</li>
+                <li>Producing forecasts with explicit confidence intervals and uncertainty labeling</li>
+                <li>Detecting anomalies and emerging patterns across domains</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">6. Your Data Rights (GDPR & CCPA)</h2>
-              <p className="text-muted-foreground mb-2">You have the right to:</p>
+              <h2 className="text-2xl font-semibold mb-3">5. AI Processing &amp; Transparency</h2>
+              <p className="text-muted-foreground">
+                AICIS uses artificial intelligence for analytical signal generation. In compliance with the EU AI Act:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+                <li>All AI-generated outputs are labeled as <strong>"AI-assisted analysis"</strong></li>
+                <li>No autonomous decision-making is performed — all outputs are advisory</li>
+                <li>Human-in-the-loop governance is mandatory for all actionable recommendations</li>
+                <li>Confidence scores and data provenance are displayed for every assessment</li>
+                <li>The methodology and model architecture are documented and auditable</li>
+                <li>AI models are calibrated against historical data with published accuracy metrics</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3">6. Your Rights (GDPR &amp; International)</h2>
+              <p className="text-muted-foreground mb-2">Under GDPR and applicable data protection laws, you have the right to:</p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li><strong>Access:</strong> Request a copy of your personal data</li>
-                <li><strong>Rectification:</strong> Correct inaccurate or incomplete data</li>
+                <li><strong>Access:</strong> Request a copy of your personal data held by AICIS</li>
+                <li><strong>Rectification:</strong> Correct inaccurate or incomplete personal data</li>
                 <li><strong>Erasure:</strong> Request deletion of your personal data ("right to be forgotten")</li>
                 <li><strong>Portability:</strong> Receive your data in a structured, machine-readable format</li>
                 <li><strong>Restriction:</strong> Request restriction of processing under certain conditions</li>
-                <li><strong>Objection:</strong> Object to processing of your data</li>
-                <li><strong>Withdraw consent:</strong> Withdraw consent at any time (without affecting prior processing)</li>
+                <li><strong>Objection:</strong> Object to processing based on legitimate interests</li>
+                <li><strong>Withdraw consent:</strong> Withdraw consent at any time without affecting prior lawful processing</li>
+                <li><strong>Automated decisions:</strong> Request human review of any AI-assisted output affecting you</li>
               </ul>
               <p className="text-muted-foreground mt-2">
-                To exercise these rights, please contact privacy@aicis.com
+                To exercise these rights, contact: <strong>privacy@aicis.com</strong>
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                We will respond to all data subject requests within 30 days, in compliance with GDPR Article 12.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-semibold mb-3">7. Data Security</h2>
               <p className="text-muted-foreground">
-                We implement appropriate technical and organizational measures to protect your data:
+                We implement technical and organizational measures proportionate to the sensitivity of data processed:
               </p>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Encryption in transit and at rest</li>
-                <li>Regular security audits and penetration testing</li>
-                <li>Access controls and authentication requirements</li>
-                <li>Employee training on data protection</li>
-                <li>Incident response and breach notification procedures</li>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+                <li>Encryption in transit (TLS 1.3) and at rest (AES-256)</li>
+                <li>Role-based access control (RBAC) with row-level security</li>
+                <li>Immutable audit logs for all data access and modifications</li>
+                <li>Regular security assessments and dependency scanning</li>
+                <li>Incident response procedures with breach notification within 72 hours (GDPR Art. 33)</li>
               </ul>
             </section>
 
             <section>
               <h2 className="text-2xl font-semibold mb-3">8. Data Retention</h2>
               <p className="text-muted-foreground">
-                We retain your information for as long as necessary to provide our services and comply with legal
-                obligations. When data is no longer needed, we securely delete or anonymize it.
+                User account data is retained for the duration of your account plus 30 days after deletion request.
+                Analytical data (country-level indicators) is retained indefinitely as public statistical records
+                necessary for time-series analysis and forecast validation. Audit logs are retained for a minimum
+                of 7 years for compliance purposes.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-semibold mb-3">9. International Data Transfers</h2>
               <p className="text-muted-foreground">
-                Your data may be transferred to and processed in countries other than your own. We ensure appropriate
-                safeguards are in place for such transfers in accordance with applicable data protection laws.
+                Data may be processed on infrastructure located within the European Economic Area (EEA). Where
+                transfers outside the EEA are necessary, we rely on Standard Contractual Clauses (SCCs) or
+                adequacy decisions as approved by the European Commission.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">10. Children's Privacy</h2>
+              <h2 className="text-2xl font-semibold mb-3">10. Third-Party Data Sources</h2>
               <p className="text-muted-foreground">
-                AICIS is not intended for children under 16 years of age. We do not knowingly collect personal
-                information from children. If you become aware that a child has provided us with personal data,
-                please contact us.
+                All external data sources used by AICIS are publicly available datasets provided by international
+                organizations (World Bank, WHO, FAO, etc.) under their respective open data licenses. We comply
+                with all applicable terms of service and attribution requirements. No restricted, proprietary, or
+                scraped data is used without explicit authorization.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">11. Changes to This Policy</h2>
+              <h2 className="text-2xl font-semibold mb-3">11. Children's Privacy</h2>
               <p className="text-muted-foreground">
-                We may update this Privacy Policy from time to time. We will notify you of significant changes via
-                email or through a prominent notice on our platform.
+                AICIS is a professional intelligence platform not intended for use by individuals under 16 years of age.
+                We do not knowingly collect personal information from minors.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">12. Contact Us</h2>
+              <h2 className="text-2xl font-semibold mb-3">12. Changes to This Policy</h2>
               <p className="text-muted-foreground">
-                If you have questions about this Privacy Policy, please contact us at:
+                Material changes to this Privacy Policy will be communicated via email notification to registered users
+                and through a prominent notice on the platform at least 30 days before taking effect.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3">13. Contact &amp; Data Protection Officer</h2>
+              <p className="text-muted-foreground">
+                For privacy inquiries or to exercise your data rights:
               </p>
               <p className="text-muted-foreground mt-2">
-                Email: privacy@aicis.com<br />
-                Data Protection Officer: dpo@aicis.com
+                Email: <strong>privacy@aicis.com</strong><br />
+                Data Protection Officer: <strong>dpo@aicis.com</strong>
               </p>
             </section>
           </CardContent>

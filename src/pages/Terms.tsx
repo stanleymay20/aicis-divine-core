@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Scale, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Terms = () => {
@@ -20,104 +21,187 @@ const Terms = () => {
 
         <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
           <CardHeader>
-            <CardTitle className="text-3xl font-orbitron">Terms of Service</CardTitle>
-            <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
+            <CardTitle className="text-3xl font-orbitron flex items-center gap-3">
+              <Scale className="h-7 w-7 text-primary" />
+              Terms of Service
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">Version 2.0</Badge>
+              <p className="text-muted-foreground text-sm">Effective: March 21, 2026</p>
+            </div>
           </CardHeader>
           <CardContent className="prose prose-sm dark:prose-invert max-w-none space-y-6">
+
+            {/* AI Disclaimer Banner */}
+            <div className="rounded-lg border border-warning/30 bg-warning/5 p-4">
+              <p className="text-sm text-foreground font-medium flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                <span>
+                  <strong>AI Advisory Notice:</strong> AICIS is a decision-support system that provides AI-assisted analytical insights. 
+                  All outputs are advisory in nature and should not be treated as definitive predictions, validated intelligence, 
+                  or instructions for autonomous action. Human oversight and independent verification are required before 
+                  making decisions based on AICIS outputs.
+                </span>
+              </p>
+            </div>
+
             <section>
               <h2 className="text-2xl font-semibold mb-3">1. Acceptance of Terms</h2>
               <p className="text-muted-foreground">
-                By accessing and using the AICIS (Autonomous Intelligent Cybernetic Intervention System) platform,
-                you accept and agree to be bound by the terms and provision of this agreement.
+                By accessing and using the AICIS platform, you accept and agree to be bound by these Terms of Service.
+                If you do not agree with any part of these terms, you must not use the platform. These terms constitute 
+                a legally binding agreement between you and AICIS.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">2. Use License</h2>
+              <h2 className="text-2xl font-semibold mb-3">2. Nature of the Service</h2>
               <p className="text-muted-foreground mb-2">
-                Permission is granted to temporarily access AICIS for personal or commercial use. This is the grant
-                of a license, not a transfer of title, and under this license you may not:
+                AICIS is an AI-assisted geopolitical and socioeconomic intelligence platform that:
               </p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Modify or copy the materials</li>
-                <li>Use the materials for any commercial purpose without proper licensing</li>
-                <li>Attempt to decompile or reverse engineer any software contained in AICIS</li>
-                <li>Remove any copyright or other proprietary notations from the materials</li>
-                <li>Transfer the materials to another person or "mirror" the materials on any other server</li>
+                <li>Aggregates publicly available data from recognized international sources</li>
+                <li>Generates analytical assessments using machine learning and statistical models</li>
+                <li>Provides estimated risk indicators, trend analyses, and scenario projections</li>
+                <li>Operates in an <strong>advisory/shadow mode</strong> — outputs are analytical signals, not validated intelligence</li>
+              </ul>
+              <p className="text-muted-foreground mt-3 font-medium">
+                AICIS does not provide: financial advice, military intelligence, legal counsel, medical guidance, 
+                or any form of guaranteed prediction.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3">3. AI-Generated Content Disclaimer</h2>
+              <p className="text-muted-foreground mb-2">
+                Users acknowledge and agree that:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>All analytical outputs are <strong>AI-assisted estimates</strong> with associated confidence intervals</li>
+                <li>Forecasts are probabilistic projections, not certainties — they may be inaccurate</li>
+                <li>Conflict risk assessments are AI-synthesized hypotheses for human review, not validated field intelligence</li>
+                <li>Scenario projections represent possible futures based on current data patterns, not predictions of what will happen</li>
+                <li>No output should be used as the sole basis for policy, investment, military, or humanitarian decisions</li>
+                <li>Independent verification from primary sources is always recommended</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">3. AI Decision-Making</h2>
+              <h2 className="text-2xl font-semibold mb-3">4. Human-in-the-Loop Governance</h2>
               <p className="text-muted-foreground">
-                AICIS employs artificial intelligence systems for automated decision-making. Users acknowledge that:
+                AICIS enforces mandatory human oversight for all actionable outputs:
               </p>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>AI decisions are probabilistic and may not always be perfect</li>
-                <li>Human oversight and review mechanisms are in place</li>
-                <li>Users have the right to appeal AI decisions through ethics review processes</li>
-                <li>All AI decisions are logged and auditable for transparency</li>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+                <li>Analysts review all AI-generated assessments before dissemination</li>
+                <li>Policy-makers approve recommendations before any action is proposed</li>
+                <li>All approvals are logged to an immutable Decision Ledger with timestamps and reviewer identity</li>
+                <li>No autonomous action is ever taken by the system</li>
+                <li>Users have the right to appeal any AI-assisted assessment through the ethics review process</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">4. Data Processing & Privacy</h2>
-              <p className="text-muted-foreground">
-                Your use of AICIS is also governed by our Privacy Policy. We process data in accordance with:
+              <h2 className="text-2xl font-semibold mb-3">5. Use License</h2>
+              <p className="text-muted-foreground mb-2">
+                Permission is granted to access AICIS for authorized personal or organizational use. Under this license you may not:
               </p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>GDPR (General Data Protection Regulation)</li>
-                <li>CCPA (California Consumer Privacy Act)</li>
-                <li>Other applicable data protection laws</li>
+                <li>Reverse engineer, decompile, or attempt to extract the source code of AICIS</li>
+                <li>Redistribute, republish, or commercially resell AICIS outputs without authorization</li>
+                <li>Present AI-generated outputs as your own original analysis without attribution</li>
+                <li>Use AICIS outputs to support discriminatory, unlawful, or harmful activities</li>
+                <li>Misrepresent AICIS outputs as validated intelligence, guaranteed predictions, or official government assessments</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">5. Service Availability</h2>
+              <h2 className="text-2xl font-semibold mb-3">6. Data Sources &amp; Attribution</h2>
               <p className="text-muted-foreground">
-                We strive for 99.9% uptime but do not guarantee uninterrupted service. Scheduled maintenance
-                will be communicated in advance. We are not liable for service interruptions caused by factors
-                beyond our reasonable control.
+                AICIS aggregates data from publicly available international sources including the World Bank, 
+                WHO, FAO, GDELT, NASA, and others. Data provenance is displayed alongside all analytical outputs. 
+                Users acknowledge that the accuracy of AICIS outputs depends on the accuracy and timeliness of 
+                these upstream data sources, which are outside our control.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">6. Billing & Payments</h2>
+              <h2 className="text-2xl font-semibold mb-3">7. Limitation of Liability</h2>
               <p className="text-muted-foreground">
-                Subscription fees are billed in advance on a monthly or annual basis. You authorize us to charge
-                your payment method on file. Failure to pay may result in service suspension or termination.
+                To the maximum extent permitted by applicable law, AICIS and its operators shall not be liable for:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+                <li>Any direct, indirect, incidental, consequential, or special damages arising from the use of AICIS outputs</li>
+                <li>Decisions made based on AI-generated assessments, forecasts, or risk indicators</li>
+                <li>Inaccuracies, delays, or omissions in upstream data sources</li>
+                <li>Service interruptions, data loss, or technical failures</li>
+                <li>Any losses resulting from reliance on AICIS outputs without independent verification</li>
+              </ul>
+              <p className="text-muted-foreground mt-2 font-medium">
+                AICIS outputs are provided "as-is" without warranty of any kind, express or implied, including 
+                but not limited to warranties of accuracy, completeness, or fitness for a particular purpose.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">7. Intellectual Property</h2>
+              <h2 className="text-2xl font-semibold mb-3">8. Indemnification</h2>
               <p className="text-muted-foreground">
-                All content, features, and functionality of AICIS are owned by the company and are protected
-                by international copyright, trademark, patent, trade secret, and other intellectual property laws.
+                You agree to indemnify and hold harmless AICIS, its operators, employees, and affiliates from any claims, 
+                damages, losses, or expenses arising from your use of the platform, your violation of these terms, or 
+                your misrepresentation of AICIS outputs as validated intelligence or guaranteed predictions.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">8. Limitation of Liability</h2>
+              <h2 className="text-2xl font-semibold mb-3">9. Service Availability</h2>
               <p className="text-muted-foreground">
-                In no event shall AICIS or its suppliers be liable for any damages (including, without limitation,
-                damages for loss of data or profit, or due to business interruption) arising out of the use or
-                inability to use AICIS.
+                We strive for high availability but do not guarantee uninterrupted service. Scheduled maintenance 
+                will be communicated in advance when possible. We are not liable for service interruptions caused 
+                by factors beyond our reasonable control, including but not limited to upstream data source outages.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">9. Governing Law</h2>
+              <h2 className="text-2xl font-semibold mb-3">10. Intellectual Property</h2>
               <p className="text-muted-foreground">
-                These terms shall be governed by and construed in accordance with the laws of the jurisdiction
-                in which our company is registered, without regard to its conflict of law provisions.
+                The AICIS platform, its algorithms, user interface, and analytical methodologies are proprietary. 
+                Aggregated analytical outputs generated for you may be used in accordance with your license terms. 
+                The underlying data from public sources remains subject to their respective licenses.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3">10. Contact Information</h2>
+              <h2 className="text-2xl font-semibold mb-3">11. Governing Law</h2>
               <p className="text-muted-foreground">
-                Questions about the Terms of Service should be sent to us at legal@aicis.com
+                These terms shall be governed by and construed in accordance with the laws of the Federal Republic 
+                of Germany and the European Union. Any disputes shall be subject to the exclusive jurisdiction of 
+                the courts of Berlin, Germany.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3">12. Regulatory Compliance</h2>
+              <p className="text-muted-foreground">
+                AICIS is designed to comply with:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
+                <li>EU AI Act — as an AI system providing decision-support (not autonomous decision-making)</li>
+                <li>GDPR — for processing of platform user data</li>
+                <li>ISO 27001 principles — for information security management</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3">13. Modifications to Terms</h2>
+              <p className="text-muted-foreground">
+                We reserve the right to modify these terms. Material changes will be communicated via email 
+                at least 30 days before taking effect. Continued use after the effective date constitutes acceptance.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3">14. Contact</h2>
+              <p className="text-muted-foreground">
+                Questions about these Terms of Service should be directed to: <strong>legal@aicis.com</strong>
               </p>
             </section>
           </CardContent>
