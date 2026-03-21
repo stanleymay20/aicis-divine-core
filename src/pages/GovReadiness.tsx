@@ -107,31 +107,38 @@ const GovReadiness = () => {
   const measuredEntries = decisionEntries?.filter((e: any) => e.evidence_type === "measured").length || 0;
   const totalDecisions = decisionEntries?.length || 0;
 
+  // HONEST scoring — no free points, penalize empty infrastructure
+  const auditChainPopulated = (auditChainCount as number) > 0;
   const reliabilityScore = Math.min(100, Math.round(
-    (pipelineUptime * 0.4) + (hasSLAs ? 20 : 0) + (totalPipelines > 10 ? 20 : totalPipelines * 2) + 20
+    (totalPipelines > 0 ? pipelineUptime * 0.4 : 0) +
+    (hasSLAs ? 20 : 0) +
+    (totalPipelines > 10 ? 20 : totalPipelines * 2) +
+    (totalPipelines > 0 ? 10 : 0) // only if pipelines are tracked
   ));
 
   const securityScore = Math.min(100, Math.round(
-    25 + // RLS exists
+    20 + // RLS exists (verified in lockdown sprint)
     15 + // RBAC exists
     10 + // GDPR page exists
     10 + // advisory mode
     (hasSLAs ? 10 : 0) +
-    10 // encryption at rest (Supabase default)
+    10 + // encryption at rest (Supabase default)
+    (auditChainPopulated ? 15 : 0) // audit chain must have real data
   ));
 
   const evidenceScore = Math.min(100, Math.round(
     Math.min(30, ((validations as number) / 1000) * 30) +
     Math.min(25, pilotEntries * 5) +
     Math.min(25, measuredEntries * 10) +
-    (totalDecisions > 0 ? 20 : 0)
+    (totalDecisions > 0 ? 10 : 0) + // reduced from 20
+    (auditChainPopulated ? 10 : 0) // audit chain contributes to evidence
   ));
 
   const opsScore = Math.min(100, Math.round(
     (totalPipelines > 0 ? 25 : 0) +
     (hasSLAs ? 25 : 0) +
-    25 + // lifecycle registry exists
-    15 // infra-ops page exists
+    (totalPipelines > 0 ? 15 : 0) + // lifecycle only counts if pipelines exist
+    (totalPipelines > 0 ? 10 : 0) // infra-ops only meaningful with data
   ));
 
   const overallScore = Math.round((reliabilityScore + securityScore + evidenceScore + opsScore) / 4);
