@@ -79,15 +79,45 @@ serve(async (req) => {
       }
     }
 
-    // Log breaches as alerts if critical
+    // Log breaches as alerts with 6h deduplication cooldown
+    const COOLDOWN_HOURS = 6;
+    const cooldownCutoff = new Date(Date.now() - COOLDOWN_HOURS * 3600000).toISOString();
+
     for (const breach of breaches.filter(b => b.severity === "critical")) {
-      await supabase.from("critical_alerts").insert({
-        headline: `SLA Breach: ${breach.pipeline_name} — ${breach.breach_type} (${breach.actual} vs ${breach.threshold})`,
-        level: "warning",
-        severity: 7,
-        event_type: "sla_breach",
-        meta: breach,
-      });
+      // Check for existing recent alert for same pipeline+type
+      const { data: existing } = await supabase
+        .from("critical_alerts")
+        .select("id")
+        .eq("event_type", "sla_breach")
+        .gte("triggered_at", cooldownCutoff)
+        .contains("meta", { pipeline_name: breach.pipeline_name, breach_type: breach.breach_type })
+        .limit(1);
+
+      if (!existing || existing.length === 0) {
+        await supabase.from("critical_alerts").insert({
+          headline: `SLA Breach: ${breach.pipeline_name} — ${breach.breach_type} (${breach.actual} vs ${breach.threshold})`,
+          level: "warning",
+          severity: 7,
+          event_type: "sla_breach",
+          meta: breach,
+        });
+      }
+    }
+
+    // Auto-resolve: mark old sla_breach alerts as acknowledged if pipeline recovered
+    const recoveredPipelines = (slas as any[])
+      .map(s => s.pipeline_name)
+      .filter(name => !breaches.some(b => b.pipeline_name === name));
+
+    if (recoveredPipelines.length > 0) {
+      for (const name of recoveredPipelines) {
+        await supabase
+          .from("critical_alerts")
+          .update({ acknowledged: true, ack_by: "system-auto-resolve" })
+          .eq("event_type", "sla_breach")
+          .eq("acknowledged", false)
+          .contains("meta", { pipeline_name: name });
+      }
     }
 
     return new Response(JSON.stringify({ breaches, checked: slas.length, timestamp: new Date().toISOString() }), {
