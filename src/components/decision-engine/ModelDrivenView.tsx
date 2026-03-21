@@ -26,8 +26,12 @@ interface ModelInferResponse {
   explanation: string | null;
   decision_basis: string;
   model_version: string;
+  training_mode: string;
   outcome_trained: boolean;
   training_samples: number;
+  real_samples: number;
+  proxy_samples: number;
+  inference_hash: string;
   signal_counts: Record<string, number>;
   generated_at: string;
 }
