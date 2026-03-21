@@ -129,7 +129,7 @@ const Auth = () => {
             AICIS
           </h1>
           <p className="text-muted-foreground mt-2 text-center">
-            Autonomous Intelligent Cybernetic Intervention System
+            AI-Assisted Civilization Intelligence System
           </p>
         </div>
 

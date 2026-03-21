@@ -246,7 +246,7 @@ export function AICISCorePanel() {
           <Brain className="h-5 w-5 text-primary" />
           <div>
             <h2 className="text-lg font-semibold font-orbitron">AICIS Core</h2>
-            <p className="text-xs text-muted-foreground">Autonomous awareness active</p>
+            <p className="text-xs text-muted-foreground">Advisory analysis active</p>
           </div>
         </div>
       </div>

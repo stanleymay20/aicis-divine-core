@@ -55,7 +55,7 @@ export const PredictiveIntelligence = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Target className="h-5 w-5 text-primary" />
-          Predictive Intelligence System
+          AI-Assisted Forecast Analysis
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           90-day forecasts with AI-driven confidence metrics
