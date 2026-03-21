@@ -213,19 +213,43 @@ Focus on:
 
     const recommendations = JSON.parse(toolCall.function.arguments);
 
-    // Log to decision audit
-    await supabase.from("ai_decision_logs").insert({
-      division_key: domain || "system",
-      model_name: "gemini-2.5-flash",
-      input_summary: `Decision recommendation for ${country_iso3 || 'global'} / ${domain || 'all domains'}`,
-      output_summary: recommendations.global_assessment,
-      confidence: recommendations.recommendations?.[0]?.confidence || 0,
-      explanation: { signal_counts: signalCounts, evidence_density: evidenceDensity },
-    });
+    // Log to decision audit + recommendation runs table
+    const runPayload = {
+      scope_country_iso3: country_iso3 || "global",
+      scope_domain: domain || "all",
+      evidence_density: evidenceDensity,
+      signal_counts: signalCounts,
+      model_used: "gemini-2.5-flash",
+      recommendation_count: recommendations.recommendations?.length || 0,
+      global_assessment: recommendations.global_assessment,
+      recommendations_payload: recommendations.recommendations,
+      outcome_trained: false,
+    };
+
+    // Cap confidence based on evidence density
+    const confidenceCap = evidenceDensity === "weak" ? 75 : evidenceDensity === "moderate" ? 85 : 92;
+    const cappedRecs = (recommendations.recommendations || []).map((r: any) => ({
+      ...r,
+      confidence: Math.min(r.confidence, confidenceCap),
+    }));
+
+    await Promise.all([
+      supabase.from("ai_decision_logs").insert({
+        division_key: domain || "system",
+        model_name: "gemini-2.5-flash",
+        input_summary: `Decision recommendation for ${country_iso3 || 'global'} / ${domain || 'all domains'}`,
+        output_summary: recommendations.global_assessment,
+        confidence: cappedRecs[0]?.confidence || 0,
+        explanation: { signal_counts: signalCounts, evidence_density: evidenceDensity },
+      }),
+      supabase.from("decision_recommendation_runs").insert(runPayload),
+    ]);
 
     return new Response(JSON.stringify({
       ok: true,
-      ...recommendations,
+      recommendations: cappedRecs,
+      global_assessment: recommendations.global_assessment,
+      signal_quality: recommendations.signal_quality,
       evidence_density: evidenceDensity,
       outcome_trained: false,
       generated_at: new Date().toISOString(),
