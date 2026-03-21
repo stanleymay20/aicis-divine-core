@@ -41,6 +41,7 @@ interface CaseProps {
   error: number;
   narrative: string;
   impact: string;
+  auditEntry?: { input_hash: string; output_hash: string; model_version: string; generated_at: string } | null;
 }
 
 const CaseStudyCard = ({ title, iso3, domain, predictedDir, actualDir, predictedVal, actualVal, forecastDate, realizedDate, error, narrative, impact }: CaseProps) => (
