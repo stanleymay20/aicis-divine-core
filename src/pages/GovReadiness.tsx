@@ -325,8 +325,18 @@ const GovReadiness = () => {
                 <p className="text-2xl font-bold">{(auditChainCount as number)?.toLocaleString() || 0}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">Auditable signal entries</p>
               </div>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="text-center bg-muted/20 rounded-lg p-2">
+                  <p className="text-xs font-bold">Full</p>
+                  <p className="text-[9px] text-muted-foreground">Coverage scope</p>
+                </div>
+                <div className="text-center bg-muted/20 rounded-lg p-2">
+                  <p className="text-xs font-bold">SHA-256</p>
+                  <p className="text-[9px] text-muted-foreground">Hash algorithm</p>
+                </div>
+              </div>
               <p className="text-[10px] text-muted-foreground mt-2">
-                Each entry records model version, data sources, input/output hashes for full reproducibility.
+                Recursive canonical JSON + SHA-256. Every snapshot is audited with input/output hashes.
               </p>
             </CardContent>
           </Card>

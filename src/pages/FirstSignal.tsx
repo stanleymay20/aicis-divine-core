@@ -339,6 +339,7 @@ const FirstSignal = () => {
               error={Number(s.absolute_error)}
               narrative={`AICIS identified a ${s.actual_direction === "up" ? "upward" : "downward"} ${s.domain} trajectory for ${s.iso3} before the shift was confirmed in observed data. The naive baseline predicted no change.`}
               impact={`Advance directional detection in the ${s.domain} domain enables earlier resource allocation, policy adjustment, and risk mitigation for ${s.iso3}.`}
+              auditEntry={(auditEntries as Record<string, any>)?.[`${s.iso3}-${s.domain}`] || null}
             />
           )) : (
             <Card>
