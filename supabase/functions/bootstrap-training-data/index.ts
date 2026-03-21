@@ -177,8 +177,9 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!existingModel) {
+      const proxyCount = trainingRows.filter(r => r.label_source === "proxy").length;
       await supabase.from("decision_models").insert({
-        version: "DL-heuristic-0.1",
+        version: "DL-proxy-0.1",
         model_type: "weighted_scoring",
         feature_schema: { features: Object.keys(trainingRows[0]?.features || {}) },
         feature_weights: {
@@ -200,6 +201,10 @@ serve(async (req) => {
         },
         performance_metrics: null,
         training_sample_count: inserted,
+        training_mode: "proxy",
+        proxy_sample_count: proxyCount,
+        real_sample_count: 0,
+        measured_sample_count: 0,
         status: "active",
       });
     }
