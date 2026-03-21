@@ -67,6 +67,24 @@ serve(async (req) => {
       updatePayload.measured_outcome = outcome_description;
     }
 
+    // ROI computation
+    const { cost_of_action } = await req.json().catch(() => ({}));
+    if (impact_score !== undefined) {
+      // Fetch signal_confidence for ROI calc
+      const { data: entry2 } = await supabase
+        .from("decision_outcome_log")
+        .select("signal_confidence, cost_of_action")
+        .eq("id", decision_id)
+        .single();
+      const conf = (entry2?.signal_confidence || 50) / 100;
+      const costVal = cost_of_action ?? entry2?.cost_of_action ?? 0;
+      const roi = Math.round(impact_score * conf * 10) / 10;
+      const net = Math.round((roi - costVal) * 10) / 10;
+      updatePayload.roi_estimate = roi;
+      updatePayload.net_value = net;
+      if (cost_of_action !== undefined) updatePayload.cost_of_action = costVal;
+    }
+
     // Promote evidence type
     if (outcome_success !== undefined && impact_score !== undefined) {
       updatePayload.evidence_type = "measured";

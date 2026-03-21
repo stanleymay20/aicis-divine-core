@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import ActionLeaderboard from "./ActionLeaderboard";
+import TrustScorePanel from "./TrustScorePanel";
+import BaselineComparison from "./BaselineComparison";
 
 interface FeatureContribution {
   feature: string;
@@ -411,6 +414,13 @@ export default function ModelDrivenView({ domain }: Props) {
               })}
             </div>
           )}
+
+          {/* Strategic Panels */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TrustScorePanel />
+            <BaselineComparison />
+          </div>
+          <ActionLeaderboard />
 
           <p className="text-xs text-muted-foreground text-center">
             Generated {new Date(data.generated_at).toLocaleString()} · {data.model_version} · {data.training_mode} · Hash: {data.inference_hash?.slice(0, 12)}…

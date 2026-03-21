@@ -2170,6 +2170,7 @@ export type Database = {
           action_type: string | null
           action_window_days: number | null
           actor_role: string | null
+          cost_of_action: number | null
           created_at: string | null
           decision_features: Json | null
           domain: string | null
@@ -2185,6 +2186,7 @@ export type Database = {
           iso3: string | null
           measured_impact_score: number | null
           measured_outcome: string | null
+          net_value: number | null
           outcome_success: boolean | null
           outcome_timestamp: string | null
           pilot_action_taken: string | null
@@ -2197,6 +2199,7 @@ export type Database = {
           recommended_action: string | null
           recorded_at: string | null
           recorded_by: string | null
+          roi_estimate: number | null
           signal_confidence: number | null
           signal_date: string
           signal_direction: string | null
@@ -2213,6 +2216,7 @@ export type Database = {
           action_type?: string | null
           action_window_days?: number | null
           actor_role?: string | null
+          cost_of_action?: number | null
           created_at?: string | null
           decision_features?: Json | null
           domain?: string | null
@@ -2228,6 +2232,7 @@ export type Database = {
           iso3?: string | null
           measured_impact_score?: number | null
           measured_outcome?: string | null
+          net_value?: number | null
           outcome_success?: boolean | null
           outcome_timestamp?: string | null
           pilot_action_taken?: string | null
@@ -2240,6 +2245,7 @@ export type Database = {
           recommended_action?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
+          roi_estimate?: number | null
           signal_confidence?: number | null
           signal_date: string
           signal_direction?: string | null
@@ -2256,6 +2262,7 @@ export type Database = {
           action_type?: string | null
           action_window_days?: number | null
           actor_role?: string | null
+          cost_of_action?: number | null
           created_at?: string | null
           decision_features?: Json | null
           domain?: string | null
@@ -2271,6 +2278,7 @@ export type Database = {
           iso3?: string | null
           measured_impact_score?: number | null
           measured_outcome?: string | null
+          net_value?: number | null
           outcome_success?: boolean | null
           outcome_timestamp?: string | null
           pilot_action_taken?: string | null
@@ -2283,6 +2291,7 @@ export type Database = {
           recommended_action?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
+          roi_estimate?: number | null
           signal_confidence?: number | null
           signal_date?: string
           signal_direction?: string | null
@@ -4552,55 +4561,70 @@ export type Database = {
           acceptance_rate: number | null
           act_precision: number | null
           avg_impact_score: number | null
+          avg_roi: number | null
           calibration_error: number | null
           compared_to_version: string | null
           confidence_buckets: Json | null
           consider_precision: number | null
           evaluated_at: string | null
           evaluation_type: string
+          heuristic_success_rate: number | null
           id: string
+          improvement_over_heuristic: number | null
+          improvement_over_previous: number | null
           measured_success_rate: number | null
           metadata: Json | null
           model_version: string
           proxy_success_rate: number | null
           real_success_rate: number | null
           sample_count: number | null
+          total_net_value: number | null
         }
         Insert: {
           acceptance_rate?: number | null
           act_precision?: number | null
           avg_impact_score?: number | null
+          avg_roi?: number | null
           calibration_error?: number | null
           compared_to_version?: string | null
           confidence_buckets?: Json | null
           consider_precision?: number | null
           evaluated_at?: string | null
           evaluation_type?: string
+          heuristic_success_rate?: number | null
           id?: string
+          improvement_over_heuristic?: number | null
+          improvement_over_previous?: number | null
           measured_success_rate?: number | null
           metadata?: Json | null
           model_version: string
           proxy_success_rate?: number | null
           real_success_rate?: number | null
           sample_count?: number | null
+          total_net_value?: number | null
         }
         Update: {
           acceptance_rate?: number | null
           act_precision?: number | null
           avg_impact_score?: number | null
+          avg_roi?: number | null
           calibration_error?: number | null
           compared_to_version?: string | null
           confidence_buckets?: Json | null
           consider_precision?: number | null
           evaluated_at?: string | null
           evaluation_type?: string
+          heuristic_success_rate?: number | null
           id?: string
+          improvement_over_heuristic?: number | null
+          improvement_over_previous?: number | null
           measured_success_rate?: number | null
           metadata?: Json | null
           model_version?: string
           proxy_success_rate?: number | null
           real_success_rate?: number | null
           sample_count?: number | null
+          total_net_value?: number | null
         }
         Relationships: []
       }
@@ -7253,6 +7277,19 @@ export type Database = {
         }
         Relationships: []
       }
+      action_effectiveness_leaderboard: {
+        Row: {
+          action_type: string | null
+          avg_impact: number | null
+          avg_roi: number | null
+          domain_count: number | null
+          success_rate_pct: number | null
+          times_accepted: number | null
+          times_recommended: number | null
+          times_successful: number | null
+        }
+        Relationships: []
+      }
       daily_accumulation: {
         Row: {
           count: number | null
@@ -7381,6 +7418,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_trust_score: {
+        Row: {
+          acceptance_rate: number | null
+          calibration_error: number | null
+          evaluated_at: string | null
+          model_version: string | null
+          outcome_maturity_ratio: number | null
+          trust_score: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
