@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronUp, Database, Eye, BookOpen, FileText, Info
 } from "lucide-react";
 import { toast } from "sonner";
+import OutcomeMaturityPanel from "@/components/decision-engine/OutcomeMaturityPanel";
 
 interface Recommendation {
   id: string;
