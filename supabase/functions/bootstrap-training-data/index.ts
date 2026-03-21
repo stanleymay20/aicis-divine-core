@@ -89,16 +89,30 @@ serve(async (req) => {
       snapshotMap.set(`${s.iso3}-${s.domain}`, s);
     });
 
-    // Count anomalies/alerts/crises per domain for enrichment
-    const anomalyCountByDomain = new Map<string, number>();
-    (anomaliesRes.data || []).forEach(a => {
-      const key = a.division || "unknown";
-      anomalyCountByDomain.set(key, (anomalyCountByDomain.get(key) || 0) + 1);
-    });
-    const alertCount = (alertsRes.data || []).length;
-    const avgCrisisSeverity = (crisesRes.data || []).length > 0
-      ? (crisesRes.data || []).reduce((s, c) => s + (c.severity || 0), 0) / (crisesRes.data || []).length
-      : 0;
+    // Build time-windowed context maps per iso3+domain
+    const anomalies = anomaliesRes.data || [];
+    const alerts = alertsRes.data || [];
+    const crises = crisesRes.data || [];
+
+    function countInWindow(items: any[], dateField: string, centerDate: string, windowDays: number, filterFn?: (item: any) => boolean): number {
+      const center = new Date(centerDate).getTime();
+      const halfWindow = windowDays * 86400000 / 2;
+      return items.filter(item => {
+        const t = new Date(item[dateField]).getTime();
+        return Math.abs(t - center) <= halfWindow && (!filterFn || filterFn(item));
+      }).length;
+    }
+
+    function avgSeverityInWindow(items: any[], dateField: string, centerDate: string, windowDays: number): number {
+      const center = new Date(centerDate).getTime();
+      const halfWindow = windowDays * 86400000 / 2;
+      const matched = items.filter(item => {
+        const t = new Date(item[dateField]).getTime();
+        return Math.abs(t - center) <= halfWindow;
+      });
+      if (matched.length === 0) return 0;
+      return matched.reduce((s, c) => s + (c.severity || 0), 0) / matched.length;
+    }
 
     // Generate proxy training samples
     const actionMap: Record<string, string> = {
