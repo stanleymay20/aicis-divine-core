@@ -25,6 +25,8 @@ const PilotRecordForm = ({ entry, onClose }: PilotRecordFormProps) => {
     measured_outcome: entry.measured_outcome || "",
     measured_impact_score: entry.measured_impact_score?.toString() || "",
     evidence_type: entry.evidence_type || "hypothetical",
+    evidence_note: entry.evidence_note || "",
+    evidence_source_type: entry.evidence_source_type || "",
   });
 
   const handleSave = async () => {
@@ -38,6 +40,8 @@ const PilotRecordForm = ({ entry, onClose }: PilotRecordFormProps) => {
         measured_outcome: form.measured_outcome || null,
         measured_impact_score: form.measured_impact_score ? parseFloat(form.measured_impact_score) : null,
         evidence_type: form.evidence_type as any,
+        evidence_note: form.evidence_note || null,
+        evidence_source_type: form.evidence_source_type || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", entry.id);
@@ -131,6 +135,34 @@ const PilotRecordForm = ({ entry, onClose }: PilotRecordFormProps) => {
               placeholder="e.g. 72"
               value={form.measured_impact_score}
               onChange={(e) => setForm({ ...form, measured_impact_score: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] text-muted-foreground font-medium mb-1 block">Evidence Source Type</label>
+            <Select value={form.evidence_source_type} onValueChange={(v) => setForm({ ...form, evidence_source_type: v })}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select source type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="internal_report">Internal Report</SelectItem>
+                <SelectItem value="partner_memo">Partner Memo</SelectItem>
+                <SelectItem value="media_source">Media Source</SelectItem>
+                <SelectItem value="field_observation">Field Observation</SelectItem>
+                <SelectItem value="quantitative_analysis">Quantitative Analysis</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground font-medium mb-1 block">Evidence Note</label>
+            <Input
+              className="h-8 text-xs"
+              placeholder="Brief note on evidence basis"
+              value={form.evidence_note}
+              onChange={(e) => setForm({ ...form, evidence_note: e.target.value })}
             />
           </div>
         </div>

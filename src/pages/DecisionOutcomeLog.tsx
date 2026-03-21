@@ -11,6 +11,8 @@ import { Loader2, ClipboardCheck, CheckCircle2, Clock, AlertTriangle, Target, Za
 import { format } from "date-fns";
 import EvidenceFilter from "@/components/decision-log/EvidenceFilter";
 import PilotRecordForm from "@/components/decision-log/PilotRecordForm";
+import ImpactScoringDoctrine from "@/components/decision-log/ImpactScoringDoctrine";
+import ProofMaturitySummary from "@/components/decision-log/ProofMaturitySummary";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   open: { label: "Awaiting Confirmation", variant: "outline" },
@@ -96,8 +98,14 @@ const DecisionOutcomeLog = () => {
           ))}
         </div>
 
-        {/* Evidence filter */}
-        <EvidenceFilter activeFilter={filter} onFilterChange={setFilter} counts={counts} />
+        {/* Evidence filter + proof maturity */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-start">
+          <EvidenceFilter activeFilter={filter} onFilterChange={setFilter} counts={counts} />
+          <ProofMaturitySummary hypothetical={counts.hypothetical} pilot={counts.pilot} measured={counts.measured} />
+        </div>
+
+        {/* Impact scoring doctrine */}
+        <ImpactScoringDoctrine />
 
         {/* Context */}
         <Card className="border-primary/20 bg-primary/5">
