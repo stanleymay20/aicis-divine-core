@@ -596,6 +596,7 @@ Deno.serve(async (req) => {
         archiveEntries: allArchive.length, snapshotEntries: allSnapshots.length,
         calibrationEntries: allCalibMetrics.length, spcEntries: allSPCObs.length,
         residualEntries: allResiduals.length,
+        auditEntries: auditEntries.length, auditWriteMs: auditElapsedMs,
         killSwitchTriggered, frozen, elapsedMs: elapsed,
       }),
     });

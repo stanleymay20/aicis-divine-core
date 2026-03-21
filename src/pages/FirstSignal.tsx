@@ -44,8 +44,10 @@ interface CaseProps {
   auditEntry?: { input_hash: string; output_hash: string; model_version: string; generated_at: string } | null;
 }
 
-const CaseStudyCard = ({ title, iso3, domain, predictedDir, actualDir, predictedVal, actualVal, forecastDate, realizedDate, error, narrative, impact }: CaseProps) => (
-  <Card className="border-primary/20">
+const CaseStudyCard = ({ title, iso3, domain, predictedDir, actualDir, predictedVal, actualVal, forecastDate, realizedDate, error, narrative, impact, auditEntry }: CaseProps) => {
+  const [showAudit, setShowAudit] = useState(false);
+
+  return (
     <CardHeader className="pb-3">
       <div className="flex items-center justify-between">
         <CardTitle className="text-base flex items-center gap-2">
