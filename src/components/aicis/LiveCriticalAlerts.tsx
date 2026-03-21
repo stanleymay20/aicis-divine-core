@@ -158,7 +158,9 @@ export const LiveCriticalAlerts = ({ onAlertClick, maxHeight = "400px" }: LiveCr
             {!loading && filteredAlerts.length === 0 && (
               <div className="text-center py-8">
                 <Bell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-muted-foreground">No alerts matching filter</p>
+                <p className="text-muted-foreground">
+                  {alerts.length === 0 ? "No active critical alerts — system nominal" : "No alerts matching current filter"}
+                </p>
               </div>
             )}
             

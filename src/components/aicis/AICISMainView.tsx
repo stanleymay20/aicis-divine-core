@@ -56,17 +56,17 @@ export const AICISMainView = () => {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        // Check data feed status
+        // Check data feed status from automation_logs (more reliable than data_source_log)
         const { data: logs, error: logsError } = await supabase
-          .from("data_source_log")
+          .from("automation_logs")
           .select("status")
-          .order("created_at", { ascending: false })
-          .limit(10);
+          .order("executed_at", { ascending: false })
+          .limit(20);
         
         if (!logsError && logs) {
-          const failedCount = logs.filter(l => l.status === "error" || l.status === "failed").length;
-          if (failedCount === 0) setDataFeedStatus("online");
-          else if (failedCount < 5) setDataFeedStatus("partial");
+          const failedCount = logs.filter(l => l.status === "error").length;
+          if (failedCount <= 2) setDataFeedStatus("online");
+          else if (failedCount < 10) setDataFeedStatus("partial");
           else setDataFeedStatus("offline");
         }
 

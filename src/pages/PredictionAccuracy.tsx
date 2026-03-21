@@ -164,9 +164,12 @@ const PredictionAccuracy = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Read-only validation layer — Does the engine predict reality?
             </p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">
+              AI-assisted analysis • Shadow mode • Not validated intelligence
+            </p>
           </div>
           <Badge variant="outline" className="text-xs font-mono">
-            {(validationResults || []).length} validations
+            {(validationResults || []).length >= 1000 ? "1,000+ (sampled)" : (validationResults || []).length} validations
           </Badge>
         </div>
 

@@ -42,20 +42,21 @@ export const AICISTopBar = () => {
   useEffect(() => {
     const checkStatus = async () => {
       try {
+        // Use automation_logs for accurate feed status (data_source_log only has 'success' rows)
         const { data, error } = await supabase
-          .from("data_source_log")
+          .from("automation_logs")
           .select("status")
-          .order("created_at", { ascending: false })
-          .limit(10);
+          .order("executed_at", { ascending: false })
+          .limit(20);
 
         if (error) {
           setDataFeedStatus("partial");
           return;
         }
 
-        const failedCount = data?.filter(d => d.status === "error" || d.status === "failed").length || 0;
-        if (failedCount === 0) setDataFeedStatus("online");
-        else if (failedCount < 5) setDataFeedStatus("partial");
+        const failedCount = data?.filter(d => d.status === "error").length || 0;
+        if (failedCount <= 2) setDataFeedStatus("online");
+        else if (failedCount < 10) setDataFeedStatus("partial");
         else setDataFeedStatus("offline");
       } catch {
         setDataFeedStatus("partial");
