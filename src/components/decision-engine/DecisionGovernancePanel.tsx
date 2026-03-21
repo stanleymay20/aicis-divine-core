@@ -94,9 +94,9 @@ export default function DecisionGovernancePanel() {
   });
 
   const handleReviewStatusChange = (rec: DecisionRecord, newStatus: string) => {
-    // Governance rules validation
     const reviewer = reviewerInput[rec.id] || { name: rec.reviewer_name || "", role: rec.reviewer_role || "" };
 
+    // Governance rules validation
     if (newStatus === "approved" && (!reviewer.name || !reviewer.role)) {
       toast.error("Reviewer name and role are required to approve a decision.");
       return;
@@ -109,9 +109,18 @@ export default function DecisionGovernancePanel() {
       }
     }
 
+    // Separation of duties: recommender cannot approve their own recommendation
+    if (["approved", "overridden"].includes(newStatus) && rec.actor_role && reviewer.name) {
+      if (rec.recommender_id && rec.recommender_id === reviewer.name) {
+        toast.error("Separation of duties violation: recommender cannot approve their own recommendation.");
+        return;
+      }
+    }
+
     const updates: Record<string, any> = {
       review_status: newStatus,
       review_completed_at: ["approved", "rejected", "overridden"].includes(newStatus) ? new Date().toISOString() : null,
+      separation_of_duties_verified: true,
     };
     if (reviewer.name) updates.reviewer_name = reviewer.name;
     if (reviewer.role) updates.reviewer_role = reviewer.role;
