@@ -50,16 +50,41 @@ serve(async (req) => {
 
     // Pull corresponding snapshots for feature context
     const uniqueIso3s = [...new Set(validations.map(v => v.iso3))];
-    const { data: snapshots } = await supabase
-      .from("country_performance_snapshots")
-      .select("iso3, domain, performance_index, momentum_score, risk_pressure_score, systemic_fragility_score, confidence_score, structural_break_count, forecast_stability_score")
-      .in("iso3", uniqueIso3s)
-      .limit(500);
+    const [snapshotsRes, anomaliesRes, alertsRes, crisesRes] = await Promise.all([
+      supabase
+        .from("country_performance_snapshots")
+        .select("iso3, domain, performance_index, momentum_score, risk_pressure_score, systemic_fragility_score, confidence_score, structural_break_count, forecast_stability_score")
+        .in("iso3", uniqueIso3s)
+        .limit(500),
+      supabase
+        .from("anomaly_detections")
+        .select("division, severity")
+        .limit(500),
+      supabase
+        .from("critical_alerts")
+        .select("country, severity")
+        .limit(500),
+      supabase
+        .from("crisis_events")
+        .select("region, severity")
+        .limit(200),
+    ]);
 
     const snapshotMap = new Map<string, any>();
-    (snapshots || []).forEach(s => {
+    (snapshotsRes.data || []).forEach(s => {
       snapshotMap.set(`${s.iso3}-${s.domain}`, s);
     });
+
+    // Count anomalies/alerts/crises per domain for enrichment
+    const anomalyCountByDomain = new Map<string, number>();
+    (anomaliesRes.data || []).forEach(a => {
+      const key = a.division || "unknown";
+      anomalyCountByDomain.set(key, (anomalyCountByDomain.get(key) || 0) + 1);
+    });
+    const alertCount = (alertsRes.data || []).length;
+    const avgCrisisSeverity = (crisesRes.data || []).length > 0
+      ? (crisesRes.data || []).reduce((s, c) => s + (c.severity || 0), 0) / (crisesRes.data || []).length
+      : 0;
 
     // Generate proxy training samples
     const actionMap: Record<string, string> = {
@@ -73,6 +98,8 @@ serve(async (req) => {
 
     const trainingRows = validations.map(v => {
       const snap = snapshotMap.get(`${v.iso3}-${v.domain}`);
+      const domainAnomalies = anomalyCountByDomain.get(v.domain) || 0;
+
       const features = snap ? {
         performance_index: snap.performance_index || 50,
         momentum_score: snap.momentum_score || 0,
@@ -81,20 +108,38 @@ serve(async (req) => {
         confidence_score: snap.confidence_score || 50,
         structural_break_count: snap.structural_break_count || 0,
         forecast_stability_score: snap.forecast_stability_score || 50,
-        anomaly_count: 0, // not available from snapshot
-        alert_count: 0,
-        crisis_severity_avg: 0,
+        anomaly_count: domainAnomalies,
+        alert_count: Math.min(alertCount, 15),
+        crisis_severity_avg: avgCrisisSeverity,
       } : {
         performance_index: 50, momentum_score: 0, risk_pressure_score: 30,
         systemic_fragility_score: 30, confidence_score: 50,
         structural_break_count: 0, forecast_stability_score: 50,
-        anomaly_count: 0, alert_count: 0, crisis_severity_avg: 0,
+        anomaly_count: domainAnomalies, alert_count: Math.min(alertCount, 15),
+        crisis_severity_avg: avgCrisisSeverity,
       };
 
-      // Proxy label: if AICIS predicted direction correctly AND error is small → action would succeed
-      const outcomeSuccess = v.direction_hit && (v.absolute_error || 999) < 5;
+      // Proxy label logic
+      const directionCorrect = !!v.direction_hit;
+      const errorSmall = (v.absolute_error || 999) < 5;
+      const outcomeSuccess = directionCorrect && errorSmall;
 
-      // Impact estimate from how significant the actual change was
+      // Label confidence: based on forecast quality and signal density
+      const hasSnapshot = !!snap;
+      const errorQuality = errorSmall ? 0.3 : 0.1;
+      const dirQuality = directionCorrect ? 0.3 : 0.0;
+      const contextQuality = hasSnapshot ? 0.2 : 0.05;
+      const signalDensity = (domainAnomalies > 0 ? 0.1 : 0) + (alertCount > 0 ? 0.05 : 0) + (avgCrisisSeverity > 0 ? 0.05 : 0);
+      const labelConfidence = Math.min(0.95, errorQuality + dirQuality + contextQuality + signalDensity);
+
+      // Proxy reason
+      const reasons: string[] = [];
+      if (directionCorrect) reasons.push("direction_hit");
+      if (errorSmall) reasons.push(`error<5 (${(v.absolute_error || 0).toFixed(2)})`);
+      if (hasSnapshot) reasons.push("snapshot_context_available");
+      if (!directionCorrect) reasons.push("direction_miss");
+
+      // Impact estimate from change magnitude
       const changeMagnitude = Math.abs((v.actual_value || 0) - (v.predicted_value || 0));
       const impactScore = Math.min(100, changeMagnitude * 10);
 
@@ -106,6 +151,10 @@ serve(async (req) => {
         outcome_success: outcomeSuccess,
         impact_score: impactScore,
         source_type: "proxy",
+        label_source: "proxy",
+        label_confidence: Math.round(labelConfidence * 100) / 100,
+        proxy_reason: reasons.join("; "),
+        overridden_by_real: false,
       };
     });
 
