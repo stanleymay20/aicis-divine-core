@@ -114,6 +114,7 @@ const App = () => (
             <Route path="/infra-ops" element={<Lazy><InfraOps /></Lazy>} />
             <Route path="/gov-readiness" element={<Lazy><GovReadiness /></Lazy>} />
             <Route path="/decision-engine" element={<Lazy><DecisionEngine /></Lazy>} />
+            <Route path="/operational-truth" element={<Lazy><OperationalTruth /></Lazy>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

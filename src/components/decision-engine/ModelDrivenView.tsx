@@ -172,6 +172,43 @@ export default function ModelDrivenView({ domain }: Props) {
       const slaHours = slaMap[rec.policy] || 72;
       const reviewDueAt = new Date(Date.now() + slaHours * 3600000).toISOString();
 
+      // Auto-assign reviewer from routing rules
+      const { data: routingRule } = await supabase
+        .from("reviewer_routing_rules")
+        .select("default_reviewer, default_reviewer_role, max_active_assignments")
+        .eq("domain", domainKey)
+        .eq("criticality_tier", criticalityTier)
+        .eq("enabled", true)
+        .maybeSingle();
+
+      // Workload balancing: check current load for assigned reviewer
+      let assignedReviewer = (routingRule as any)?.default_reviewer || null;
+      const assignedReviewerRole = (routingRule as any)?.default_reviewer_role || null;
+      const maxAssignments = (routingRule as any)?.max_active_assignments || 10;
+
+      if (assignedReviewer) {
+        const { count: currentLoad } = await supabase
+          .from("decision_outcome_log")
+          .select("id", { count: "exact", head: true })
+          .eq("assigned_reviewer", assignedReviewer)
+          .or("review_status.is.null,review_status.eq.pending");
+
+        if ((currentLoad ?? 0) >= maxAssignments) {
+          // Try fallback: any enabled rule for this domain with lower load
+          const { data: fallbacks } = await supabase
+            .from("reviewer_routing_rules")
+            .select("default_reviewer, default_reviewer_role")
+            .eq("domain", domainKey)
+            .eq("enabled", true)
+            .neq("default_reviewer", assignedReviewer);
+
+          if (fallbacks && fallbacks.length > 0) {
+            assignedReviewer = (fallbacks[0] as any).default_reviewer;
+          }
+          // Otherwise keep original — overloaded is better than unassigned
+        }
+      }
+
       const { error } = await supabase.from("decision_outcome_log").insert({
         signal_id: `model-${rec.action_type}-${data?.generated_at}`,
         signal_title: rec.label,
@@ -194,9 +231,26 @@ export default function ModelDrivenView({ domain }: Props) {
         criticality_tier: criticalityTier,
         requires_dual_approval: requiresDual,
         recommender_id: `model-${data?.model_version}`,
+        assigned_reviewer: assignedReviewer,
+        assigned_reviewer_role: assignedReviewerRole,
+        execution_status: "not_started",
       });
       if (error) throw error;
-      toast.success(`Captured "${rec.label}" — track action & outcome in Decision Log`);
+
+      // Log assignment to immutable review history
+      if (assignedReviewer) {
+        await supabase.from("decision_review_history").insert({
+          decision_id: `model-${rec.action_type}-${data?.generated_at}`,
+          changed_by: "system",
+          changed_role: "auto-router",
+          from_status: null,
+          to_status: "pending",
+          note: `Auto-assigned to ${assignedReviewer} (${assignedReviewerRole}) via routing rules`,
+        }).then(() => {}).catch(() => {}); // non-critical
+
+      }
+
+      toast.success(`Captured "${rec.label}" — assigned to ${assignedReviewer || "unassigned"}`);
     } catch (e: any) {
       if (e?.code === "23505") toast.info("Already captured");
       else { toast.error("Failed to capture"); console.error(e); }
