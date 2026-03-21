@@ -2135,6 +2135,48 @@ export type Database = {
         }
         Relationships: []
       }
+      decision_recommendation_runs: {
+        Row: {
+          created_at: string
+          evidence_density: string
+          global_assessment: string | null
+          id: string
+          model_used: string
+          outcome_trained: boolean
+          recommendation_count: number
+          recommendations_payload: Json | null
+          scope_country_iso3: string
+          scope_domain: string
+          signal_counts: Json
+        }
+        Insert: {
+          created_at?: string
+          evidence_density: string
+          global_assessment?: string | null
+          id?: string
+          model_used: string
+          outcome_trained?: boolean
+          recommendation_count?: number
+          recommendations_payload?: Json | null
+          scope_country_iso3?: string
+          scope_domain?: string
+          signal_counts?: Json
+        }
+        Update: {
+          created_at?: string
+          evidence_density?: string
+          global_assessment?: string | null
+          id?: string
+          model_used?: string
+          outcome_trained?: boolean
+          recommendation_count?: number
+          recommendations_payload?: Json | null
+          scope_country_iso3?: string
+          scope_domain?: string
+          signal_counts?: Json
+        }
+        Relationships: []
+      }
       defense_posture: {
         Row: {
           advisories_md: string | null
