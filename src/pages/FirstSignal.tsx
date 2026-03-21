@@ -140,6 +140,31 @@ const FirstSignal = () => {
     enabled: !!user,
   });
 
+  // Dynamic signal catalog: pull distinct validated wins grouped by iso3+domain
+  const { data: signals } = useQuery({
+    queryKey: ["first-signal-catalog"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("forecast_validation_results")
+        .select("*")
+        .eq("direction_hit", true)
+        .neq("actual_direction", "stable")
+        .order("realized_date", { ascending: false })
+        .limit(200);
+      if (!data || data.length === 0) return [];
+      // Deduplicate: keep earliest forecast per iso3+domain combo
+      const seen = new Map<string, any>();
+      for (const row of data) {
+        const key = `${row.iso3}-${row.domain}`;
+        if (!seen.has(key) || new Date(row.forecast_date) < new Date(seen.get(key).forecast_date)) {
+          seen.set(key, row);
+        }
+      }
+      return Array.from(seen.values());
+    },
+    enabled: !!user,
+  });
+
   if (authLoading || !user) return null;
 
   return (
