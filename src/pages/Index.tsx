@@ -26,7 +26,7 @@ const Index = () => {
             </div>
           </div>
           <div className="text-primary text-xl font-orbitron animate-pulse">Initializing AICIS...</div>
-          <div className="text-muted-foreground text-sm">Autonomous Intelligent Cybernetic Intervention System</div>
+          <div className="text-muted-foreground text-sm">AI-Assisted Civilization Intelligence System</div>
         </div>
       </div>
     );
