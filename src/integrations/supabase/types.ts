@@ -6688,33 +6688,33 @@ export type Database = {
       accountability_nodes_public: {
         Row: {
           country: string | null
+          created_at: string | null
           id: string | null
           joined_at: string | null
           jurisdiction: string | null
           last_active_at: string | null
-          metadata: Json | null
           org_name: string | null
           org_type: Database["public"]["Enums"]["org_type"] | null
           verified: boolean | null
         }
         Insert: {
           country?: string | null
+          created_at?: string | null
           id?: string | null
           joined_at?: string | null
           jurisdiction?: string | null
           last_active_at?: string | null
-          metadata?: Json | null
           org_name?: string | null
           org_type?: Database["public"]["Enums"]["org_type"] | null
           verified?: boolean | null
         }
         Update: {
           country?: string | null
+          created_at?: string | null
           id?: string | null
           joined_at?: string | null
           jurisdiction?: string | null
           last_active_at?: string | null
-          metadata?: Json | null
           org_name?: string | null
           org_type?: Database["public"]["Enums"]["org_type"] | null
           verified?: boolean | null
