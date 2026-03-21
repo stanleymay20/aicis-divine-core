@@ -94,9 +94,9 @@ const TrustLayer = () => {
             />
             <EvidenceCard
               icon={<Globe className="h-5 w-5 text-primary" />}
-              label="Countries Covered"
-              value="211"
-              detail="Full planetary coverage"
+              label="Countries Tracked"
+              value={(trustStats?.totalCountries || 0).toLocaleString()}
+              detail="Multi-domain performance snapshots"
             />
             <EvidenceCard
               icon={<Brain className="h-5 w-5 text-primary" />}
