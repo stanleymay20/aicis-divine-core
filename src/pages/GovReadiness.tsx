@@ -7,7 +7,7 @@ import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Shield, Activity, Eye, BarChart3, Target, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Loader2, Shield, Activity, Eye, BarChart3, Target, CheckCircle2, AlertTriangle, Clock, Siren } from "lucide-react";
 
 interface DimensionData {
   label: string;
@@ -60,6 +60,39 @@ const GovReadiness = () => {
       return data || [];
     },
     enabled: !!user,
+  });
+
+  const { data: auditChainCount } = useQuery({
+    queryKey: ["gov-audit-chain-count"],
+    queryFn: async () => {
+      const { count } = await supabase.from("signal_audit_chain" as any).select("*", { count: "exact", head: true });
+      return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: slaBreaches } = useQuery({
+    queryKey: ["gov-sla-breaches"],
+    queryFn: async () => {
+      // Check breaches client-side from pipeline_health + sla_definitions
+      if (!pipelineHealth || !slaDefinitions) return [];
+      const now = Date.now();
+      const breaches: { pipeline: string; type: string; detail: string; severity: string }[] = [];
+      for (const sla of slaDefinitions as any[]) {
+        const p = (pipelineHealth as any[]).find((ph: any) => ph.pipeline_name === sla.pipeline_name);
+        if (p?.last_success_at) {
+          const staleH = (now - new Date(p.last_success_at).getTime()) / 3600000;
+          if (staleH > sla.max_stale_hours) {
+            breaches.push({ pipeline: sla.pipeline_name, type: "Stale", detail: `${Math.round(staleH)}h > ${sla.max_stale_hours}h`, severity: staleH > sla.max_stale_hours * 2 ? "critical" : "warning" });
+          }
+        }
+        if (p?.consecutive_failures >= sla.max_consecutive_failures) {
+          breaches.push({ pipeline: sla.pipeline_name, type: "Failures", detail: `${p.consecutive_failures} consecutive`, severity: "critical" });
+        }
+      }
+      return breaches;
+    },
+    enabled: !!user && !!pipelineHealth && !!slaDefinitions,
   });
 
   if (authLoading || !user) return null;
@@ -247,6 +280,56 @@ const GovReadiness = () => {
               </Card>
             );
           })}
+        </div>
+
+        {/* SLA Breaches + Audit Chain Status */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className={slaBreaches && slaBreaches.length > 0 ? "border-destructive/30" : "border-success/30"}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Siren className="h-4 w-4" />
+                SLA Breaches
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!slaBreaches || slaBreaches.length === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-success">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  No active SLA breaches
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {slaBreaches.map((b, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className={`h-3 w-3 ${b.severity === "critical" ? "text-destructive" : "text-warning"}`} />
+                        <span className="font-mono">{b.pipeline}</span>
+                      </div>
+                      <span className="text-muted-foreground">{b.type}: {b.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                Signal Audit Chain
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{(auditChainCount as number)?.toLocaleString() || 0}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Auditable signal entries</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Each entry records model version, data sources, input/output hashes for full reproducibility.
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Roadmap timeline */}
