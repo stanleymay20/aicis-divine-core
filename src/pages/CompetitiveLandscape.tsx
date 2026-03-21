@@ -179,7 +179,7 @@ const CompetitiveLandscape = () => {
               />
               <DiffCard
                 title="Coverage Architecture"
-                desc="2.57M indicators across 211 countries, 24K+ regions, 7 domains. Multi-domain correlation at planetary scale from a single platform."
+                desc="2.57M indicators across 211 countries, 24,700+ regions, 7 domains. Multi-domain correlation at planetary scale from a single platform."
               />
               <DiffCard
                 title="Public-Data Posture"
