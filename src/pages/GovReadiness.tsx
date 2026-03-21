@@ -173,7 +173,7 @@ const GovReadiness = () => {
       target: 95,
       icon: Shield,
       items: [
-        { name: "Row-Level Security", status: "done", detail: "All tables protected" },
+        { name: "Row-Level Security", status: "done", detail: "Hardened in security lockdown" },
         { name: "Role-based access (RBAC)", status: "done", detail: "Admin/observer/analyst" },
         { name: "GDPR data rights", status: "done", detail: "/compliance portal" },
         { name: "Audit trail", status: "partial", detail: "audit_log table active" },
