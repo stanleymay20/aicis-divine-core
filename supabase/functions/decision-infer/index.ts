@@ -169,6 +169,7 @@ serve(async (req) => {
 
     const weights = activeModel?.feature_weights || DEFAULT_WEIGHTS;
     const modelVersion = activeModel?.version || "DL-heuristic-0.1";
+    const trainingMode = activeModel?.training_mode || "heuristic";
 
     // 2. Pull signals
     let snapshotQuery = supabase
