@@ -2089,8 +2089,10 @@ export type Database = {
       }
       decision_models: {
         Row: {
+          action_adjustment_weights: Json | null
           action_policies: Json
           avg_impact_score: number | null
+          confidence_calibration: Json | null
           created_at: string
           domain_action_policies: Json | null
           domain_feature_weights: Json | null
@@ -2111,8 +2113,10 @@ export type Database = {
           version: string
         }
         Insert: {
+          action_adjustment_weights?: Json | null
           action_policies?: Json
           avg_impact_score?: number | null
+          confidence_calibration?: Json | null
           created_at?: string
           domain_action_policies?: Json | null
           domain_feature_weights?: Json | null
@@ -2133,8 +2137,10 @@ export type Database = {
           version: string
         }
         Update: {
+          action_adjustment_weights?: Json | null
           action_policies?: Json
           avg_impact_score?: number | null
+          confidence_calibration?: Json | null
           created_at?: string
           domain_action_policies?: Json | null
           domain_feature_weights?: Json | null
@@ -2159,9 +2165,11 @@ export type Database = {
       decision_outcome_log: {
         Row: {
           action_taken: boolean | null
+          action_taken_at: string | null
           action_timestamp: string | null
           action_type: string | null
           action_window_days: number | null
+          actor_role: string | null
           created_at: string | null
           decision_features: Json | null
           domain: string | null
@@ -2184,6 +2192,8 @@ export type Database = {
           pilot_outcome: string | null
           pilot_partner: string | null
           pilot_started_at: string | null
+          recommendation_accepted: boolean | null
+          recommendation_rejected_reason: string | null
           recommended_action: string | null
           recorded_at: string | null
           recorded_by: string | null
@@ -2198,9 +2208,11 @@ export type Database = {
         }
         Insert: {
           action_taken?: boolean | null
+          action_taken_at?: string | null
           action_timestamp?: string | null
           action_type?: string | null
           action_window_days?: number | null
+          actor_role?: string | null
           created_at?: string | null
           decision_features?: Json | null
           domain?: string | null
@@ -2223,6 +2235,8 @@ export type Database = {
           pilot_outcome?: string | null
           pilot_partner?: string | null
           pilot_started_at?: string | null
+          recommendation_accepted?: boolean | null
+          recommendation_rejected_reason?: string | null
           recommended_action?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
@@ -2237,9 +2251,11 @@ export type Database = {
         }
         Update: {
           action_taken?: boolean | null
+          action_taken_at?: string | null
           action_timestamp?: string | null
           action_type?: string | null
           action_window_days?: number | null
+          actor_role?: string | null
           created_at?: string | null
           decision_features?: Json | null
           domain?: string | null
@@ -2262,6 +2278,8 @@ export type Database = {
           pilot_outcome?: string | null
           pilot_partner?: string | null
           pilot_started_at?: string | null
+          recommendation_accepted?: boolean | null
+          recommendation_rejected_reason?: string | null
           recommended_action?: string | null
           recorded_at?: string | null
           recorded_by?: string | null
@@ -4528,6 +4546,63 @@ export type Database = {
             referencedColumns: ["model_version"]
           },
         ]
+      }
+      model_evaluations: {
+        Row: {
+          acceptance_rate: number | null
+          act_precision: number | null
+          avg_impact_score: number | null
+          calibration_error: number | null
+          compared_to_version: string | null
+          confidence_buckets: Json | null
+          consider_precision: number | null
+          evaluated_at: string | null
+          evaluation_type: string
+          id: string
+          measured_success_rate: number | null
+          metadata: Json | null
+          model_version: string
+          proxy_success_rate: number | null
+          real_success_rate: number | null
+          sample_count: number | null
+        }
+        Insert: {
+          acceptance_rate?: number | null
+          act_precision?: number | null
+          avg_impact_score?: number | null
+          calibration_error?: number | null
+          compared_to_version?: string | null
+          confidence_buckets?: Json | null
+          consider_precision?: number | null
+          evaluated_at?: string | null
+          evaluation_type?: string
+          id?: string
+          measured_success_rate?: number | null
+          metadata?: Json | null
+          model_version: string
+          proxy_success_rate?: number | null
+          real_success_rate?: number | null
+          sample_count?: number | null
+        }
+        Update: {
+          acceptance_rate?: number | null
+          act_precision?: number | null
+          avg_impact_score?: number | null
+          calibration_error?: number | null
+          compared_to_version?: string | null
+          confidence_buckets?: Json | null
+          consider_precision?: number | null
+          evaluated_at?: string | null
+          evaluation_type?: string
+          id?: string
+          measured_success_rate?: number | null
+          metadata?: Json | null
+          model_version?: string
+          proxy_success_rate?: number | null
+          real_success_rate?: number | null
+          sample_count?: number | null
+        }
+        Relationships: []
       }
       model_registry: {
         Row: {
@@ -7163,6 +7238,18 @@ export type Database = {
           rate_limit_per_hour?: number | null
           updated_at?: string | null
           verified?: boolean | null
+        }
+        Relationships: []
+      }
+      action_effectiveness: {
+        Row: {
+          action_type: string | null
+          avg_impact: number | null
+          domain: string | null
+          success_rate_pct: number | null
+          times_accepted: number | null
+          times_recommended: number | null
+          times_successful: number | null
         }
         Relationships: []
       }

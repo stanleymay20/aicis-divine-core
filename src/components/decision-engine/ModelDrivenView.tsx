@@ -7,28 +7,45 @@ import { Separator } from "@/components/ui/separator";
 import {
   Brain, RefreshCw, Target, Zap, TrendingUp,
   Activity, BarChart3, Info, ChevronDown, ChevronUp,
-  FileText, CheckCircle, ClipboardCheck
+  FileText, ClipboardCheck, Shield, ArrowUp, ArrowDown,
+  CheckCircle, XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+
+interface FeatureContribution {
+  feature: string;
+  normalized: number;
+  weight: number;
+  contribution: number;
+}
+
+interface Recommendation {
+  action_type: string;
+  label: string;
+  success_probability: number;
+  impact_estimate: number;
+  urgency: string;
+  policy: "ACT" | "CONSIDER" | "MONITOR";
+  top_drivers: Array<{ feature: string; contribution: number }>;
+  domain_override: boolean;
+  action_adjusted: boolean;
+  guardrail_applied: string | null;
+}
 
 interface ModelInferResponse {
   ok: boolean;
   risk_score: number;
   features: Record<string, number>;
-  recommendations: Array<{
-    action_type: string;
-    label: string;
-    success_probability: number;
-    impact_estimate: number;
-    urgency: string;
-    policy: "ACT" | "CONSIDER" | "MONITOR";
-  }>;
+  feature_contributions: FeatureContribution[];
+  recommendations: Recommendation[];
   explanation: string | null;
   decision_basis: string;
   model_version: string;
   training_mode: string;
   outcome_trained: boolean;
+  domain_override_used: boolean;
+  action_adjustments_available: number;
   training_samples: number;
   real_samples: number;
   proxy_samples: number;
@@ -77,13 +94,12 @@ export default function ModelDrivenView({ domain }: Props) {
     refetchOnWindowFocus: false,
   });
 
-  // Active model metadata
   const { data: activeModel } = useQuery({
     queryKey: ["active-decision-model"],
     queryFn: async () => {
       const { data } = await supabase
         .from("decision_models")
-        .select("version, training_mode, training_sample_count, proxy_sample_count, real_sample_count, measured_sample_count, last_calibrated_at, avg_impact_score, outcome_maturity_ratio, performance_metrics, domain_feature_weights")
+        .select("version, training_mode, training_sample_count, proxy_sample_count, real_sample_count, measured_sample_count, last_calibrated_at, avg_impact_score, outcome_maturity_ratio, domain_feature_weights, action_adjustment_weights")
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1)
@@ -93,9 +109,23 @@ export default function ModelDrivenView({ domain }: Props) {
     staleTime: 60_000,
   });
 
+  const { data: latestEval } = useQuery({
+    queryKey: ["latest-model-evaluation"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("model_evaluations")
+        .select("*")
+        .order("evaluated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 120_000,
+  });
+
   const totalSignals = data ? Object.values(data.signal_counts).reduce((a, b) => a + b, 0) : 0;
 
-  const handleCaptureRecommendation = async (rec: ModelInferResponse["recommendations"][0]) => {
+  const handleCaptureRecommendation = async (rec: Recommendation) => {
     setCapturingAction(rec.action_type);
     try {
       const { data: existing } = await supabase
@@ -125,28 +155,22 @@ export default function ModelDrivenView({ domain }: Props) {
         decision_features: data?.features || {},
         action_type: rec.action_type,
         status: "pending",
+        recommendation_accepted: true,
       });
       if (error) throw error;
       toast.success(`Captured "${rec.label}" — track action & outcome in Decision Log`);
     } catch (e: any) {
-      if (e?.code === "23505") {
-        toast.info("Already captured");
-      } else {
-        toast.error("Failed to capture");
-        console.error(e);
-      }
+      if (e?.code === "23505") toast.info("Already captured");
+      else { toast.error("Failed to capture"); console.error(e); }
     } finally {
       setCapturingAction(null);
     }
   };
 
   const modeInfo = trainingModeLabels[data?.training_mode || "heuristic"] || trainingModeLabels.heuristic;
-  const maturityPct = activeModel?.outcome_maturity_ratio != null
-    ? Math.round(activeModel.outcome_maturity_ratio * 100)
-    : 0;
-  const domainWeightsCount = activeModel?.domain_feature_weights
-    ? Object.keys(activeModel.domain_feature_weights).length
-    : 0;
+  const maturityPct = activeModel?.outcome_maturity_ratio != null ? Math.round(activeModel.outcome_maturity_ratio * 100) : 0;
+  const domainWeightsCount = activeModel?.domain_feature_weights ? Object.keys(activeModel.domain_feature_weights as Record<string, unknown>).length : 0;
+  const actionAdjCount = activeModel?.action_adjustment_weights ? Object.keys(activeModel.action_adjustment_weights as Record<string, unknown>).length : 0;
 
   return (
     <div className="space-y-4">
@@ -160,7 +184,7 @@ export default function ModelDrivenView({ domain }: Props) {
         </span>
       </div>
 
-      {/* Outcome Maturity Summary */}
+      {/* Model Calibration + Evaluation Status */}
       {activeModel && (
         <Card className="border-accent/20">
           <CardContent className="py-3 px-4">
@@ -171,10 +195,10 @@ export default function ModelDrivenView({ domain }: Props) {
               </span>
               <Badge variant={modeInfo.variant} className="text-xs">{modeInfo.label}</Badge>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center">
               <div className="p-1.5 rounded bg-muted/30">
                 <p className="text-sm font-bold">{activeModel.training_sample_count || 0}</p>
-                <p className="text-[9px] text-muted-foreground">Total Samples</p>
+                <p className="text-[9px] text-muted-foreground">Samples</p>
               </div>
               <div className="p-1.5 rounded bg-muted/30">
                 <p className="text-sm font-bold">{activeModel.proxy_sample_count || 0}</p>
@@ -192,18 +216,17 @@ export default function ModelDrivenView({ domain }: Props) {
                 <p className="text-sm font-bold">{maturityPct}%</p>
                 <p className="text-[9px] text-muted-foreground">Maturity</p>
               </div>
+              <div className="p-1.5 rounded bg-muted/30">
+                <p className="text-sm font-bold">{actionAdjCount}</p>
+                <p className="text-[9px] text-muted-foreground">Action Adj.</p>
+              </div>
             </div>
             <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground flex-wrap">
               <span>v{activeModel.version}</span>
-              {activeModel.last_calibrated_at && (
-                <span>Calibrated: {new Date(activeModel.last_calibrated_at).toLocaleDateString()}</span>
-              )}
-              {domainWeightsCount > 0 && (
-                <span>{domainWeightsCount} domain-specific weight sets</span>
-              )}
-              {activeModel.avg_impact_score != null && (
-                <span>Avg impact: {activeModel.avg_impact_score.toFixed(1)}</span>
-              )}
+              {activeModel.last_calibrated_at && <span>Cal: {new Date(activeModel.last_calibrated_at).toLocaleDateString()}</span>}
+              {domainWeightsCount > 0 && <span>{domainWeightsCount} domain weights</span>}
+              {latestEval?.calibration_error != null && <span>ECE: {latestEval.calibration_error.toFixed(3)}</span>}
+              {latestEval?.acceptance_rate != null && <span>Accept: {(latestEval.acceptance_rate * 100).toFixed(0)}%</span>}
             </div>
           </CardContent>
         </Card>
@@ -230,7 +253,7 @@ export default function ModelDrivenView({ domain }: Props) {
 
       {data && (
         <>
-          {/* Risk Score + Model Meta */}
+          {/* Risk Score */}
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="py-4">
               <div className="flex items-center justify-between flex-wrap gap-3">
@@ -242,36 +265,42 @@ export default function ModelDrivenView({ domain }: Props) {
                   <div className="text-3xl font-bold text-primary">{data.risk_score.toFixed(1)}<span className="text-sm font-normal text-muted-foreground">/100</span></div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-xs">
-                    <Activity className="h-3 w-3 mr-1" />
-                    {data.model_version}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {totalSignals} signals
-                  </Badge>
+                  <Badge variant="outline" className="text-xs"><Activity className="h-3 w-3 mr-1" />{data.model_version}</Badge>
+                  <Badge variant="outline" className="text-xs">{totalSignals} signals</Badge>
+                  {data.domain_override_used && <Badge variant="secondary" className="text-xs">Domain Override</Badge>}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Feature Vector */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Feature Vector</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {Object.entries(data.features).map(([key, val]) => (
-                  <div key={key} className="text-center p-2 rounded bg-muted/30">
-                    <p className="text-xs text-muted-foreground truncate">{key.replace(/_/g, " ")}</p>
-                    <p className="text-sm font-bold">{typeof val === "number" ? val.toFixed(1) : val}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Top Feature Contributions */}
+          {data.feature_contributions && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <TrendingUp className="h-3.5 w-3.5" /> Top Feature Drivers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1.5">
+                  {data.feature_contributions.slice(0, 5).map((fc) => (
+                    <div key={fc.feature} className="flex items-center gap-2 text-xs">
+                      {fc.contribution > 0
+                        ? <ArrowUp className="h-3 w-3 text-destructive" />
+                        : <ArrowDown className="h-3 w-3 text-primary" />}
+                      <span className="text-muted-foreground flex-1 truncate">{fc.feature.replace(/_/g, " ")}</span>
+                      <span className="font-mono text-xs font-medium w-14 text-right">
+                        {fc.contribution > 0 ? "+" : ""}{fc.contribution.toFixed(3)}
+                      </span>
+                      <span className="text-muted-foreground w-12 text-right">w:{fc.weight.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* LLM Explanation (optional) */}
+          {/* LLM Explanation */}
           {data.explanation && (
             <Card className="border-accent/20 bg-accent/5">
               <CardContent className="py-3">
@@ -301,10 +330,7 @@ export default function ModelDrivenView({ domain }: Props) {
 
                 return (
                   <Card key={rec.action_type} className="overflow-hidden">
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => setExpanded(isExpanded ? null : rec.action_type)}
-                    >
+                    <div className="cursor-pointer" onClick={() => setExpanded(isExpanded ? null : rec.action_type)}>
                       <CardContent className="py-3">
                         <div className="flex items-center gap-3">
                           <div className={`p-1.5 rounded ${policy.color}`}>
@@ -315,6 +341,12 @@ export default function ModelDrivenView({ domain }: Props) {
                               <span className="text-sm font-medium">{rec.label}</span>
                               <Badge variant="outline" className="text-xs">{urgencyLabels[rec.urgency]}</Badge>
                               <Badge className={`text-xs ${policy.color}`}>{policy.label}</Badge>
+                              {rec.guardrail_applied && (
+                                <Badge variant="outline" className="text-xs border-warning">
+                                  <Shield className="h-2.5 w-2.5 mr-0.5" />{rec.guardrail_applied.replace(/_/g, " ")}
+                                </Badge>
+                              )}
+                              {rec.action_adjusted && <Badge variant="outline" className="text-[10px]">Action-adj</Badge>}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
@@ -338,22 +370,39 @@ export default function ModelDrivenView({ domain }: Props) {
                             <p className="text-sm font-bold">Statistical Model</p>
                           </div>
                         </div>
-                        {/* Operator capture workflow */}
+
+                        {/* Why this action - top drivers */}
+                        {rec.top_drivers && rec.top_drivers.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Top drivers for this action:</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {rec.top_drivers.map((d) => (
+                                <Badge key={d.feature} variant="outline" className="text-[10px]">
+                                  {d.contribution > 0 ? <ArrowUp className="h-2.5 w-2.5 mr-0.5 text-destructive" /> : <ArrowDown className="h-2.5 w-2.5 mr-0.5 text-primary" />}
+                                  {d.feature.replace(/_/g, " ")}: {d.contribution > 0 ? "+" : ""}{d.contribution.toFixed(3)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Capture workflow */}
                         <Separator className="mb-3" />
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <ClipboardCheck className="h-3 w-3" />
                             Capture to track action → outcome → impact
                           </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleCaptureRecommendation(rec); }}
-                            disabled={capturingAction === rec.action_type}
-                          >
-                            <FileText className="h-3.5 w-3.5 mr-1" />
-                            {capturingAction === rec.action_type ? "Capturing..." : "Capture to Log"}
-                          </Button>
+                          <div className="flex gap-1.5">
+                            <Button
+                              variant="outline" size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleCaptureRecommendation(rec); }}
+                              disabled={capturingAction === rec.action_type}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                              {capturingAction === rec.action_type ? "..." : "Accept & Capture"}
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     )}
@@ -364,7 +413,7 @@ export default function ModelDrivenView({ domain }: Props) {
           )}
 
           <p className="text-xs text-muted-foreground text-center">
-            Generated {new Date(data.generated_at).toLocaleString()} · Model: {data.model_version} · Mode: {data.training_mode} · Hash: {data.inference_hash?.slice(0, 12)}…
+            Generated {new Date(data.generated_at).toLocaleString()} · {data.model_version} · {data.training_mode} · Hash: {data.inference_hash?.slice(0, 12)}…
           </p>
         </>
       )}

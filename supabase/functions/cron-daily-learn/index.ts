@@ -26,7 +26,7 @@ serve(async (req) => {
     // 1. Run auto-learn-cycle
     const { data: learnData, error: learnErr } = await supabase.functions.invoke("auto-learn-cycle", { body: {} });
 
-    // 2. Run decision weight calibration
+    // 2. Run decision weight calibration (triggers evaluation automatically)
     const { data: calData, error: calErr } = await supabase.functions.invoke("calibrate-decision-weights", { body: {} });
 
     const messages: string[] = [];
@@ -34,7 +34,7 @@ serve(async (req) => {
     else messages.push(`learn: ${learnData?.evaluation?.divisions || 0} impacts, ${learnData?.learning?.updated || 0} weights`);
 
     if (calErr) messages.push(`calibration error: ${calErr.message}`);
-    else messages.push(`calibration: v${calData?.version || '?'}, ${calData?.samples?.total || 0} samples, mode=${calData?.training_mode || '?'}`);
+    else messages.push(`calibration: v${calData?.version || '?'}, ${calData?.samples?.total || 0} samples, mode=${calData?.training_mode || '?'}, action-adj=${calData?.action_adjustments_count || 0}`);
 
     await supabase.from("automation_logs").insert({
       job_name: "cron-daily-learn",
