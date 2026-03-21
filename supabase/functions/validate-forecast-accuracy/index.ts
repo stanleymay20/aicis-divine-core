@@ -262,14 +262,12 @@ serve(async (req) => {
     }
 
     // ── 3. Naive Baseline Comparison ────────────────────────────────
-    // "Tomorrow = today" model: predict no change, measure how often that's correct
     let naiveHits = 0;
     let naiveTotal = 0;
     let aicisDirectionAcc: number | null = null;
     let naiveDirectionAcc: number | null = null;
 
     if (totalValidated > 0) {
-      // Re-query the 1-day results we just inserted to compute naive baseline
       const { data: recentResults } = await sb
         .from("forecast_validation_results")
         .select("predicted_direction, actual_direction")
@@ -279,7 +277,6 @@ serve(async (req) => {
       if (recentResults?.length) {
         for (const r of recentResults) {
           naiveTotal++;
-          // Naive model always predicts "stable" (no change)
           if (r.actual_direction === "stable") naiveHits++;
         }
 
@@ -288,7 +285,6 @@ serve(async (req) => {
         naiveDirectionAcc = naiveTotal > 0
           ? Math.round(naiveHits / naiveTotal * 100) : null;
 
-        // Store both metrics in calibration_metrics
         const metricsToInsert = [
           {
             model_version: 'APE-V2.1',
@@ -328,7 +324,39 @@ serve(async (req) => {
       }
     }
 
-    // ── 4. Log telemetry ─────────────────────────────────────────────
+    // ── 4. TRUE INTELLIGENCE SCORE (via server-side RPC) ────────────
+    // Bypasses 1000-row API limit by computing entirely in Postgres
+    let intelligenceScore: any = null;
+    try {
+      const { data: scoreResult, error: scoreErr } = await sb.rpc("compute_intelligence_score_v2", {
+        _window_days: 30,
+        _change_threshold: 1.5,
+      });
+      if (scoreErr) {
+        structuredLog("warn", FN, `Intelligence score RPC error: ${scoreErr.message}`);
+      } else {
+        intelligenceScore = scoreResult;
+        structuredLog("info", FN, `Intelligence Score: Grade=${scoreResult?.intelligence_grade}, TP=${scoreResult?.turning_point_accuracy}%, Break=${scoreResult?.break_detection_score}%, Delta=+${scoreResult?.filtered_delta}% vs naive`);
+
+        // Store key metrics in calibration_metrics for dashboard visibility
+        const intMetrics = [
+          { metric_name: 'turning_point_accuracy', metric_value: scoreResult?.turning_point_accuracy ?? 0, sample_size: scoreResult?.turning_point_total ?? 0 },
+          { metric_name: 'break_detection_score', metric_value: scoreResult?.break_detection_score ?? 0, sample_size: scoreResult?.break_detection_total ?? 0 },
+          { metric_name: 'intelligence_filtered_delta', metric_value: scoreResult?.filtered_delta ?? 0, sample_size: scoreResult?.turning_point_total ?? 0 },
+        ];
+        for (const m of intMetrics) {
+          await sb.from("calibration_metrics").insert({
+            model_version: 'APE-V2.1', ...m, domain: 'all',
+            window_start: new Date(Date.now() - 30 * 86400000).toISOString(),
+            window_end: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (e) {
+      structuredLog("warn", FN, `Intelligence score error: ${(e as Error).message}`);
+    }
+
+    // ── 5. Log telemetry ─────────────────────────────────────────────
     await sb.from("operational_telemetry").insert({
       function_name: FN,
       execution_time_ms: Date.now() - start,
@@ -342,13 +370,14 @@ serve(async (req) => {
         naive_baseline_accuracy: naiveDirectionAcc,
         accuracy_delta: aicisDirectionAcc !== null && naiveDirectionAcc !== null
           ? aicisDirectionAcc - naiveDirectionAcc : null,
+        intelligence_score: intelligenceScore,
       },
     });
 
     await sb.from("automation_logs").insert({
       job_name: FN,
       status: "success",
-      message: `Validated ${totalValidated} forecasts (1d: ${horizonResults[1]?.checked || 0}, 7d: ${horizonResults[7]?.checked || 0}), ${correlationsFound} vuln correlations`,
+      message: `Validated ${totalValidated} forecasts. Intelligence: ${intelligenceScore?.intelligence_grade || 'N/A'}, TP=${intelligenceScore?.turning_point_accuracy || 0}%, Break=${intelligenceScore?.break_detection_score || 0}%`,
     });
 
     structuredLog("info", FN, "Validation cycle complete", undefined, start);
@@ -360,6 +389,7 @@ serve(async (req) => {
       direction_accuracy: totalValidated > 0 ? Math.round(totalDirectionHits / totalValidated * 100) : null,
       horizons: horizonResults,
       vulnerability_correlations: correlationsFound,
+      intelligence_score: intelligenceScore,
       execution_time_ms: Date.now() - start,
     });
   } catch (error) {

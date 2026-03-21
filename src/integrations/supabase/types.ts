@@ -3484,6 +3484,75 @@ export type Database = {
         }
         Relationships: []
       }
+      intelligence_score_snapshots: {
+        Row: {
+          break_detection_hits: number | null
+          break_detection_score: number | null
+          break_detection_total: number | null
+          change_period_pct: number | null
+          created_at: string | null
+          evaluation_window_days: number | null
+          filtered_aicis_accuracy: number | null
+          filtered_delta: number | null
+          filtered_naive_accuracy: number | null
+          id: string
+          intelligence_grade: string | null
+          lead_time_advantage_days: number | null
+          metadata: Json | null
+          naive_turning_point_accuracy: number | null
+          snapshot_date: string
+          total_forecasts_evaluated: number | null
+          turning_point_accuracy: number | null
+          turning_point_hits: number | null
+          turning_point_total: number | null
+          volatility_sensitivity: number | null
+        }
+        Insert: {
+          break_detection_hits?: number | null
+          break_detection_score?: number | null
+          break_detection_total?: number | null
+          change_period_pct?: number | null
+          created_at?: string | null
+          evaluation_window_days?: number | null
+          filtered_aicis_accuracy?: number | null
+          filtered_delta?: number | null
+          filtered_naive_accuracy?: number | null
+          id?: string
+          intelligence_grade?: string | null
+          lead_time_advantage_days?: number | null
+          metadata?: Json | null
+          naive_turning_point_accuracy?: number | null
+          snapshot_date?: string
+          total_forecasts_evaluated?: number | null
+          turning_point_accuracy?: number | null
+          turning_point_hits?: number | null
+          turning_point_total?: number | null
+          volatility_sensitivity?: number | null
+        }
+        Update: {
+          break_detection_hits?: number | null
+          break_detection_score?: number | null
+          break_detection_total?: number | null
+          change_period_pct?: number | null
+          created_at?: string | null
+          evaluation_window_days?: number | null
+          filtered_aicis_accuracy?: number | null
+          filtered_delta?: number | null
+          filtered_naive_accuracy?: number | null
+          id?: string
+          intelligence_grade?: string | null
+          lead_time_advantage_days?: number | null
+          metadata?: Json | null
+          naive_turning_point_accuracy?: number | null
+          snapshot_date?: string
+          total_forecasts_evaluated?: number | null
+          turning_point_accuracy?: number | null
+          turning_point_hits?: number | null
+          turning_point_total?: number | null
+          volatility_sensitivity?: number | null
+        }
+        Relationships: []
+      }
       intelligence_signals: {
         Row: {
           acknowledged: boolean | null
@@ -6232,6 +6301,14 @@ export type Database = {
       }
       cleanup_expired_exports: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      compute_intelligence_score: {
+        Args: { _change_threshold?: number; _window_days?: number }
+        Returns: Json
+      }
+      compute_intelligence_score_v2: {
+        Args: { _change_threshold?: number; _window_days?: number }
+        Returns: Json
+      }
       count_districts_needing_settlements: { Args: never; Returns: number }
       count_uncovered_regions: { Args: never; Returns: number }
       get_countries_needing_villages: {
