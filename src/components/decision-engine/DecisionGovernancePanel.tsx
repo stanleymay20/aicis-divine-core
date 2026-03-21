@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  ClipboardCheck, CheckCircle, XCircle, Eye, AlertTriangle,
-  BarChart3, ChevronDown, ChevronUp
+  ClipboardCheck, CheckCircle, XCircle, AlertTriangle,
+  BarChart3, ChevronDown, ChevronUp, Timer
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -25,11 +26,15 @@ interface DecisionRecord {
   override_reason: string | null;
   postmortem_note: string | null;
   review_completed_at: string | null;
+  review_due_at: string | null;
+  review_sla_hours: number | null;
+  assigned_reviewer: string | null;
   outcome_success: boolean | null;
   impact_score: number | null;
   evidence_type: string | null;
   created_at: string | null;
   status: string | null;
+  actor_role: string | null;
 }
 
 const reviewStatusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -44,13 +49,14 @@ export default function DecisionGovernancePanel() {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState<Record<string, string>>({});
+  const [reviewerInput, setReviewerInput] = useState<Record<string, { name: string; role: string }>>({});
 
   const { data: records } = useQuery<DecisionRecord[]>({
     queryKey: ["decision-governance-records"],
     queryFn: async () => {
       const { data } = await supabase
         .from("decision_outcome_log")
-        .select("id, signal_title, action_type, domain, recommendation_accepted, recommendation_rejected_reason, review_status, reviewer_name, reviewer_role, override_reason, postmortem_note, review_completed_at, outcome_success, impact_score, evidence_type, created_at, status")
+        .select("id, signal_title, action_type, domain, recommendation_accepted, recommendation_rejected_reason, review_status, reviewer_name, reviewer_role, override_reason, postmortem_note, review_completed_at, review_due_at, review_sla_hours, assigned_reviewer, outcome_success, impact_score, evidence_type, created_at, status, actor_role")
         .order("created_at", { ascending: false })
         .limit(20);
       return (data as any) || [];
@@ -59,32 +65,80 @@ export default function DecisionGovernancePanel() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
+    mutationFn: async ({ id, updates, historyEntry }: { id: string; updates: Record<string, any>; historyEntry?: { from_status: string | null; to_status: string; note?: string } }) => {
       const { error } = await supabase
         .from("decision_outcome_log")
         .update(updates)
         .eq("id", id);
       if (error) throw error;
+
+      // Append to immutable review history
+      if (historyEntry) {
+        await supabase.from("decision_review_history").insert({
+          decision_id: id,
+          changed_by: updates.reviewer_name || null,
+          changed_role: updates.reviewer_role || null,
+          from_status: historyEntry.from_status,
+          to_status: historyEntry.to_status,
+          note: historyEntry.note || null,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["decision-governance-records"] });
+      queryClient.invalidateQueries({ queryKey: ["review-tower-records"] });
+      queryClient.invalidateQueries({ queryKey: ["review-history-all"] });
       toast.success("Decision record updated");
     },
     onError: () => toast.error("Failed to update record"),
   });
 
-  const handleReviewStatusChange = (id: string, status: string) => {
+  const handleReviewStatusChange = (rec: DecisionRecord, newStatus: string) => {
+    // Governance rules validation
+    const reviewer = reviewerInput[rec.id] || { name: rec.reviewer_name || "", role: rec.reviewer_role || "" };
+
+    if (newStatus === "approved" && (!reviewer.name || !reviewer.role)) {
+      toast.error("Reviewer name and role are required to approve a decision.");
+      return;
+    }
+    if (newStatus === "overridden") {
+      const reason = editingNote[`${rec.id}-override_reason`] ?? rec.override_reason;
+      if (!reason) {
+        toast.error("Override reason is required before marking as overridden.");
+        return;
+      }
+    }
+
     const updates: Record<string, any> = {
-      review_status: status,
-      review_completed_at: ["approved", "rejected", "overridden"].includes(status) ? new Date().toISOString() : null,
+      review_status: newStatus,
+      review_completed_at: ["approved", "rejected", "overridden"].includes(newStatus) ? new Date().toISOString() : null,
     };
-    updateMutation.mutate({ id, updates });
+    if (reviewer.name) updates.reviewer_name = reviewer.name;
+    if (reviewer.role) updates.reviewer_role = reviewer.role;
+
+    updateMutation.mutate({
+      id: rec.id,
+      updates,
+      historyEntry: {
+        from_status: rec.review_status || "pending",
+        to_status: newStatus,
+      },
+    });
   };
 
-  const handleSaveNote = (id: string, field: "override_reason" | "postmortem_note") => {
+  const handleSaveNote = (id: string, field: "override_reason" | "postmortem_note", rec: DecisionRecord) => {
     const value = editingNote[`${id}-${field}`];
     if (value === undefined) return;
-    updateMutation.mutate({ id, updates: { [field]: value || null } });
+
+    updateMutation.mutate({
+      id,
+      updates: { [field]: value || null },
+      historyEntry: {
+        from_status: rec.review_status || "pending",
+        to_status: rec.review_status || "pending",
+        note: `${field === "override_reason" ? "Override reason" : "Postmortem note"} ${value ? "updated" : "cleared"}`,
+      },
+    });
     setEditingNote(prev => {
       const next = { ...prev };
       delete next[`${id}-${field}`];
@@ -114,9 +168,13 @@ export default function DecisionGovernancePanel() {
         {records.map(rec => {
           const isExpanded = expanded === rec.id;
           const rvConfig = reviewStatusConfig[rec.review_status || "pending"] || reviewStatusConfig.pending;
+          const isOverdue = rec.review_due_at && !["approved", "rejected", "overridden"].includes(rec.review_status || "") && new Date(rec.review_due_at).getTime() < Date.now();
+          const slaHoursLeft = rec.review_due_at ? Math.round((new Date(rec.review_due_at).getTime() - Date.now()) / 3600000) : null;
+          const needsPostmortem = rec.recommendation_accepted === true && rec.outcome_success === false && !rec.postmortem_note;
+          const reviewer = reviewerInput[rec.id] || { name: rec.reviewer_name || "", role: rec.reviewer_role || "" };
 
           return (
-            <div key={rec.id} className="border border-border rounded overflow-hidden">
+            <div key={rec.id} className={`border rounded overflow-hidden ${isOverdue ? "border-destructive/50 bg-destructive/5" : "border-border"}`}>
               <div
                 className="flex items-center gap-2 p-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => setExpanded(isExpanded ? null : rec.id)}
@@ -126,22 +184,29 @@ export default function DecisionGovernancePanel() {
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {rec.domain && <Badge variant="outline" className="text-[9px] h-4">{rec.domain}</Badge>}
                     <Badge variant={rvConfig.variant} className="text-[9px] h-4">{rvConfig.label}</Badge>
+                    {isOverdue && (
+                      <Badge variant="destructive" className="text-[9px] h-4">
+                        <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />{Math.abs(slaHoursLeft!)}h overdue
+                      </Badge>
+                    )}
+                    {!isOverdue && slaHoursLeft != null && slaHoursLeft > 0 && !["approved", "rejected", "overridden"].includes(rec.review_status || "") && (
+                      <Badge variant="outline" className="text-[9px] h-4">
+                        <Timer className="h-2.5 w-2.5 mr-0.5" />{slaHoursLeft}h left
+                      </Badge>
+                    )}
                     {rec.recommendation_accepted === true && (
                       <Badge variant="default" className="text-[9px] h-4"><CheckCircle className="h-2.5 w-2.5 mr-0.5" />Accepted</Badge>
                     )}
                     {rec.recommendation_accepted === false && (
                       <Badge variant="destructive" className="text-[9px] h-4"><XCircle className="h-2.5 w-2.5 mr-0.5" />Rejected</Badge>
                     )}
-                    {rec.review_status === "overridden" && (
-                      <Badge variant="destructive" className="text-[9px] h-4"><AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Overridden</Badge>
-                    )}
                     {rec.outcome_success != null && (
                       <Badge variant={rec.outcome_success ? "default" : "destructive"} className="text-[9px] h-4">
-                        <BarChart3 className="h-2.5 w-2.5 mr-0.5" />Measured
+                        <BarChart3 className="h-2.5 w-2.5 mr-0.5" />{rec.outcome_success ? "Success" : "Failed"}
                       </Badge>
                     )}
-                    {rec.evidence_type && (
-                      <span className="text-[9px] text-muted-foreground">{rec.evidence_type}</span>
+                    {needsPostmortem && (
+                      <Badge variant="destructive" className="text-[9px] h-4">Needs postmortem</Badge>
                     )}
                   </div>
                 </div>
@@ -150,12 +215,34 @@ export default function DecisionGovernancePanel() {
 
               {isExpanded && (
                 <div className="border-t border-border p-3 space-y-3 bg-muted/10">
+                  {/* Reviewer assignment */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground block mb-1">Reviewer Name *</label>
+                      <Input
+                        className="h-7 text-xs"
+                        placeholder="Reviewer name"
+                        value={reviewer.name}
+                        onChange={(e) => setReviewerInput(prev => ({ ...prev, [rec.id]: { ...reviewer, name: e.target.value } }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground block mb-1">Reviewer Role *</label>
+                      <Input
+                        className="h-7 text-xs"
+                        placeholder="e.g. Senior Analyst"
+                        value={reviewer.role}
+                        onChange={(e) => setReviewerInput(prev => ({ ...prev, [rec.id]: { ...reviewer, role: e.target.value } }))}
+                      />
+                    </div>
+                  </div>
+
                   {/* Review status */}
                   <div>
                     <label className="text-[10px] font-medium text-muted-foreground block mb-1">Review Status</label>
                     <Select
                       value={rec.review_status || "pending"}
-                      onValueChange={(v) => handleReviewStatusChange(rec.id, v)}
+                      onValueChange={(v) => handleReviewStatusChange(rec, v)}
                     >
                       <SelectTrigger className="h-7 text-xs">
                         <SelectValue />
@@ -173,15 +260,15 @@ export default function DecisionGovernancePanel() {
                   {/* Override reason */}
                   {(rec.review_status === "overridden" || rec.override_reason) && (
                     <div>
-                      <label className="text-[10px] font-medium text-muted-foreground block mb-1">Override Reason</label>
+                      <label className="text-[10px] font-medium text-muted-foreground block mb-1">Override Reason *</label>
                       <Textarea
                         className="text-xs min-h-[50px]"
-                        placeholder="Why was this overridden?"
+                        placeholder="Why was this overridden? (required)"
                         value={editingNote[`${rec.id}-override_reason`] ?? rec.override_reason ?? ""}
                         onChange={(e) => setEditingNote(prev => ({ ...prev, [`${rec.id}-override_reason`]: e.target.value }))}
                       />
                       {editingNote[`${rec.id}-override_reason`] !== undefined && (
-                        <Button size="sm" variant="outline" className="mt-1 h-6 text-[10px]" onClick={() => handleSaveNote(rec.id, "override_reason")}>
+                        <Button size="sm" variant="outline" className="mt-1 h-6 text-[10px]" onClick={() => handleSaveNote(rec.id, "override_reason", rec)}>
                           Save
                         </Button>
                       )}
@@ -190,15 +277,17 @@ export default function DecisionGovernancePanel() {
 
                   {/* Postmortem note */}
                   <div>
-                    <label className="text-[10px] font-medium text-muted-foreground block mb-1">Postmortem Note</label>
+                    <label className="text-[10px] font-medium text-muted-foreground block mb-1">
+                      Postmortem Note {needsPostmortem && <span className="text-destructive">* Required — failed accepted decision</span>}
+                    </label>
                     <Textarea
-                      className="text-xs min-h-[50px]"
+                      className={`text-xs min-h-[50px] ${needsPostmortem ? "border-destructive/50" : ""}`}
                       placeholder="What was learned from this decision?"
                       value={editingNote[`${rec.id}-postmortem_note`] ?? rec.postmortem_note ?? ""}
                       onChange={(e) => setEditingNote(prev => ({ ...prev, [`${rec.id}-postmortem_note`]: e.target.value }))}
                     />
                     {editingNote[`${rec.id}-postmortem_note`] !== undefined && (
-                      <Button size="sm" variant="outline" className="mt-1 h-6 text-[10px]" onClick={() => handleSaveNote(rec.id, "postmortem_note")}>
+                      <Button size="sm" variant="outline" className="mt-1 h-6 text-[10px]" onClick={() => handleSaveNote(rec.id, "postmortem_note", rec)}>
                         Save
                       </Button>
                     )}
@@ -206,8 +295,8 @@ export default function DecisionGovernancePanel() {
 
                   {/* Metadata */}
                   <div className="flex items-center gap-3 text-[9px] text-muted-foreground flex-wrap">
-                    {rec.reviewer_name && <span>Reviewer: {rec.reviewer_name}</span>}
-                    {rec.reviewer_role && <span>Role: {rec.reviewer_role}</span>}
+                    {rec.assigned_reviewer && <span>Assigned: {rec.assigned_reviewer}</span>}
+                    {rec.review_sla_hours && <span>SLA: {rec.review_sla_hours}h</span>}
                     {rec.review_completed_at && <span>Completed: {new Date(rec.review_completed_at).toLocaleDateString()}</span>}
                     {rec.impact_score != null && <span>Impact: {rec.impact_score}</span>}
                     {rec.created_at && <span>Created: {new Date(rec.created_at).toLocaleDateString()}</span>}
