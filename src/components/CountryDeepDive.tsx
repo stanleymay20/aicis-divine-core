@@ -379,6 +379,9 @@ export default function CountryDeepDive({ location, profile, completeness_overal
         </Card>
       </div>
 
+      {/* Microdata Enrichment */}
+      <MicrodataEnrichmentBadge countryName={location.name} />
+
       {/* Executive Brief */}
       <ModeAwareSection onlyIn="executive">
         <ExecutiveBrief
