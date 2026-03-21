@@ -98,8 +98,14 @@ const DecisionOutcomeLog = () => {
           ))}
         </div>
 
-        {/* Evidence filter */}
-        <EvidenceFilter activeFilter={filter} onFilterChange={setFilter} counts={counts} />
+        {/* Evidence filter + proof maturity */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-start">
+          <EvidenceFilter activeFilter={filter} onFilterChange={setFilter} counts={counts} />
+          <ProofMaturitySummary hypothetical={counts.hypothetical} pilot={counts.pilot} measured={counts.measured} />
+        </div>
+
+        {/* Impact scoring doctrine */}
+        <ImpactScoringDoctrine />
 
         {/* Context */}
         <Card className="border-primary/20 bg-primary/5">
