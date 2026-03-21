@@ -378,7 +378,7 @@ export default function ModelDrivenView({ domain }: Props) {
                             <div className="flex gap-2 flex-wrap">
                               {rec.top_drivers.map((d) => (
                                 <Badge key={d.feature} variant="outline" className="text-[10px]">
-                                  {d.contribution > 0 ? <ArrowUp className="h-2.5 w-2.5 mr-0.5 text-destructive" /> : <ArrowDown className="h-2.5 w-2.5 mr-0.5 text-green-500" />}
+                                  {d.contribution > 0 ? <ArrowUp className="h-2.5 w-2.5 mr-0.5 text-destructive" /> : <ArrowDown className="h-2.5 w-2.5 mr-0.5 text-primary" />}
                                   {d.feature.replace(/_/g, " ")}: {d.contribution > 0 ? "+" : ""}{d.contribution.toFixed(3)}
                                 </Badge>
                               ))}
