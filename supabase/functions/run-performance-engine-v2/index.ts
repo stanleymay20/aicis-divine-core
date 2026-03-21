@@ -508,20 +508,49 @@ Deno.serve(async (req) => {
       batchInsert("forecast_residuals", allResiduals),
     ]);
 
-    // 5b. Write audit chain entries for reproducibility
-    const auditEntries = allSnapshots.slice(0, 50).map((s: any) => ({
-      signal_id: `snapshot-${s.iso3}-${s.domain}-${snapshotDate}`,
-      signal_type: "forecast_snapshot",
-      iso3: s.iso3,
-      domain: s.domain,
-      generated_at: new Date().toISOString(),
-      model_version: MODEL_VERSION,
-      data_sources: JSON.stringify(["country_profiles", "global_indicators"]),
-      input_hash: btoa(`${s.iso3}:${s.domain}:${snapshotDate}`).slice(0, 44),
-      output_hash: btoa(JSON.stringify({ pi: s.performance_index, m: s.momentum_score, f90: s.forecast_90d })).slice(0, 44),
-      parameters: JSON.stringify({ alpha: 0.55, beta: 0.3, breakThreshold: 1.5 }),
-      reproducible: true,
-    }));
+    // 5b. Write audit chain entries with SHA-256 cryptographic hashing
+    async function sha256Hex(data: string): Promise<string> {
+      const encoded = new TextEncoder().encode(data);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function canonicalize(obj: Record<string, unknown>): string {
+      return JSON.stringify(obj, Object.keys(obj).sort());
+    }
+
+    const auditEntries = [];
+    for (const s of allSnapshots.slice(0, 50)) {
+      const inputCanonical = canonicalize({
+        iso3: s.iso3, domain: s.domain, snapshot_date: snapshotDate,
+        model_version: MODEL_VERSION, alpha: 0.55, beta: 0.3, break_threshold: 1.5,
+        sources: ["country_profiles", "global_indicators"],
+      });
+      const outputCanonical = canonicalize({
+        performance_index: s.performance_index, momentum_score: s.momentum_score,
+        forecast_90d: s.forecast_90d, forecast_1y: s.forecast_1y,
+        risk_pressure_score: s.risk_pressure_score, confidence_score: s.confidence_score,
+      });
+
+      const [inputHash, outputHash] = await Promise.all([
+        sha256Hex(inputCanonical),
+        sha256Hex(outputCanonical),
+      ]);
+
+      auditEntries.push({
+        signal_id: `snapshot-${s.iso3}-${s.domain}-${snapshotDate}`,
+        signal_type: "forecast_snapshot",
+        iso3: s.iso3,
+        domain: s.domain,
+        generated_at: new Date().toISOString(),
+        model_version: MODEL_VERSION,
+        data_sources: JSON.stringify(["country_profiles", "global_indicators"]),
+        input_hash: inputHash,
+        output_hash: outputHash,
+        parameters: JSON.stringify({ alpha: 0.55, beta: 0.3, breakThreshold: 1.5 }),
+        reproducible: true,
+      });
+    }
     if (auditEntries.length > 0) {
       await batchInsert("signal_audit_chain", auditEntries);
     }
