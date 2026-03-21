@@ -332,18 +332,25 @@ const GovReadiness = () => {
                 <p className="text-2xl font-bold">{(auditChainCount as number)?.toLocaleString() || 0}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">Auditable signal entries</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <div className="text-center bg-muted/20 rounded-lg p-2">
-                  <p className="text-xs font-bold">Full</p>
-                  <p className="text-[9px] text-muted-foreground">Coverage scope</p>
+              {(auditChainCount as number) === 0 ? (
+                <div className="flex items-center gap-2 text-xs text-warning mt-3 bg-warning/10 rounded-lg p-2">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>Audit chain not yet populated. Engine must run to generate entries.</span>
                 </div>
-                <div className="text-center bg-muted/20 rounded-lg p-2">
-                  <p className="text-xs font-bold">SHA-256</p>
-                  <p className="text-[9px] text-muted-foreground">Hash algorithm</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <div className="text-center bg-muted/20 rounded-lg p-2">
+                    <p className="text-xs font-bold">Full</p>
+                    <p className="text-[9px] text-muted-foreground">Coverage scope</p>
+                  </div>
+                  <div className="text-center bg-muted/20 rounded-lg p-2">
+                    <p className="text-xs font-bold">SHA-256</p>
+                    <p className="text-[9px] text-muted-foreground">Hash algorithm</p>
+                  </div>
                 </div>
-              </div>
+              )}
               <p className="text-[10px] text-muted-foreground mt-2">
-                Recursive canonical JSON + SHA-256. Every snapshot is audited with input/output hashes.
+                Recursive canonical JSON + SHA-256. {(auditChainCount as number) > 0 ? "Every snapshot is audited with input/output hashes." : "Infrastructure ready — awaiting first engine run."}
               </p>
             </CardContent>
           </Card>

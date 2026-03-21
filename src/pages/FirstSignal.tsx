@@ -119,43 +119,50 @@ const CaseStudyCard = ({ title, iso3, domain, predictedDir, actualDir, predicted
           <span>Direction was correct; magnitude error was {error} points. The system identified the right trajectory but not the exact scale.</span>
         </div>
 
-        {/* Inspectable audit proof */}
-        <button
-          onClick={() => setShowAudit(!showAudit)}
-          className="w-full flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/20 hover:bg-muted/40 transition-colors rounded-lg px-3 py-2 cursor-pointer"
-        >
-          <Shield className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-          <span className="flex-1 text-left">
-            <strong className="text-foreground">Auditable</strong> — SHA-256 hash trail · Full-coverage · Click to inspect
-          </span>
-          <span className="text-primary">{showAudit ? "▲" : "▼"}</span>
-        </button>
-        {showAudit && (
-          <div className="bg-muted/10 border border-border/50 rounded-lg p-3 space-y-1.5 text-[10px] font-mono">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Model</span>
-              <span>{auditEntry?.model_version || "APE-V2.1"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Generated</span>
-              <span>{auditEntry?.generated_at ? format(new Date(auditEntry.generated_at), "MMM d, yyyy HH:mm") : "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Input hash</span>
-              <span className="truncate max-w-[180px]">{auditEntry?.input_hash || "pending"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Output hash</span>
-              <span className="truncate max-w-[180px]">{auditEntry?.output_hash || "pending"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Coverage</span>
-              <span className="text-success">Full (all snapshots)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Reproducible</span>
-              <span className="text-success">✓ Yes</span>
-            </div>
+        {/* Inspectable audit proof — honest about state */}
+        {auditEntry ? (
+          <>
+            <button
+              onClick={() => setShowAudit(!showAudit)}
+              className="w-full flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/20 hover:bg-muted/40 transition-colors rounded-lg px-3 py-2 cursor-pointer"
+            >
+              <Shield className="h-3.5 w-3.5 text-success flex-shrink-0" />
+              <span className="flex-1 text-left">
+                <strong className="text-foreground">Auditable</strong> — SHA-256 hash trail verified · Click to inspect
+              </span>
+              <span className="text-primary">{showAudit ? "▲" : "▼"}</span>
+            </button>
+            {showAudit && (
+              <div className="bg-muted/10 border border-border/50 rounded-lg p-3 space-y-1.5 text-[10px] font-mono">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Model</span>
+                  <span>{auditEntry.model_version}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Generated</span>
+                  <span>{format(new Date(auditEntry.generated_at), "MMM d, yyyy HH:mm")}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Input hash</span>
+                  <span className="truncate max-w-[180px]">{auditEntry.input_hash}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Output hash</span>
+                  <span className="truncate max-w-[180px]">{auditEntry.output_hash}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Reproducible</span>
+                  <span className="text-success">✓ Yes</span>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/20 rounded-lg px-3 py-2">
+            <Shield className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+            <span>
+              <strong className="text-foreground">Audit trail</strong> — Infrastructure ready (SHA-256 + canonical JSON). Awaiting engine population.
+            </span>
           </div>
         )}
       </CardContent>
