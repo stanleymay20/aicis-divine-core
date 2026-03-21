@@ -42,6 +42,7 @@ const WeeklyBriefs = lazy(() => import("./pages/WeeklyBriefs"));
 const PredictionAccuracy = lazy(() => import("./pages/PredictionAccuracy"));
 const ADIDashboard = lazy(() => import("./pages/ADIDashboard"));
 const TrustLayer = lazy(() => import("./pages/TrustLayer"));
+const CompetitiveLandscape = lazy(() => import("./pages/CompetitiveLandscape"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -95,6 +96,8 @@ const App = () => (
             <Route path="/prediction-accuracy" element={<Lazy><PredictionAccuracy /></Lazy>} />
             <Route path="/adi" element={<Lazy><ADIDashboard /></Lazy>} />
             <Route path="/trust" element={<Lazy><TrustLayer /></Lazy>} />
+            <Route path="/competitive-landscape" element={<Lazy><CompetitiveLandscape /></Lazy>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
