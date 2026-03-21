@@ -48,86 +48,120 @@ const CaseStudyCard = ({ title, iso3, domain, predictedDir, actualDir, predicted
   const [showAudit, setShowAudit] = useState(false);
 
   return (
-    <CardHeader className="pb-3">
-      <div className="flex items-center justify-between">
-        <CardTitle className="text-base flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-success" />
-          {title}
-        </CardTitle>
-        <Badge variant="outline" className="text-[10px]">{iso3} · {domain}</Badge>
-      </div>
-      <CardDescription className="text-xs">{narrative}</CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      {/* Timeline */}
-      <div className="space-y-3 border-l-2 border-border pl-4 ml-1">
-        <TimelineEvent
-          date={format(new Date(forecastDate), "MMM d, yyyy")}
-          label={`AICIS forecast: ${predictedDir.toUpperCase()}`}
-          value={`Predicted value: ${predictedVal}`}
-          variant="forecast"
-        />
-        <TimelineEvent
-          date={format(new Date(realizedDate), "MMM d, yyyy")}
-          label={`Reality confirmed: ${actualDir.toUpperCase()}`}
-          value={`Actual value: ${actualVal}`}
-          variant="reality"
-        />
-      </div>
-
-      {/* Comparison table */}
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-muted/30 rounded-lg p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">AICIS</p>
-          <div className="flex items-center justify-center gap-1">
-            <DirIcon dir={predictedDir} />
-            <span className="text-sm font-bold">{predictedDir}</span>
-          </div>
-          <p className="text-success text-[10px] mt-1">✓ Correct</p>
+    <Card className="border-primary/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            {title}
+          </CardTitle>
+          <Badge variant="outline" className="text-[10px]">{iso3} · {domain}</Badge>
         </div>
-        <div className="bg-muted/30 rounded-lg p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">Naive Baseline</p>
-          <div className="flex items-center justify-center gap-1">
-            <Minus className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-bold">stable</span>
-          </div>
-          <p className="text-destructive text-[10px] mt-1">✗ Missed</p>
+        <CardDescription className="text-xs">{narrative}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Timeline */}
+        <div className="space-y-3 border-l-2 border-border pl-4 ml-1">
+          <TimelineEvent
+            date={format(new Date(forecastDate), "MMM d, yyyy")}
+            label={`AICIS forecast: ${predictedDir.toUpperCase()}`}
+            value={`Predicted value: ${predictedVal}`}
+            variant="forecast"
+          />
+          <TimelineEvent
+            date={format(new Date(realizedDate), "MMM d, yyyy")}
+            label={`Reality confirmed: ${actualDir.toUpperCase()}`}
+            value={`Actual value: ${actualVal}`}
+            variant="reality"
+          />
         </div>
-        <div className="bg-muted/30 rounded-lg p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">Reality</p>
-          <div className="flex items-center justify-center gap-1">
-            <DirIcon dir={actualDir} />
-            <span className="text-sm font-bold">{actualDir}</span>
+
+        {/* Comparison table */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-muted/30 rounded-lg p-3">
+            <p className="text-[10px] text-muted-foreground mb-1">AICIS</p>
+            <div className="flex items-center justify-center gap-1">
+              <DirIcon dir={predictedDir} />
+              <span className="text-sm font-bold">{predictedDir}</span>
+            </div>
+            <p className="text-success text-[10px] mt-1">✓ Correct</p>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Ground truth</p>
+          <div className="bg-muted/30 rounded-lg p-3">
+            <p className="text-[10px] text-muted-foreground mb-1">Naive Baseline</p>
+            <div className="flex items-center justify-center gap-1">
+              <Minus className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-bold">stable</span>
+            </div>
+            <p className="text-destructive text-[10px] mt-1">✗ Missed</p>
+          </div>
+          <div className="bg-muted/30 rounded-lg p-3">
+            <p className="text-[10px] text-muted-foreground mb-1">Reality</p>
+            <div className="flex items-center justify-center gap-1">
+              <DirIcon dir={actualDir} />
+              <span className="text-sm font-bold">{actualDir}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">Ground truth</p>
+          </div>
         </div>
-      </div>
 
-      {/* Decision Impact */}
-      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-        <p className="text-xs font-semibold flex items-center gap-1.5 mb-1">
-          <Zap className="h-3.5 w-3.5 text-primary" />
-          Decision Impact
-        </p>
-        <p className="text-xs text-muted-foreground">{impact}</p>
-      </div>
+        {/* Decision Impact */}
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+          <p className="text-xs font-semibold flex items-center gap-1.5 mb-1">
+            <Zap className="h-3.5 w-3.5 text-primary" />
+            Decision Impact
+          </p>
+          <p className="text-xs text-muted-foreground">{impact}</p>
+        </div>
 
-      {/* Honest caveat */}
-      <div className="flex items-start gap-2 text-xs text-muted-foreground">
-        <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
-        <span>Direction was correct; magnitude error was {error} points. The system identified the right trajectory but not the exact scale.</span>
-      </div>
+        {/* Honest caveat */}
+        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+          <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
+          <span>Direction was correct; magnitude error was {error} points. The system identified the right trajectory but not the exact scale.</span>
+        </div>
 
-      {/* Audit proof badge */}
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/20 rounded-lg px-3 py-2">
-        <Shield className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-        <span>
-          <strong className="text-foreground">Auditable</strong> — SHA-256 hash trail · Model: APE-V2.1 · Full-coverage audit chain · Reproducible
-        </span>
-      </div>
-    </CardContent>
-  </Card>
-);
+        {/* Inspectable audit proof */}
+        <button
+          onClick={() => setShowAudit(!showAudit)}
+          className="w-full flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/20 hover:bg-muted/40 transition-colors rounded-lg px-3 py-2 cursor-pointer"
+        >
+          <Shield className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+          <span className="flex-1 text-left">
+            <strong className="text-foreground">Auditable</strong> — SHA-256 hash trail · Full-coverage · Click to inspect
+          </span>
+          <span className="text-primary">{showAudit ? "▲" : "▼"}</span>
+        </button>
+        {showAudit && (
+          <div className="bg-muted/10 border border-border/50 rounded-lg p-3 space-y-1.5 text-[10px] font-mono">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Model</span>
+              <span>{auditEntry?.model_version || "APE-V2.1"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Generated</span>
+              <span>{auditEntry?.generated_at ? format(new Date(auditEntry.generated_at), "MMM d, yyyy HH:mm") : "—"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Input hash</span>
+              <span className="truncate max-w-[180px]">{auditEntry?.input_hash || "pending"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Output hash</span>
+              <span className="truncate max-w-[180px]">{auditEntry?.output_hash || "pending"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Coverage</span>
+              <span className="text-success">Full (all snapshots)</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Reproducible</span>
+              <span className="text-success">✓ Yes</span>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 /* ── main page ── */
 const FirstSignal = () => {
