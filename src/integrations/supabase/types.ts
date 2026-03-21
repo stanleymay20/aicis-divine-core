@@ -1706,6 +1706,72 @@ export type Database = {
         }
         Relationships: []
       }
+      data_lifecycle_registry: {
+        Row: {
+          created_at: string | null
+          criticality: string
+          description: string | null
+          growth_rate_daily: number | null
+          id: string
+          last_refreshed_at: string | null
+          notes: string | null
+          owner: string | null
+          pipeline: string | null
+          refresh_frequency: string | null
+          retention_days: number | null
+          row_count_estimate: number | null
+          size_estimate_mb: number | null
+          source: string | null
+          staleness_threshold_hours: number | null
+          status: string
+          table_name: string
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          criticality?: string
+          description?: string | null
+          growth_rate_daily?: number | null
+          id?: string
+          last_refreshed_at?: string | null
+          notes?: string | null
+          owner?: string | null
+          pipeline?: string | null
+          refresh_frequency?: string | null
+          retention_days?: number | null
+          row_count_estimate?: number | null
+          size_estimate_mb?: number | null
+          source?: string | null
+          staleness_threshold_hours?: number | null
+          status?: string
+          table_name: string
+          tier?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          criticality?: string
+          description?: string | null
+          growth_rate_daily?: number | null
+          id?: string
+          last_refreshed_at?: string | null
+          notes?: string | null
+          owner?: string | null
+          pipeline?: string | null
+          refresh_frequency?: string | null
+          retention_days?: number | null
+          row_count_estimate?: number | null
+          size_estimate_mb?: number | null
+          source?: string | null
+          staleness_threshold_hours?: number | null
+          status?: string
+          table_name?: string
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       data_retention_policies: {
         Row: {
           auto_delete: boolean | null
@@ -4552,6 +4618,57 @@ export type Database = {
           rmse?: number
           run_at?: string
           stability_score?: number
+        }
+        Relationships: []
+      }
+      pipeline_health: {
+        Row: {
+          alert_triggered: boolean | null
+          avg_duration_ms: number | null
+          consecutive_failures: number | null
+          created_at: string | null
+          id: string
+          last_failure_at: string | null
+          last_success_at: string | null
+          metadata: Json | null
+          pipeline_name: string
+          staleness_threshold_hours: number | null
+          status: string | null
+          total_runs: number | null
+          total_successes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          alert_triggered?: boolean | null
+          avg_duration_ms?: number | null
+          consecutive_failures?: number | null
+          created_at?: string | null
+          id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          metadata?: Json | null
+          pipeline_name: string
+          staleness_threshold_hours?: number | null
+          status?: string | null
+          total_runs?: number | null
+          total_successes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          alert_triggered?: boolean | null
+          avg_duration_ms?: number | null
+          consecutive_failures?: number | null
+          created_at?: string | null
+          id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          metadata?: Json | null
+          pipeline_name?: string
+          staleness_threshold_hours?: number | null
+          status?: string | null
+          total_runs?: number | null
+          total_successes?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
