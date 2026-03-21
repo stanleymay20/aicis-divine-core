@@ -18,6 +18,7 @@ import BaselineComparison from "./BaselineComparison";
 import DecisionGovernancePanel from "./DecisionGovernancePanel";
 import ReviewControlTower from "./ReviewControlTower";
 import OutcomeMaturityPanel from "./OutcomeMaturityPanel";
+import ReviewerWorkloadPanel from "./ReviewerWorkloadPanel";
 
 interface FeatureContribution {
   feature: string;
