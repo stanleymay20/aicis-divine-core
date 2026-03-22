@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { AICISTopBar } from "./AICISTopBar";
 import { AICISSidebar } from "./AICISSidebar";
@@ -17,7 +17,6 @@ export const AICISLayout = ({ children }: AICISLayoutProps) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Auto-detect section from route
     const path = location.pathname.split("/")[1] || "overview";
     setActiveSection(path);
   }, [location]);
@@ -28,32 +27,25 @@ export const AICISLayout = ({ children }: AICISLayoutProps) => {
 
   return (
     <div className="h-screen w-full overflow-hidden bg-background flex flex-col">
-      {/* Top Status Bar */}
       <AICISTopBar />
-
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar Navigation */}
-        <AICISSidebar 
+        <AICISSidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
         />
-
-        {/* Main Intelligence View */}
-        <main 
+        <main
           id="main-content"
           role="main"
           className={cn(
-            "flex-1 overflow-auto transition-all duration-300",
-            sidebarCollapsed ? "ml-0 md:ml-16" : "ml-0 md:ml-56"
+            "flex-1 overflow-auto transition-all duration-200",
+            sidebarCollapsed ? "ml-0 md:ml-[60px]" : "ml-0 md:ml-[220px]"
           )}
         >
           {children}
         </main>
       </div>
-
-      {/* Footer with Data Provenance */}
       <AICISFooter />
     </div>
   );

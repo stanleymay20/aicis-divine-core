@@ -1,6 +1,5 @@
 import { AICISLayout } from "@/components/aicis/AICISLayout";
-import { Badge } from "@/components/ui/badge";
-import { Shield, Brain } from "lucide-react";
+import { Cpu } from "lucide-react";
 import TrustScorePanel from "@/components/decision-engine/TrustScorePanel";
 import BaselineComparison from "@/components/decision-engine/BaselineComparison";
 import ModelSafetyPanel from "@/components/decision-engine/ModelSafetyPanel";
@@ -19,14 +18,14 @@ import EvidenceBacklogQueue from "@/components/decision-engine/EvidenceBacklogQu
 export default function OperationalTruth() {
   return (
     <AICISLayout>
-      <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Operational Truth Dashboard
+          <h1 className="text-xl font-semibold flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-primary" />
+            Operational Truth
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Single-pane system health view — every claim backed by live data
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Single-pane system health — every claim backed by live data
           </p>
         </div>
 
