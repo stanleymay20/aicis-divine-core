@@ -1,371 +1,318 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  IntelligenceQueryBar, 
-  type IntelligenceResult 
-} from "./IntelligenceQueryBar";
-import { IntelligenceAssessment } from "./IntelligenceAssessment";
-import { SecurityConflictView } from "./SecurityConflictView";
-import { LiveCriticalAlerts } from "./LiveCriticalAlerts";
-import { ExecutiveIntelligenceMode } from "./ExecutiveIntelligenceMode";
-import { AnomalyDetection } from "./AnomalyDetection";
-import { SmallNationGuidance, generateNationGuidance } from "./SmallNationGuidance";
-import { CountryQuickAccess } from "./CountryQuickAccess";
-import { ThreeLayerStack, type LayerStatus } from "./ThreeLayerStack";
-import { ModeToggle } from "./AnalystMode";
-import { NonSurveillanceBanner } from "./NonSurveillanceBanner";
-import { AtlasStatusBadge } from "./AtlasStatusBadge";
-import { TieredAlertSystem } from "./TieredAlertSystem";
-import { EscalationBanner } from "@/components/intelligence/EscalationBanner";
-import { SignalBadge } from "@/components/intelligence/SignalBadge";
-import { useCrossDomainDetection } from "@/hooks/useCrossDomainDetection";
-import { useIntelligenceMemory } from "@/contexts/IntelligenceMemoryContext";
-import { GlobalMap, GlobalMapRef } from "@/components/command-center/GlobalMap";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useViewModePersistence } from "@/hooks/useViewModePersistence";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  LayoutDashboard, Globe, Swords, Bell, Map, Shield, Activity, Lightbulb, Layers, AlertTriangle 
+import { cn } from "@/lib/utils";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Brain,
+  CheckCircle2,
+  Shield,
+  TrendingUp,
+  XCircle,
+  Cpu,
+  Clock,
 } from "lucide-react";
 
-export const AICISMainView = () => {
-  const isMobile = useIsMobile();
-  const mapRef = useRef<GlobalMapRef>(null);
-  const [activeTab, setActiveTab] = useState("overview");
-  const { mode: viewMode, setMode: setViewMode } = useViewModePersistence("executive");
-  const { unacknowledgedCount } = useIntelligenceMemory();
-  // Activate cross-domain detection engine
-  useCrossDomainDetection();
-  const [queryResult, setQueryResult] = useState<IntelligenceResult | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<{
-    name: string;
-    iso3: string;
-    lat?: number;
-    lng?: number;
-  } | null>(null);
-  
-  // Live status indicators from database
-  const [dataFeedStatus, setDataFeedStatus] = useState<"online" | "partial" | "offline">("online");
-  const [criticalAlertCount, setCriticalAlertCount] = useState(0);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  // Fetch live status from database
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        // Check data feed status from automation_logs (more reliable than data_source_log)
-        const { data: logs, error: logsError } = await supabase
-          .from("automation_logs")
-          .select("status")
-          .order("executed_at", { ascending: false })
-          .limit(20);
-        
-        if (!logsError && logs) {
-          const failedCount = logs.filter(l => l.status === "error").length;
-          if (failedCount <= 2) setDataFeedStatus("online");
-          else if (failedCount < 10) setDataFeedStatus("partial");
-          else setDataFeedStatus("offline");
-        }
+interface KPIData {
+  activeRecommendations: number;
+  pendingReviews: number;
+  criticalAlerts: number;
+  modelSafety: string;
+  trustScore: number;
+  evidenceMaturity: string;
+  executionRate: number;
+  measuredOutcomes: number;
+}
 
-        // Get critical alert count
-        const { count } = await supabase
-          .from("critical_alerts")
-          .select("*", { count: "exact", head: true })
-          .eq("acknowledged", false);
-        
-        setCriticalAlertCount(count || 0);
-        setLastUpdated(new Date());
-      } catch (error) {
-        console.error("Status fetch error:", error);
+export const AICISMainView = () => {
+  const navigate = useNavigate();
+  const [kpis, setKpis] = useState<KPIData>({
+    activeRecommendations: 0,
+    pendingReviews: 0,
+    criticalAlerts: 0,
+    modelSafety: "Loading",
+    trustScore: 0,
+    evidenceMaturity: "—",
+    executionRate: 0,
+    measuredOutcomes: 0,
+  });
+  const [recentDecisions, setRecentDecisions] = useState<any[]>([]);
+  const [silentFailures, setSilentFailures] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        // Parallel fetch all KPI sources
+        const [
+          { count: recCount },
+          { count: alertCount },
+          { data: outcomes },
+          { data: models },
+          { data: silentData },
+          { data: recent },
+        ] = await Promise.all([
+          supabase.from("decision_outcome_log").select("*", { count: "exact", head: true }).eq("review_status", "pending"),
+          supabase.from("critical_alerts").select("*", { count: "exact", head: true }).eq("acknowledged", false),
+          supabase.from("decision_outcome_log").select("execution_status, outcome_success, evidence_type, recommendation_accepted").limit(500),
+          supabase.from("decision_models").select("status, calibration_error").order("created_at", { ascending: false }).limit(3),
+          supabase.from("silent_failure_state").select("*").in("severity", ["critical", "high"]).eq("resolved", false).limit(10),
+          supabase.from("decision_outcome_log").select("id, action_type, domain, recommendation_accepted, outcome_success, review_status, evidence_type, created_at").order("created_at", { ascending: false }).limit(8),
+        ]);
+
+        const total = outcomes?.length || 0;
+        const accepted = outcomes?.filter(o => o.recommendation_accepted)?.length || 0;
+        const executed = outcomes?.filter(o => o.execution_status === "completed")?.length || 0;
+        const measured = outcomes?.filter(o => o.evidence_type === "measured")?.length || 0;
+
+        const activeModel = models?.find(m => m.status === "active");
+        const modelSafe = activeModel ? (activeModel.calibration_error < 0.15 ? "Secure" : "Degraded") : "No Model";
+
+        // Evidence maturity
+        let maturity = "None";
+        if (measured > 20) maturity = "High";
+        else if (measured > 5) maturity = "Medium";
+        else if (total > 0) maturity = "Low";
+
+        setKpis({
+          activeRecommendations: total,
+          pendingReviews: recCount || 0,
+          criticalAlerts: alertCount || 0,
+          modelSafety: modelSafe,
+          trustScore: Math.min(100, Math.round((measured / Math.max(total, 1)) * 100 * 0.4 + (executed / Math.max(accepted, 1)) * 100 * 0.6)),
+          evidenceMaturity: maturity,
+          executionRate: accepted > 0 ? Math.round((executed / accepted) * 100) : 0,
+          measuredOutcomes: measured,
+        });
+
+        setSilentFailures(silentData || []);
+        setRecentDecisions(recent || []);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 30000);
-    
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel("status-updates")
-      .on("postgres_changes", { event: "*", schema: "public", table: "critical_alerts" }, fetchStatus)
-      .subscribe();
-
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
-    };
+    fetchAll();
+    const interval = setInterval(fetchAll, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleQueryResult = useCallback((result: IntelligenceResult) => {
-    setQueryResult(result);
-    
-    // If result has location, navigate map
-    if (result.location?.lat && result.location?.lng) {
-      mapRef.current?.getMap()?.flyTo({
-        center: [result.location.lng, result.location.lat],
-        zoom: 6,
-        duration: 2000
-      });
-      setSelectedCountry({
-        name: result.location.name,
-        iso3: result.location.iso3 || "",
-        lat: result.location.lat,
-        lng: result.location.lng
-      });
-    }
-  }, []);
-
-  const handleMapCountrySelect = useCallback((data: { country: string; iso3: string }) => {
-    setSelectedCountry({
-      name: data.country,
-      iso3: data.iso3
-    });
-  }, []);
-
-  const handleLocationClick = useCallback((location: { name: string; iso3?: string; lat?: number; lng?: number }) => {
-    if (location.lat && location.lng) {
-      mapRef.current?.getMap()?.flyTo({
-        center: [location.lng, location.lat],
-        zoom: 6,
-        duration: 2000
-      });
-    }
-    setActiveTab("map");
-  }, []);
-
-  const formatLastUpdated = (date: Date) => {
-    const diff = Math.floor((Date.now() - date.getTime()) / 60000);
-    if (diff < 1) return "Just now";
-    if (diff < 60) return `${diff} minutes ago`;
-    return `${Math.floor(diff / 60)} hours ago`;
-  };
+  const KPICard = ({ label, value, icon: Icon, trend, color }: { label: string; value: string | number; icon: any; trend?: string; color?: string }) => (
+    <Card className="card-hover">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground font-medium">{label}</span>
+          <Icon className={cn("h-4 w-4", color || "text-muted-foreground")} />
+        </div>
+        <div className="text-2xl font-semibold tracking-tight">{value}</div>
+        {trend && <span className="text-[11px] text-muted-foreground mt-1">{trend}</span>}
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <div className="h-full flex flex-col p-4 md:p-6 space-y-4">
-      {/* Status Bar - LIVE from database */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className={cn(
-            "border",
-            dataFeedStatus === "online" && "bg-success/10 text-success border-success/30",
-            dataFeedStatus === "partial" && "bg-warning/10 text-warning border-warning/30",
-            dataFeedStatus === "offline" && "bg-destructive/10 text-destructive border-destructive/30"
-          )}>
-            <div className={cn(
-              "w-1.5 h-1.5 rounded-full mr-1.5",
-              dataFeedStatus === "online" && "bg-success animate-pulse",
-              dataFeedStatus === "partial" && "bg-warning animate-pulse",
-              dataFeedStatus === "offline" && "bg-destructive"
-            )} />
-            {dataFeedStatus === "online" ? "Data Feeds Online" : 
-             dataFeedStatus === "partial" ? "Partial Coverage" : "Feeds Offline"}
-          </Badge>
-          
-          {criticalAlertCount > 0 && (
-            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 animate-pulse">
-              <Bell className="h-3 w-3 mr-1" />
-              {criticalAlertCount} Critical Alert{criticalAlertCount !== 1 ? 's' : ''} Active
-            </Badge>
-          )}
-
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-            <Shield className="h-3 w-3 mr-1" />
-            AICIS Active
-          </Badge>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Atlas Research Engine Status */}
-          <AtlasStatusBadge compact />
-          
-          <CountryQuickAccess triggerClassName="h-7 text-xs" />
-          <ModeToggle mode={viewMode} onModeChange={setViewMode} />
-          <Badge variant="secondary" className="text-xs">
-            {formatLastUpdated(lastUpdated)}
-          </Badge>
-        </div>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto animate-fade-in">
+      {/* Page header */}
+      <div>
+        <h1 className="text-xl font-semibold">Executive Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Decision intelligence overview</p>
       </div>
 
-      {/* Executive Mode Content */}
-      {viewMode === "executive" && (
-        <>
-          <EscalationBanner />
-          <ExecutiveIntelligenceMode />
-          <SignalBadge page="dashboard" />
-        </>
-      )}
+      {/* Top KPI row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPICard label="Active Recommendations" value={kpis.activeRecommendations} icon={Brain} color="text-primary" />
+        <KPICard label="Pending Reviews" value={kpis.pendingReviews} icon={Clock} color="text-warning" />
+        <KPICard label="Evidence Maturity" value={kpis.evidenceMaturity} icon={TrendingUp} color="text-secondary" />
+        <KPICard label="Model Safety" value={kpis.modelSafety} icon={Shield} color={kpis.modelSafety === "Secure" ? "text-success" : "text-destructive"} />
+      </div>
 
-      {/* Intelligence Query Bar */}
-      <IntelligenceQueryBar 
-        onQueryResult={handleQueryResult}
-        className="mb-2"
-      />
-
-      {/* Main Content Tabs (shown in Analyst Mode or when Executive has closed summary) */}
-      {viewMode === "analyst" && (
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="w-full justify-start bg-muted/30 p-1 h-auto flex-wrap">
-          <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-primary/20">
-            <LayoutDashboard className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="layers" className="gap-2 data-[state=active]:bg-primary/20">
-            <Layers className="h-4 w-4" />
-            <span className="hidden sm:inline">Intelligence Layers</span>
-          </TabsTrigger>
-          <TabsTrigger value="map" className="gap-2 data-[state=active]:bg-primary/20">
-            <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Global Map</span>
-          </TabsTrigger>
-          <TabsTrigger value="security" className="gap-2 data-[state=active]:bg-destructive/20">
-            <Swords className="h-4 w-4" />
-            <span className="hidden sm:inline">Security & Conflict</span>
-          </TabsTrigger>
-          <TabsTrigger value="anomalies" className="gap-2 data-[state=active]:bg-primary/20">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Anomalies</span>
-          </TabsTrigger>
-          <TabsTrigger value="guidance" className="gap-2 data-[state=active]:bg-success/20">
-            <Lightbulb className="h-4 w-4" />
-            <span className="hidden sm:inline">Guidance</span>
-          </TabsTrigger>
-          <TabsTrigger value="alerts" className="gap-2 data-[state=active]:bg-warning/20">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Alerts</span>
-          </TabsTrigger>
-          <TabsTrigger value="tiered-alerts" className="gap-2 data-[state=active]:bg-destructive/20">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="hidden sm:inline">Tiered Routing</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="flex-1 mt-4 overflow-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Intelligence View */}
-            <div className="lg:col-span-2 space-y-6">
-              {queryResult ? (
-                <IntelligenceAssessment 
-                  result={queryResult}
-                  onLocationClick={handleLocationClick}
-                />
-              ) : (
-                <Card className="p-8 text-center border-dashed">
-                  <Map className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">Ask AICIS Anything</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Enter a query above to generate dynamic intelligence assessments 
-                    for any country, city, region, or global issue.
-                  </p>
-                </Card>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <LiveCriticalAlerts maxHeight="300px" />
-              
-              {selectedCountry && (
-                <Card className="p-4 border-primary/30">
-                  <h4 className="text-sm font-semibold mb-2">Selected Location</h4>
-                  <p className="text-lg font-orbitron">{selectedCountry.name}</p>
-                  <Badge variant="outline" className="mt-2">{selectedCountry.iso3}</Badge>
-                </Card>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Intelligence Layers Tab (Analyst Mode) */}
-        <TabsContent value="layers" className="flex-1 mt-4 overflow-auto">
-          <div className="space-y-6">
-            <ThreeLayerStack />
-            <NonSurveillanceBanner variant="banner" />
-          </div>
-        </TabsContent>
-
-        {/* Global Map Tab */}
-        <TabsContent value="map" className="flex-1 mt-4 min-h-[400px]">
-          <div className="h-full rounded-lg overflow-hidden border border-border">
-            <GlobalMap
-              ref={mapRef}
-              onCountrySelect={handleMapCountrySelect}
-              className="w-full h-full min-h-[400px]"
-              isMobile={isMobile}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Security & Conflict Tab */}
-        <TabsContent value="security" className="flex-1 mt-4 overflow-auto">
-          <SecurityConflictView />
-        </TabsContent>
-
-        {/* Anomalies Tab */}
-        <TabsContent value="anomalies" className="flex-1 mt-4 overflow-auto">
-          <AnomalyDetection />
-        </TabsContent>
-
-        {/* Guidance Tab */}
-        <TabsContent value="guidance" className="flex-1 mt-4 overflow-auto">
-          {queryResult?.location ? (
-            <SmallNationGuidance
-              countryName={queryResult.location.name}
-              iso3={queryResult.location.iso3}
-              dataCompleteness={(queryResult as any).dataCompleteness || 0.5}
-              vulnerabilityScore={
-                queryResult.dashboards.find(d => d.title.includes("Vulnerability"))
-                  ? parseInt(queryResult.dashboards.find(d => d.title.includes("Vulnerability"))?.value?.toString() || "0")
-                  : undefined
-              }
-              guidance={(queryResult as any).guidance || generateNationGuidance({}, {}, [], [])}
-              sources={queryResult.sources}
-              lastUpdated={queryResult.lastUpdated}
-            />
-          ) : (
-            <Card className="p-8 text-center border-dashed">
-              <Lightbulb className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">Strategic Guidance</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Query a specific country or region above to receive tailored 
-                strategic guidance and actionable recommendations.
-              </p>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Alerts Tab */}
-        <TabsContent value="alerts" className="flex-1 mt-4 overflow-auto">
-          <LiveCriticalAlerts maxHeight="600px" />
-        </TabsContent>
-
-        {/* Tiered Alert System Tab */}
-        <TabsContent value="tiered-alerts" className="flex-1 mt-4 overflow-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TieredAlertSystem />
-            <div className="space-y-4">
-              <Card className="p-4 border-primary/30">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  Alert Routing Rules
-                </h4>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p><strong className="text-muted-foreground">Low:</strong> System monitors automatically</p>
-                  <p><strong className="text-warning">Medium:</strong> Analyst attention required</p>
-                  <p><strong className="text-destructive">High:</strong> Executive attention required</p>
-                  <p><strong className="text-destructive font-bold">Critical:</strong> Human approval required before action</p>
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left column: Trust + Actions */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Trust Score + Execution */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Card className="card-hover">
+              <CardContent className="p-5">
+                <div className="text-xs text-muted-foreground font-medium mb-1">Trust Score</div>
+                <div className="flex items-end gap-3">
+                  <span className={cn(
+                    "text-4xl font-bold tabular-nums",
+                    kpis.trustScore >= 70 ? "text-success" : kpis.trustScore >= 40 ? "text-warning" : "text-destructive"
+                  )}>
+                    {kpis.trustScore}
+                  </span>
+                  <span className="text-sm text-muted-foreground mb-1">/ 100</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-4 pt-2 border-t border-border/50">
-                  No automated action is ever allowed. AI advises, humans decide.
-                </p>
-              </Card>
-            </div>
+                <div className="w-full h-1.5 bg-muted rounded-full mt-3">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      kpis.trustScore >= 70 ? "bg-success" : kpis.trustScore >= 40 ? "bg-warning" : "bg-destructive"
+                    )}
+                    style={{ width: `${kpis.trustScore}%` }}
+                  />
+                </div>
+                {kpis.measuredOutcomes < 20 && (
+                  <Badge variant="outline" className="mt-2 text-[10px] text-warning border-warning/30">
+                    Low measured evidence
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover">
+              <CardContent className="p-5">
+                <div className="text-xs text-muted-foreground font-medium mb-1">Execution Rate</div>
+                <div className="flex items-end gap-3">
+                  <span className="text-4xl font-bold tabular-nums">{kpis.executionRate}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-muted rounded-full mt-3">
+                  <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${kpis.executionRate}%` }} />
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-2">{kpis.measuredOutcomes} measured outcomes</div>
+              </CardContent>
+            </Card>
           </div>
-        </TabsContent>
-      </Tabs>
-      )}
+
+          {/* Recent Decisions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Recent Decisions</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs text-primary h-7" onClick={() => navigate("/decision-ops")}>
+                  View all <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {recentDecisions.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No decisions yet</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {recentDecisions.slice(0, 5).map((d) => (
+                    <div key={d.id} className="flex items-center justify-between px-4 py-3 hover:bg-accent/50 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          d.outcome_success === true && "bg-success",
+                          d.outcome_success === false && "bg-destructive",
+                          d.outcome_success === null && "bg-muted-foreground"
+                        )} />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{d.action_type || "—"}</div>
+                          <div className="text-[11px] text-muted-foreground">{d.domain}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className={cn(
+                          "text-[10px]",
+                          d.evidence_type === "measured" && "border-success/30 text-success",
+                          d.evidence_type === "pilot" && "border-primary/30 text-primary",
+                        )}>
+                          {d.evidence_type || "pilot"}
+                        </Badge>
+                        <Badge variant="outline" className={cn(
+                          "text-[10px]",
+                          d.review_status === "approved" && "border-success/30 text-success",
+                          d.review_status === "pending" && "border-warning/30 text-warning",
+                          d.review_status === "rejected" && "border-destructive/30 text-destructive",
+                        )}>
+                          {d.review_status || "pending"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right column: Alerts + Silent Failures */}
+        <div className="space-y-4">
+          {/* Critical Alerts */}
+          <Card className={cn(kpis.criticalAlerts > 0 && "border-destructive/30")}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <AlertTriangle className={cn("h-4 w-4", kpis.criticalAlerts > 0 ? "text-destructive" : "text-muted-foreground")} />
+                Critical Alerts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {kpis.criticalAlerts > 0 ? (
+                <div className="text-3xl font-bold text-destructive">{kpis.criticalAlerts}</div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-success">
+                  <CheckCircle2 className="h-4 w-4" />
+                  All clear
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Silent Failures */}
+          <Card className={cn(silentFailures.length > 0 && "border-warning/30")}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Activity className="h-4 w-4 text-muted-foreground" />
+                Silent Failures
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {silentFailures.length === 0 ? (
+                <div className="flex items-center gap-2 text-sm text-success">
+                  <CheckCircle2 className="h-4 w-4" />
+                  No active failures
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {silentFailures.slice(0, 4).map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <XCircle className="h-3 w-3 text-warning shrink-0" />
+                      <span className="text-muted-foreground truncate">{f.failure_type || "Unknown"}</span>
+                      <Badge variant="outline" className="text-[9px] ml-auto shrink-0">{f.severity}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick nav */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Quick Access</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {[
+                { label: "Decision Operations", path: "/decision-ops", icon: Activity },
+                { label: "Operational Truth", path: "/operational-truth", icon: Cpu },
+                { label: "Governance", path: "/governance", icon: Shield },
+                { label: "Models", path: "/decision-engine", icon: Brain },
+              ].map(({ label, path, icon: Icon }) => (
+                <Button
+                  key={path}
+                  variant="ghost"
+                  className="w-full justify-start gap-2 h-8 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate(path)}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                  <ArrowRight className="h-3 w-3 ml-auto" />
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

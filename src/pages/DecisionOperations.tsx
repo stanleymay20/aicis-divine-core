@@ -1,42 +1,37 @@
 import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, PlayCircle, BarChart3, Beaker, CreditCard } from "lucide-react";
+import { Activity, PlayCircle, BarChart3, Beaker } from "lucide-react";
 import DailyTaskPanel from "@/components/decision-engine/DailyTaskPanel";
 import ExecutionCommandCenter from "@/components/decision-engine/ExecutionCommandCenter";
 import OutcomeInputPanel from "@/components/decision-engine/OutcomeInputPanel";
 import PilotModePanel from "@/components/decision-engine/PilotModePanel";
-import { BillingPanel } from "@/components/BillingPanel";
 
 export default function DecisionOperations() {
   return (
     <AICISLayout>
-      <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Activity className="h-6 w-6 text-primary" />
-            Decision Operations Center
+          <h1 className="text-xl font-semibold flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Decision Operations
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Daily activation, execution tracking, outcome capture, and billing
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Daily activation, execution tracking, and outcome capture
           </p>
         </div>
 
-        {/* Always visible: Daily Tasks */}
         <DailyTaskPanel />
 
         <Tabs defaultValue="execution" className="w-full">
-          <TabsList className="w-full flex-wrap h-auto gap-1">
-            <TabsTrigger value="execution" className="text-xs gap-1">
-              <PlayCircle className="h-3 w-3" /> Execution
+          <TabsList className="bg-muted/50 p-0.5 h-auto">
+            <TabsTrigger value="execution" className="text-xs gap-1.5 data-[state=active]:bg-card">
+              <PlayCircle className="h-3.5 w-3.5" /> Execution
             </TabsTrigger>
-            <TabsTrigger value="outcomes" className="text-xs gap-1">
-              <BarChart3 className="h-3 w-3" /> Outcomes
+            <TabsTrigger value="outcomes" className="text-xs gap-1.5 data-[state=active]:bg-card">
+              <BarChart3 className="h-3.5 w-3.5" /> Outcomes
             </TabsTrigger>
-            <TabsTrigger value="pilot" className="text-xs gap-1">
-              <Beaker className="h-3 w-3" /> Pilot Report
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="text-xs gap-1">
-              <CreditCard className="h-3 w-3" /> Billing
+            <TabsTrigger value="pilot" className="text-xs gap-1.5 data-[state=active]:bg-card">
+              <Beaker className="h-3.5 w-3.5" /> Pilot Report
             </TabsTrigger>
           </TabsList>
 
@@ -48,9 +43,6 @@ export default function DecisionOperations() {
           </TabsContent>
           <TabsContent value="pilot" className="mt-4">
             <PilotModePanel />
-          </TabsContent>
-          <TabsContent value="billing" className="mt-4">
-            <BillingPanel />
           </TabsContent>
         </Tabs>
       </div>
