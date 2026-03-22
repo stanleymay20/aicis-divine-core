@@ -375,24 +375,24 @@ Explain WHY based on features. Do NOT decide — only explain.`;
     if (auto_capture && recommendations.length > 0) {
       const topRec = recommendations[0];
       const slaHours = topRec.policy === "ACT" ? 24 : topRec.policy === "CONSIDER" ? 72 : 168;
-      auditOps.push(
-        supabase.from("decision_outcome_log").insert({
-          signal_id: inferenceHash.slice(0, 36),
-          signal_title: `${topRec.label} — ${iso3 || 'Global'} / ${targetDomain}`,
-          signal_date: new Date().toISOString().split("T")[0],
-          domain: domain || "system",
-          iso3: iso3 || null,
-          action_type: topRec.action_type,
-          signal_confidence: Math.round(topRec.success_probability * 100),
-          hypothetical_decision_value: String(topRec.impact_estimate),
-          decision_features: features,
-          evidence_type: "pilot",
-          review_status: "pending",
-          review_sla_hours: slaHours,
-          review_due_at: new Date(Date.now() + slaHours * 3600000).toISOString(),
-          execution_status: "not_started",
-        })
-      );
+      const capturePayload = {
+        signal_id: `infer-${Date.now()}`,
+        signal_title: `${topRec.label} — ${iso3 || 'Global'} / ${targetDomain}`,
+        signal_date: new Date().toISOString().split("T")[0],
+        domain: domain || "system",
+        iso3: iso3 || null,
+        action_type: topRec.action_type,
+        signal_confidence: Math.round(topRec.success_probability * 100),
+        hypothetical_decision_value: String(topRec.impact_estimate),
+        decision_features: features,
+        evidence_type: "pilot",
+        review_status: "pending",
+        review_sla_hours: slaHours,
+        review_due_at: new Date(Date.now() + slaHours * 3600000).toISOString(),
+        execution_status: "not_started",
+      };
+      const { error: captureError } = await supabase.from("decision_outcome_log").insert(capturePayload);
+      if (captureError) console.error("Auto-capture insert error:", captureError);
     }
 
     await Promise.all(auditOps);
