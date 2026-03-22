@@ -349,8 +349,8 @@ Explain WHY based on features. Do NOT decide — only explain.`;
       crises: signalData.crises.length,
     };
 
-    // 7. Audit log
-    await Promise.all([
+    // 7. Audit log + auto-capture
+    const auditOps: Promise<any>[] = [
       supabase.from("decision_inference_audit").insert({
         model_version: modelVersion, training_mode: trainingMode,
         scope_iso3: iso3 || null, scope_domain: domain || "all",
@@ -369,7 +369,32 @@ Explain WHY based on features. Do NOT decide — only explain.`;
         confidence: (recommendations[0]?.success_probability || 0) * 100,
         explanation: { features, risk_score: riskScore, model_version: modelVersion, training_mode: trainingMode, inference_hash: inferenceHash, feature_contributions: featureContributions.slice(0, 5) },
       }),
-    ]);
+    ];
+
+    // Auto-capture: insert top recommendation into decision_outcome_log
+    if (auto_capture && recommendations.length > 0) {
+      const topRec = recommendations[0];
+      const slaHours = topRec.policy === "ACT" ? 24 : topRec.policy === "CONSIDER" ? 72 : 168;
+      auditOps.push(
+        supabase.from("decision_outcome_log").insert({
+          signal_title: `${topRec.label} — ${iso3 || 'Global'} / ${targetDomain}`,
+          domain: domain || "system",
+          iso3: iso3 || null,
+          action_type: topRec.action_type,
+          signal_confidence: Math.round(topRec.success_probability * 100),
+          impact_estimate: topRec.impact_estimate,
+          decision_features: features,
+          model_version: modelVersion,
+          evidence_type: "pilot",
+          review_status: "pending",
+          review_sla_hours: slaHours,
+          review_due_at: new Date(Date.now() + slaHours * 3600000).toISOString(),
+          execution_status: "not_started",
+        })
+      );
+    }
+
+    await Promise.all(auditOps);
 
     return new Response(JSON.stringify({
       ok: true,
