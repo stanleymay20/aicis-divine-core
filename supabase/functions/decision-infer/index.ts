@@ -229,7 +229,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { iso3, domain, explain } = await req.json().catch(() => ({}));
+    const { iso3, domain, explain, auto_capture } = await req.json().catch(() => ({}));
 
     // 1. Load active model
     const { data: activeModel } = await supabase
@@ -349,8 +349,8 @@ Explain WHY based on features. Do NOT decide — only explain.`;
       crises: signalData.crises.length,
     };
 
-    // 7. Audit log
-    await Promise.all([
+    // 7. Audit log + auto-capture
+    const auditOps: Promise<any>[] = [
       supabase.from("decision_inference_audit").insert({
         model_version: modelVersion, training_mode: trainingMode,
         scope_iso3: iso3 || null, scope_domain: domain || "all",
@@ -369,7 +369,33 @@ Explain WHY based on features. Do NOT decide — only explain.`;
         confidence: (recommendations[0]?.success_probability || 0) * 100,
         explanation: { features, risk_score: riskScore, model_version: modelVersion, training_mode: trainingMode, inference_hash: inferenceHash, feature_contributions: featureContributions.slice(0, 5) },
       }),
-    ]);
+    ];
+
+    // Auto-capture: insert top recommendation into decision_outcome_log
+    if (auto_capture && recommendations.length > 0) {
+      const topRec = recommendations[0];
+      const slaHours = topRec.policy === "ACT" ? 24 : topRec.policy === "CONSIDER" ? 72 : 168;
+      const capturePayload = {
+        signal_id: `infer-${Date.now()}`,
+        signal_title: `${topRec.label} — ${iso3 || 'Global'} / ${targetDomain}`,
+        signal_date: new Date().toISOString().split("T")[0],
+        domain: domain || "system",
+        iso3: iso3 || null,
+        action_type: topRec.action_type,
+        signal_confidence: Math.round(topRec.success_probability * 100),
+        hypothetical_decision_value: String(topRec.impact_estimate),
+        decision_features: features,
+        evidence_type: "pilot",
+        review_status: "pending",
+        review_sla_hours: slaHours,
+        review_due_at: new Date(Date.now() + slaHours * 3600000).toISOString(),
+        execution_status: "not_started",
+      };
+      const { error: captureError } = await supabase.from("decision_outcome_log").insert(capturePayload);
+      if (captureError) console.error("Auto-capture insert error:", captureError);
+    }
+
+    await Promise.all(auditOps);
 
     return new Response(JSON.stringify({
       ok: true,
