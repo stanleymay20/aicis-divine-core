@@ -71,7 +71,8 @@ export const AICISMainView = () => {
         const measured = outcomes?.filter(o => o.evidence_type === "measured")?.length || 0;
 
         const activeModel = models?.find(m => m.status === "active");
-        const modelSafe = activeModel ? (activeModel.calibration_error < 0.15 ? "Secure" : "Degraded") : "No Model";
+        const calError = activeModel?.performance_metrics && typeof activeModel.performance_metrics === "object" && !Array.isArray(activeModel.performance_metrics) ? (activeModel.performance_metrics as any).calibration_error ?? 0.1 : 0.1;
+        const modelSafe = activeModel ? (calError < 0.15 ? "Secure" : "Degraded") : "No Model";
 
         // Evidence maturity
         let maturity = "None";
