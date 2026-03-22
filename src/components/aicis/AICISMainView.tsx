@@ -60,7 +60,7 @@ export const AICISMainView = () => {
           supabase.from("decision_outcome_log").select("*", { count: "exact", head: true }).eq("review_status", "pending"),
           supabase.from("critical_alerts").select("*", { count: "exact", head: true }).eq("acknowledged", false),
           supabase.from("decision_outcome_log").select("execution_status, outcome_success, evidence_type, recommendation_accepted").limit(500),
-          supabase.from("decision_models").select("status, metadata").order("created_at", { ascending: false }).limit(3),
+          supabase.from("decision_models").select("status, performance_metrics").order("created_at", { ascending: false }).limit(3),
           supabase.from("silent_failure_state").select("*").in("severity", ["critical", "high"]).eq("resolved", false).limit(10),
           supabase.from("decision_outcome_log").select("id, action_type, domain, recommendation_accepted, outcome_success, review_status, evidence_type, created_at").order("created_at", { ascending: false }).limit(8),
         ]);
