@@ -51,6 +51,8 @@ const navigationItems = [
   { id: "federation", label: "Federation", icon: Zap, path: "/federation" },
   { id: "compliance", label: "Compliance", icon: FileCheck, path: "/compliance" },
   { id: "admin", label: "Admin", icon: Shield, path: "/admin" },
+  { id: "decision-ops", label: "Decision Ops", icon: Activity, path: "/decision-ops" },
+  { id: "operational-truth", label: "Operational Truth", icon: Eye, path: "/operational-truth" },
   { id: "ethics", label: "AI Ethics & SDGs", icon: Scale, path: "/ethics" },
   { id: "system", label: "System Health", icon: Activity, path: "/system-health" },
 ];
