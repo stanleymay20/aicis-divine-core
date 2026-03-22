@@ -377,12 +377,14 @@ Explain WHY based on features. Do NOT decide — only explain.`;
       const slaHours = topRec.policy === "ACT" ? 24 : topRec.policy === "CONSIDER" ? 72 : 168;
       auditOps.push(
         supabase.from("decision_outcome_log").insert({
+          signal_id: inferenceHash.slice(0, 36),
           signal_title: `${topRec.label} — ${iso3 || 'Global'} / ${targetDomain}`,
+          signal_date: new Date().toISOString().split("T")[0],
           domain: domain || "system",
           iso3: iso3 || null,
           action_type: topRec.action_type,
           signal_confidence: Math.round(topRec.success_probability * 100),
-          hypothetical_decision_value: topRec.impact_estimate,
+          hypothetical_decision_value: String(topRec.impact_estimate),
           decision_features: features,
           evidence_type: "pilot",
           review_status: "pending",
