@@ -229,7 +229,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { iso3, domain, explain } = await req.json().catch(() => ({}));
+    const { iso3, domain, explain, auto_capture } = await req.json().catch(() => ({}));
 
     // 1. Load active model
     const { data: activeModel } = await supabase
