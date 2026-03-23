@@ -115,7 +115,7 @@ export default function TrustScorePanel() {
           <p className="text-[9px] text-muted-foreground mt-1.5 flex items-center gap-1">
             <Info className="h-2.5 w-2.5 shrink-0" />
             Driven by: {drivers.join(" · ")}
-            {belowThreshold && " · Capped: insufficient measured evidence"}
+            {data.outcome_maturity_ratio != null && data.outcome_maturity_ratio < 0.1 && " · Low measured evidence — score reflects pilot data"}
           </p>
         )}
       </CardContent>
