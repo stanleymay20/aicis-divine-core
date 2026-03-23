@@ -121,7 +121,15 @@ serve(async (req) => {
     });
   } catch (error) {
     const runFinishedAt = new Date().toISOString();
+    const durationMs = new Date(runFinishedAt).getTime() - new Date(runStartedAt).getTime();
     console.error("Weekly learning error:", error);
+    await supabase.from("weekly_learning_logs").insert({
+      run_started_at: runStartedAt,
+      run_finished_at: runFinishedAt,
+      success: false,
+      error_message: error instanceof Error ? error.message : "Unknown",
+      duration_ms: durationMs,
+    });
     await supabase.from("system_logs").insert({
       action: "weekly_decision_learning",
       result: JSON.stringify({
