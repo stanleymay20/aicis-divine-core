@@ -21,8 +21,10 @@ export const AICISLayout = ({ children }: AICISLayoutProps) => {
   }, [location]);
 
   useEffect(() => {
-    setSidebarCollapsed(true);
-  }, [isMobile]);
+    const handler = () => setSidebarCollapsed((c) => !c);
+    document.addEventListener("toggle-sidebar", handler);
+    return () => document.removeEventListener("toggle-sidebar", handler);
+  }, []);
 
   return (
     <div className="h-screen w-full overflow-hidden bg-background flex flex-col">
