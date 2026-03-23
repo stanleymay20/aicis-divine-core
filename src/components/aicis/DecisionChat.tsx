@@ -132,7 +132,7 @@ export const DecisionChat = () => {
     if (!msg?.recommendation) return;
 
     try {
-      await supabase.from("decision_outcome_log").insert({
+      await supabase.from("decision_outcome_log").insert([{
         action_type: msg.recommendation.action,
         domain: msg.recommendation.domain,
         signal_confidence: msg.recommendation.confidence,
@@ -140,7 +140,7 @@ export const DecisionChat = () => {
         evidence_type: "pilot",
         review_status: "pending",
         execution_status: "not_started",
-      });
+      }]);
     } catch (err) {
       console.error("Failed to log decision:", err);
     }
