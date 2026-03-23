@@ -1466,6 +1466,39 @@ export type Database = {
           },
         ]
       }
+      daily_system_health: {
+        Row: {
+          created_at: string | null
+          decisions_captured: number | null
+          executions_started: number | null
+          health_date: string
+          id: string
+          inferences_generated: number | null
+          measured_outcomes: number | null
+          outcomes_recorded: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          decisions_captured?: number | null
+          executions_started?: number | null
+          health_date?: string
+          id?: string
+          inferences_generated?: number | null
+          measured_outcomes?: number | null
+          outcomes_recorded?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          decisions_captured?: number | null
+          executions_started?: number | null
+          health_date?: string
+          id?: string
+          inferences_generated?: number | null
+          measured_outcomes?: number | null
+          outcomes_recorded?: number | null
+        }
+        Relationships: []
+      }
       dao_proposals: {
         Row: {
           created_at: string
