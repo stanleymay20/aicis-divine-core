@@ -2161,6 +2161,7 @@ export type Database = {
           action_adjustment_weights: Json | null
           action_policies: Json
           avg_impact_score: number | null
+          compared_to_version: string | null
           confidence_calibration: Json | null
           created_at: string
           domain_action_policies: Json | null
@@ -2191,6 +2192,7 @@ export type Database = {
           action_adjustment_weights?: Json | null
           action_policies?: Json
           avg_impact_score?: number | null
+          compared_to_version?: string | null
           confidence_calibration?: Json | null
           created_at?: string
           domain_action_policies?: Json | null
@@ -2221,6 +2223,7 @@ export type Database = {
           action_adjustment_weights?: Json | null
           action_policies?: Json
           avg_impact_score?: number | null
+          compared_to_version?: string | null
           confidence_calibration?: Json | null
           created_at?: string
           domain_action_policies?: Json | null
@@ -6627,6 +6630,42 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_tiers: {
+        Row: {
+          created_at: string
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_decisions_per_month: number | null
+          max_domains: number | null
+          name: string
+          price_monthly: number
+          stripe_price_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_decisions_per_month?: number | null
+          max_domains?: number | null
+          name: string
+          price_monthly?: number
+          stripe_price_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_decisions_per_month?: number | null
+          max_domains?: number | null
+          name?: string
+          price_monthly?: number
+          stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
       system_config: {
         Row: {
           created_at: string | null
@@ -7564,6 +7603,48 @@ export type Database = {
           sections?: Json
           summary_md?: string
           title?: string
+        }
+        Relationships: []
+      }
+      weekly_learning_logs: {
+        Row: {
+          calibration_version: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          evaluation_result: Json | null
+          governance_alerts_triggered: number | null
+          id: string
+          run_finished_at: string | null
+          run_started_at: string
+          success: boolean
+          weekly_stats: Json | null
+        }
+        Insert: {
+          calibration_version?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          evaluation_result?: Json | null
+          governance_alerts_triggered?: number | null
+          id?: string
+          run_finished_at?: string | null
+          run_started_at?: string
+          success?: boolean
+          weekly_stats?: Json | null
+        }
+        Update: {
+          calibration_version?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          evaluation_result?: Json | null
+          governance_alerts_triggered?: number | null
+          id?: string
+          run_finished_at?: string | null
+          run_started_at?: string
+          success?: boolean
+          weekly_stats?: Json | null
         }
         Relationships: []
       }
