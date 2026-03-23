@@ -77,10 +77,8 @@ export default function TrustScorePanel() {
     );
   }
 
-  // Check if measured evidence meets threshold — cap display if not
-  const maturityPct = data.outcome_maturity_ratio != null ? data.outcome_maturity_ratio * 100 : 0;
-  const belowThreshold = threshold?.enabled && maturityPct < (threshold.min_measured_samples ?? 5);
-  const displayScore = belowThreshold ? Math.min(data.trust_score, 40) : data.trust_score;
+  // Trust score is now fully server-computed via the view
+  const displayScore = data.trust_score;
   const tier = getTrustTier(displayScore);
   const drivers = getTrustDrivers(data);
   const color = displayScore >= 70 ? "text-primary" : displayScore >= 40 ? "text-warning" : "text-destructive";
