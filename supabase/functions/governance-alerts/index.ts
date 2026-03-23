@@ -169,7 +169,7 @@ serve(async (req) => {
     const { count: recentInference } = await supabase
       .from("decision_inference_audit")
       .select("id", { count: "exact", head: true })
-      .gte("inferred_at", oneDayAgo);
+      .gte("created_at", oneDayAgo);
 
     const noInference24h = (recentInference ?? 0) === 0;
     await upsertFailureState(supabase, "no_inference_audit_24h",
