@@ -13,6 +13,7 @@ import {
   Shield,
   Cpu,
   Settings,
+  CreditCard,
   X,
 } from "lucide-react";
 
