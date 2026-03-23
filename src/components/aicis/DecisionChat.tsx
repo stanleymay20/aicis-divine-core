@@ -135,6 +135,9 @@ export const DecisionChat = () => {
       await supabase.from("decision_outcome_log").insert([{
         action_type: msg.recommendation.action,
         domain: msg.recommendation.domain,
+        signal_id: `chat-${msg.id}`,
+        signal_title: msg.content?.slice(0, 100) || msg.recommendation.action,
+        signal_date: new Date().toISOString(),
         signal_confidence: msg.recommendation.confidence,
         recommendation_accepted: action === "accepted",
         evidence_type: "pilot",
