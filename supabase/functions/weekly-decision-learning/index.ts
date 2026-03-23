@@ -82,22 +82,34 @@ serve(async (req) => {
       : { ok: true, alerts_detected: govData?.alerts_detected || 0, alerts_inserted: govData?.alerts_inserted || 0 };
 
     const runFinishedAt = new Date().toISOString();
+    const durationMs = new Date(runFinishedAt).getTime() - new Date(runStartedAt).getTime();
 
-    // Step 5: Log comprehensive summary
+    // Step 5: Log to weekly_learning_logs table
+    await supabase.from("weekly_learning_logs").insert({
+      run_started_at: runStartedAt,
+      run_finished_at: runFinishedAt,
+      success: true,
+      calibration_version: calibrationVersion,
+      evaluation_result: evalResult ? {
+        improvement_over_heuristic: evalResult.improvement_over_heuristic,
+        calibration_error: evalResult.calibration_error,
+      } : null,
+      governance_alerts_triggered: results.governance_alerts?.alerts_inserted || 0,
+      weekly_stats: results.weekly_stats,
+      duration_ms: durationMs,
+    });
+
+    // Also log to system_logs for backward compatibility
     await supabase.from("system_logs").insert({
       action: "weekly_decision_learning",
       result: JSON.stringify({
         run_started_at: runStartedAt,
         run_finished_at: runFinishedAt,
-        duration_ms: new Date(runFinishedAt).getTime() - new Date(runStartedAt).getTime(),
+        duration_ms: durationMs,
         weekly_stats: results.weekly_stats,
         calibration: results.calibration?.ok ? "success" : "error",
         calibration_version: calibrationVersion,
         evaluation: results.evaluation?.ok ? "success" : "error",
-        evaluation_result: evalResult ? {
-          improvement_over_heuristic: evalResult.improvement_over_heuristic,
-          calibration_error: evalResult.calibration_error,
-        } : null,
         governance_alerts: results.governance_alerts,
       }),
       log_level: "info",
