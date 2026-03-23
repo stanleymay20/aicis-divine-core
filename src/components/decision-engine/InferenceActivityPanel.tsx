@@ -14,8 +14,8 @@ export default function InferenceActivityPanel() {
 
       // Inference audit counts
       const [todayRes, weekRes, totalRes] = await Promise.all([
-        supabase.from("decision_inference_audit").select("id", { count: "exact", head: true }).gte("inferred_at", todayStart.toISOString()),
-        supabase.from("decision_inference_audit").select("id", { count: "exact", head: true }).gte("inferred_at", sevenDaysAgo.toISOString()),
+        supabase.from("decision_inference_audit").select("id", { count: "exact", head: true }).gte("created_at", todayStart.toISOString()),
+        supabase.from("decision_inference_audit").select("id", { count: "exact", head: true }).gte("created_at", sevenDaysAgo.toISOString()),
         supabase.from("decision_inference_audit").select("id", { count: "exact", head: true }),
       ]);
 
