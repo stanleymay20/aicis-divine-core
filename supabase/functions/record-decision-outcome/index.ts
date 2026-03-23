@@ -149,6 +149,24 @@ serve(async (req) => {
       }
     }
 
+    // Write audit log
+    const auditAction = outcome_success !== undefined ? "outcome_recorded" : action_taken ? "execution_started" : "decision_updated";
+    await supabase.from("audit_log").insert({
+      action: auditAction,
+      resource_type: "decision_outcome_log",
+      resource_id: decision_id,
+      severity: "info",
+      metadata: { evidence_type: updatePayload.evidence_type, proxy_overridden: proxyOverridden },
+    });
+
+    // Write billing usage for outcomes
+    if (outcome_success !== undefined) {
+      await supabase.from("billing_usage_queue").insert({
+        metric_key: "outcomes_recorded",
+        quantity: 1,
+      });
+    }
+
     return new Response(JSON.stringify({
       ok: true,
       evidence_type: updatePayload.evidence_type || "hypothetical",
