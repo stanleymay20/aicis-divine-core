@@ -93,7 +93,7 @@ export default function TrustScorePanel() {
             <div className="flex items-center gap-2">
               <p className={`text-2xl font-bold ${color}`}>{displayScore}<span className="text-xs font-normal text-muted-foreground">/100</span></p>
               <Badge variant={tier.variant} className="text-[9px] h-4">{tier.label}</Badge>
-              {data.outcome_maturity_ratio != null && data.outcome_maturity_ratio < 0.1 && <AlertTriangle className="h-3.5 w-3.5 text-warning" title="Low measured evidence" />}
+              {data.outcome_maturity_ratio != null && data.outcome_maturity_ratio < 0.1 && <AlertTriangle className="h-3.5 w-3.5 text-warning" />}
             </div>
           </div>
           <div className="ml-auto grid grid-cols-3 gap-2 text-center">
