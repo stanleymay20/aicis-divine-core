@@ -8,7 +8,6 @@ const corsHeaders = {
 
 async function upsertFailureState(supabase: any, failureType: string, description: string, severity: string, isActive: boolean) {
   if (isActive) {
-    // Upsert: insert or update to unresolved
     const { data: existing } = await supabase
       .from("silent_failure_state")
       .select("id, resolved")
@@ -25,7 +24,6 @@ async function upsertFailureState(supabase: any, failureType: string, descriptio
       await supabase.from("silent_failure_state").insert({ failure_type: failureType, description, severity });
     }
   } else {
-    // Resolve if exists
     await supabase.from("silent_failure_state")
       .update({ resolved: true, resolved_at: new Date().toISOString() })
       .eq("failure_type", failureType)
@@ -115,13 +113,13 @@ serve(async (req) => {
       .from("decision_outcome_log")
       .select("id, signal_title, review_sla_hours, created_at")
       .eq("recommendation_accepted", true)
-      .or("execution_status.is.null,execution_status.eq.not_started")
-      .eq("action_taken", false);
+      .or("execution_status.is.null,execution_status.eq.not_started");
 
     const staleCount = (staleExec || []).filter((r: any) => {
-      if (!r.created_at || !r.review_sla_hours) return false;
+      if (!r.created_at) return false;
+      const sla = r.review_sla_hours || 24;
       const age = (now.getTime() - new Date(r.created_at).getTime()) / 3600000;
-      return age > r.review_sla_hours;
+      return age > sla;
     }).length;
 
     if (staleCount > 0) {
@@ -130,6 +128,10 @@ serve(async (req) => {
         message: "Accepted recommendations have exceeded their SLA without execution starting.",
         severity: "high", division: "governance",
       });
+      await upsertFailureState(supabase, "stale_execution_sla",
+        `${staleCount} accepted decision(s) stalled beyond SLA.`, "high", true);
+    } else {
+      await upsertFailureState(supabase, "stale_execution_sla", "", "high", false);
     }
 
     // 5b. Completed execution without outcome review
@@ -145,11 +147,13 @@ serve(async (req) => {
         message: "Execution completed but no outcome has been recorded.",
         severity: "medium", division: "governance",
       });
+      await upsertFailureState(supabase, "missing_outcome_review",
+        `${noOutcomeReview} completed execution(s) awaiting outcome.`, "medium", true);
+    } else {
+      await upsertFailureState(supabase, "missing_outcome_review", "", "medium", false);
     }
 
-    // --- SILENT FAILURE DETECTION + STATE TRACKING ---
-
-    // 5. No measured outcomes in 14d
+    // 6. No measured outcomes in 14d
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400000).toISOString();
     const { count: recentMeasured } = await supabase
       .from("decision_outcome_log")
@@ -164,7 +168,7 @@ serve(async (req) => {
       alerts.push({ title: "No measured outcomes in 14 days", message: "Learning loop stalled.", severity: "high", division: "decision-engine" });
     }
 
-    // 6. No inference audit in 24h
+    // 7. No inference audit in 24h
     const oneDayAgo = new Date(now.getTime() - 24 * 3600000).toISOString();
     const { count: recentInference } = await supabase
       .from("decision_inference_audit")
@@ -178,39 +182,52 @@ serve(async (req) => {
       alerts.push({ title: "No inference audit in 24h", message: "Inference pipeline inactive.", severity: "medium", division: "decision-engine" });
     }
 
-    // 7. Weekly learning failed
-    const { data: lastLearn } = await supabase
-      .from("system_logs")
-      .select("log_level")
-      .eq("action", "weekly_decision_learning")
-      .order("created_at", { ascending: false })
+    // 8. Weekly learning failed — check weekly_learning_logs first, then system_logs
+    let learningFailed = false;
+    const { data: lastLearning } = await supabase
+      .from("weekly_learning_logs")
+      .select("success")
+      .order("run_started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const learningFailed = lastLearn?.log_level === "error";
+    if (lastLearning) {
+      learningFailed = !lastLearning.success;
+    } else {
+      const { data: lastLearn } = await supabase
+        .from("system_logs")
+        .select("log_level")
+        .eq("action", "weekly_decision_learning")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      learningFailed = lastLearn?.log_level === "error";
+    }
+
     await upsertFailureState(supabase, "weekly_learning_failed",
       "Most recent weekly learning cycle encountered an error.", "high", learningFailed);
     if (learningFailed) {
       alerts.push({ title: "Weekly learning cycle failed", message: "Calibration may be stale.", severity: "high", division: "decision-engine" });
     }
 
-    // 8. Active model stale (>30d)
+    // 9. Active model stale (>30d)
     const { data: activeModel } = await supabase
       .from("decision_models")
-      .select("version, last_calibrated_at")
+      .select("version, last_calibrated_at, created_at")
       .eq("status", "active")
       .limit(1)
       .maybeSingle();
 
     let modelStale = false;
-    if (activeModel?.last_calibrated_at) {
-      const calAge = (now.getTime() - new Date(activeModel.last_calibrated_at).getTime()) / 86400000;
+    const modelDate = activeModel?.last_calibrated_at || activeModel?.created_at;
+    if (modelDate) {
+      const calAge = (now.getTime() - new Date(modelDate).getTime()) / 86400000;
       modelStale = calAge > 30;
     }
     await upsertFailureState(supabase, "stale_model_calibration",
-      `Active model calibrated ${activeModel?.last_calibrated_at ? Math.round((now.getTime() - new Date(activeModel.last_calibrated_at).getTime()) / 86400000) : "?"} days ago.`, "medium", modelStale);
+      `Active model calibrated ${modelDate ? Math.round((now.getTime() - new Date(modelDate).getTime()) / 86400000) : "?"} days ago.`, "medium", modelStale);
 
-    // 9. Trust score drop
+    // 10. Trust score drop
     const { data: recentEvals } = await supabase
       .from("model_evaluations")
       .select("acceptance_rate, calibration_error")
@@ -225,7 +242,7 @@ serve(async (req) => {
     await upsertFailureState(supabase, "trust_score_drop",
       "Trust score dropped >10 points between evaluations.", "high", trustDrop);
 
-    // 10. Auto-flag model rollback if needed
+    // 11. Auto-flag model rollback if needed
     if (activeModel) {
       const { data: eval_ } = await supabase
         .from("model_evaluations")
