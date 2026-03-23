@@ -132,7 +132,7 @@ export const DecisionChat = () => {
     if (!msg?.recommendation) return;
 
     try {
-      await supabase.from("decision_outcome_log").insert([{
+      const insertData: any = {
         action_type: msg.recommendation.action,
         domain: msg.recommendation.domain,
         signal_id: `chat-${msg.id}`,
@@ -143,7 +143,26 @@ export const DecisionChat = () => {
         evidence_type: "pilot",
         review_status: "pending",
         execution_status: "not_started",
-      }]);
+      };
+
+      // Auto-assign reviewer and SLA based on confidence
+      if (action === "accepted") {
+        insertData.review_sla_hours = msg.recommendation.confidence >= 80 ? 24 : 72;
+        insertData.criticality_tier = msg.recommendation.risk === "critical" ? "critical" : msg.recommendation.risk === "high" ? "elevated" : "standard";
+        insertData.assigned_reviewer = "system-queue";
+        insertData.assigned_reviewer_role = "analyst";
+      }
+
+      await supabase.from("decision_outcome_log").insert([insertData]);
+
+      // Write audit log
+      await supabase.from("audit_log").insert({
+        action: action === "accepted" ? "decision.accepted" : "decision.rejected",
+        resource_type: "decision_outcome_log",
+        resource_id: `chat-${msg.id}`,
+        severity: "info",
+        metadata: { domain: msg.recommendation.domain, confidence: msg.recommendation.confidence },
+      });
     } catch (err) {
       console.error("Failed to log decision:", err);
     }

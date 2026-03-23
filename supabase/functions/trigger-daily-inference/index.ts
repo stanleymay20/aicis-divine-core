@@ -37,11 +37,53 @@ serve(async (req) => {
     const totalRecs = results.filter(r => r.ok).reduce((sum, r) => sum + (r.recommendations || 0), 0);
     const failedDomains = results.filter(r => !r.ok).length;
 
+    // Log to system_logs
     await supabase.from("system_logs").insert({
       action: "daily_inference_trigger",
       result: JSON.stringify({ total_recommendations: totalRecs, failed_domains: failedDomains, results }),
       log_level: failedDomains > 0 ? "warning" : "info",
       division: "decision-engine",
+    });
+
+    // Write to audit_log
+    await supabase.from("audit_log").insert({
+      action: "daily_inference_trigger",
+      resource_type: "decision-engine",
+      severity: "info",
+      metadata: { total_recommendations: totalRecs, failed_domains: failedDomains, domains_run: domains.length },
+    });
+
+    // Upsert daily_system_health
+    const today = new Date().toISOString().split("T")[0];
+    const { count: inferenceCount } = await supabase
+      .from("decision_inference_audit").select("id", { count: "exact", head: true })
+      .gte("created_at", today);
+    const { count: capturedCount } = await supabase
+      .from("decision_outcome_log").select("id", { count: "exact", head: true })
+      .gte("created_at", today);
+    const { count: execCount } = await supabase
+      .from("decision_outcome_log").select("id", { count: "exact", head: true })
+      .gte("execution_started_at", today);
+    const { count: outcomeCount } = await supabase
+      .from("decision_outcome_log").select("id", { count: "exact", head: true })
+      .gte("outcome_timestamp", today);
+    const { count: measuredCount } = await supabase
+      .from("decision_outcome_log").select("id", { count: "exact", head: true })
+      .eq("evidence_type", "measured").gte("outcome_timestamp", today);
+
+    await supabase.from("daily_system_health").upsert({
+      health_date: today,
+      inferences_generated: inferenceCount ?? 0,
+      decisions_captured: capturedCount ?? 0,
+      executions_started: execCount ?? 0,
+      outcomes_recorded: outcomeCount ?? 0,
+      measured_outcomes: measuredCount ?? 0,
+    }, { onConflict: "health_date" });
+
+    // Write usage to billing queue
+    await supabase.from("billing_usage_queue").insert({
+      metric_key: "decisions_created",
+      quantity: totalRecs,
     });
 
     return new Response(JSON.stringify({

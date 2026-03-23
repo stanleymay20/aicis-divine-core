@@ -77,10 +77,8 @@ export default function TrustScorePanel() {
     );
   }
 
-  // Check if measured evidence meets threshold — cap display if not
-  const maturityPct = data.outcome_maturity_ratio != null ? data.outcome_maturity_ratio * 100 : 0;
-  const belowThreshold = threshold?.enabled && maturityPct < (threshold.min_measured_samples ?? 5);
-  const displayScore = belowThreshold ? Math.min(data.trust_score, 40) : data.trust_score;
+  // Trust score is now fully server-computed via the view
+  const displayScore = data.trust_score;
   const tier = getTrustTier(displayScore);
   const drivers = getTrustDrivers(data);
   const color = displayScore >= 70 ? "text-primary" : displayScore >= 40 ? "text-warning" : "text-destructive";
@@ -95,7 +93,7 @@ export default function TrustScorePanel() {
             <div className="flex items-center gap-2">
               <p className={`text-2xl font-bold ${color}`}>{displayScore}<span className="text-xs font-normal text-muted-foreground">/100</span></p>
               <Badge variant={tier.variant} className="text-[9px] h-4">{tier.label}</Badge>
-              {belowThreshold && <AlertTriangle className="h-3.5 w-3.5 text-warning" />}
+              {data.outcome_maturity_ratio != null && data.outcome_maturity_ratio < 0.1 && <AlertTriangle className="h-3.5 w-3.5 text-warning" />}
             </div>
           </div>
           <div className="ml-auto grid grid-cols-3 gap-2 text-center">
@@ -117,7 +115,7 @@ export default function TrustScorePanel() {
           <p className="text-[9px] text-muted-foreground mt-1.5 flex items-center gap-1">
             <Info className="h-2.5 w-2.5 shrink-0" />
             Driven by: {drivers.join(" · ")}
-            {belowThreshold && " · Capped: insufficient measured evidence"}
+            {data.outcome_maturity_ratio != null && data.outcome_maturity_ratio < 0.1 && " · Low measured evidence — score reflects pilot data"}
           </p>
         )}
       </CardContent>

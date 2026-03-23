@@ -13,6 +13,7 @@ import {
   Shield,
   Cpu,
   Settings,
+  CreditCard,
   X,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ const navItems = [
   { id: "decision-ops", label: "Operations", icon: Activity, path: "/decision-ops" },
   { id: "operational-truth", label: "Truth", icon: Cpu, path: "/operational-truth" },
   { id: "governance", label: "Governance", icon: Shield, path: "/governance" },
+  { id: "billing", label: "Billing", icon: CreditCard, path: "/enterprise-governance" },
   { id: "admin", label: "Settings", icon: Settings, path: "/admin" },
 ];
 
