@@ -17,7 +17,7 @@ serve(async (req) => {
   const runStartedAt = new Date().toISOString();
 
   try {
-    console.log("Starting weekly decision learning cycle...");
+    console.log("Starting weekly decision learning cycle v2...");
     const results: Record<string, any> = {};
 
     // Step 1: Compute weekly stats from last 7 days
