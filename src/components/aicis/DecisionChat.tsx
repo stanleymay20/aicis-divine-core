@@ -157,7 +157,7 @@ export const DecisionChat = () => {
 
       // Write audit log
       await supabase.from("audit_log").insert({
-        action: action === "accepted" ? "decision_accepted" : "decision_rejected",
+        action: action === "accepted" ? "decision.accepted" : "decision.rejected",
         resource_type: "decision_outcome_log",
         resource_id: `chat-${msg.id}`,
         severity: "info",
