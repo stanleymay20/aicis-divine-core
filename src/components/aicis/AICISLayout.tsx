@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { AICISTopBar } from "./AICISTopBar";
 import { AICISSidebar } from "./AICISSidebar";
-import { AICISFooter } from "./AICISFooter";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AICISLayoutProps {
@@ -12,7 +11,7 @@ interface AICISLayoutProps {
 
 export const AICISLayout = ({ children }: AICISLayoutProps) => {
   const isMobile = useIsMobile();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [activeSection, setActiveSection] = useState("overview");
   const location = useLocation();
 
@@ -22,7 +21,7 @@ export const AICISLayout = ({ children }: AICISLayoutProps) => {
   }, [location]);
 
   useEffect(() => {
-    setSidebarCollapsed(isMobile);
+    setSidebarCollapsed(true);
   }, [isMobile]);
 
   return (
@@ -39,14 +38,13 @@ export const AICISLayout = ({ children }: AICISLayoutProps) => {
           id="main-content"
           role="main"
           className={cn(
-            "flex-1 overflow-auto transition-all duration-200",
-            sidebarCollapsed ? "ml-0 md:ml-[60px]" : "ml-0 md:ml-[220px]"
+            "flex-1 overflow-hidden flex flex-col transition-all duration-200",
+            "ml-0 md:ml-[52px]"
           )}
         >
           {children}
         </main>
       </div>
-      <AICISFooter />
     </div>
   );
 };
