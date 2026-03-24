@@ -17,9 +17,18 @@ interface BacklogItem {
 }
 
 type GapFilter = "all" | "not_executed" | "no_outcome" | "no_postmortem" | "no_roi";
+type SortMode = "oldest" | "severity";
+
+const gapSeverity: Record<string, number> = {
+  no_postmortem: 3,
+  no_outcome: 2,
+  not_executed: 1,
+  no_roi: 0,
+};
 
 export default function EvidenceBacklogQueue() {
   const [filter, setFilter] = useState<GapFilter>("all");
+  const [sort, setSort] = useState<SortMode>("oldest");
 
   const { data } = useQuery({
     queryKey: ["evidence-backlog"],
@@ -90,7 +99,10 @@ export default function EvidenceBacklogQueue() {
     );
   }
 
-  const filtered = filter === "all" ? data.items : data.items.filter(i => i.gap_type === filter);
+  const filtered = (filter === "all" ? data.items : data.items.filter(i => i.gap_type === filter))
+    .sort((a, b) => sort === "severity" 
+      ? (gapSeverity[b.gap_type] ?? 0) - (gapSeverity[a.gap_type] ?? 0) || b.age_hours - a.age_hours
+      : b.age_hours - a.age_hours);
 
   const gapLabels: Record<string, string> = {
     not_executed: "Accepted, not executed",
@@ -116,6 +128,13 @@ export default function EvidenceBacklogQueue() {
               <p className="text-[9px] text-muted-foreground">{b}</p>
             </div>
           ))}
+        </div>
+
+        {/* Sort toggle */}
+        <div className="flex items-center gap-2 text-[10px]">
+          <span className="text-muted-foreground">Sort:</span>
+          <button onClick={() => setSort("oldest")} className={`px-2 py-0.5 rounded ${sort === "oldest" ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground"}`}>Oldest first</button>
+          <button onClick={() => setSort("severity")} className={`px-2 py-0.5 rounded ${sort === "severity" ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground"}`}>Severity first</button>
         </div>
 
         {/* Filter tabs */}

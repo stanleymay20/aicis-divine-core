@@ -11,6 +11,7 @@ interface FailureState {
   severity: string;
   detected_at: string;
   resolved: boolean;
+  resolved_at: string | null;
 }
 
 const severityConfig: Record<string, { variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -100,6 +101,9 @@ export default function SilentFailurePanel() {
               <div key={f.id} className="flex items-center gap-2 text-[10px] text-muted-foreground py-0.5">
                 <CheckCircle className="h-3 w-3 text-primary shrink-0" />
                 <span>{f.failure_type.replace(/_/g, " ")}</span>
+                {f.resolved_at && (
+                  <span className="ml-auto text-[9px]">Resolved: {new Date(f.resolved_at).toLocaleString()}</span>
+                )}
               </div>
             ))}
           </div>
