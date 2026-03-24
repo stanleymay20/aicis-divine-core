@@ -99,7 +99,10 @@ export default function EvidenceBacklogQueue() {
     );
   }
 
-  const filtered = filter === "all" ? data.items : data.items.filter(i => i.gap_type === filter);
+  const filtered = (filter === "all" ? data.items : data.items.filter(i => i.gap_type === filter))
+    .sort((a, b) => sort === "severity" 
+      ? (gapSeverity[b.gap_type] ?? 0) - (gapSeverity[a.gap_type] ?? 0) || b.age_hours - a.age_hours
+      : b.age_hours - a.age_hours);
 
   const gapLabels: Record<string, string> = {
     not_executed: "Accepted, not executed",
