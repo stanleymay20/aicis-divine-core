@@ -1,10 +1,12 @@
 import { AICISLayout } from "@/components/aicis/AICISLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, PlayCircle, BarChart3, Beaker } from "lucide-react";
+import { Activity, PlayCircle, BarChart3, Beaker, Flame, Target } from "lucide-react";
 import DailyTaskPanel from "@/components/decision-engine/DailyTaskPanel";
 import ExecutionCommandCenter from "@/components/decision-engine/ExecutionCommandCenter";
 import OutcomeInputPanel from "@/components/decision-engine/OutcomeInputPanel";
 import PilotModePanel from "@/components/decision-engine/PilotModePanel";
+import OutcomeBacklogBurner from "@/components/decision-engine/OutcomeBacklogBurner";
+import MeasuredOutcomeKPI from "@/components/decision-engine/MeasuredOutcomeKPI";
 
 export default function DecisionOperations() {
   return (
@@ -21,9 +23,13 @@ export default function DecisionOperations() {
         </div>
 
         <DailyTaskPanel />
+        <MeasuredOutcomeKPI />
 
-        <Tabs defaultValue="execution" className="w-full">
-          <TabsList className="bg-muted/50 p-0.5 h-auto">
+        <Tabs defaultValue="backlog" className="w-full">
+          <TabsList className="bg-muted/50 p-0.5 h-auto flex-wrap">
+            <TabsTrigger value="backlog" className="text-xs gap-1.5 data-[state=active]:bg-card">
+              <Flame className="h-3.5 w-3.5" /> Backlog
+            </TabsTrigger>
             <TabsTrigger value="execution" className="text-xs gap-1.5 data-[state=active]:bg-card">
               <PlayCircle className="h-3.5 w-3.5" /> Execution
             </TabsTrigger>
@@ -35,6 +41,9 @@ export default function DecisionOperations() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="backlog" className="mt-4">
+            <OutcomeBacklogBurner />
+          </TabsContent>
           <TabsContent value="execution" className="mt-4">
             <ExecutionCommandCenter />
           </TabsContent>
