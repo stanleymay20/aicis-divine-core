@@ -11,6 +11,7 @@ interface FailureState {
   severity: string;
   detected_at: string;
   resolved: boolean;
+  resolved_at: string | null;
 }
 
 const severityConfig: Record<string, { variant: "default" | "secondary" | "outline" | "destructive" }> = {
