@@ -15,6 +15,7 @@ import {
   Settings,
   CreditCard,
   Target,
+  ClipboardCheck,
   X,
 } from "lucide-react";
 
