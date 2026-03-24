@@ -14,6 +14,7 @@ import {
   Cpu,
   Settings,
   CreditCard,
+  Target,
   X,
 } from "lucide-react";
 
