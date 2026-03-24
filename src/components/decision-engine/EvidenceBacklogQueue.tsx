@@ -130,6 +130,13 @@ export default function EvidenceBacklogQueue() {
           ))}
         </div>
 
+        {/* Sort toggle */}
+        <div className="flex items-center gap-2 text-[10px]">
+          <span className="text-muted-foreground">Sort:</span>
+          <button onClick={() => setSort("oldest")} className={`px-2 py-0.5 rounded ${sort === "oldest" ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground"}`}>Oldest first</button>
+          <button onClick={() => setSort("severity")} className={`px-2 py-0.5 rounded ${sort === "severity" ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground"}`}>Severity first</button>
+        </div>
+
         {/* Filter tabs */}
         <Tabs value={filter} onValueChange={(v) => setFilter(v as GapFilter)}>
           <TabsList className="w-full flex-wrap h-auto gap-1">
