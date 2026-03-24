@@ -149,22 +149,28 @@ serve(async (req) => {
       }
     }
 
-    // Write audit log
-    const auditAction = outcome_success !== undefined ? "outcome_recorded" : action_taken ? "execution_started" : "decision_updated";
-    await supabase.from("audit_log").insert({
-      action: auditAction,
-      resource_type: "decision_outcome_log",
-      resource_id: decision_id,
-      severity: "info",
-      metadata: { evidence_type: updatePayload.evidence_type, proxy_overridden: proxyOverridden },
-    });
+    // Write granular audit events
+    const auditEvents: any[] = [];
+    if (action_taken) {
+      auditEvents.push({ action: "execution_started", resource_type: "decision_outcome_log", resource_id: decision_id, severity: "info", metadata: { execution_owner, execution_status: body_execution_status } });
+    }
+    if (body_execution_status === "completed") {
+      auditEvents.push({ action: "execution_completed", resource_type: "decision_outcome_log", resource_id: decision_id, severity: "info", metadata: {} });
+    }
+    if (outcome_success !== undefined) {
+      auditEvents.push({ action: "outcome_recorded", resource_type: "decision_outcome_log", resource_id: decision_id, severity: "info", metadata: { evidence_type: updatePayload.evidence_type, outcome_success, impact_score, proxy_overridden: proxyOverridden } });
+    }
+    if (updatePayload.evidence_type === "measured") {
+      auditEvents.push({ action: "measured_evidence_confirmed", resource_type: "decision_outcome_log", resource_id: decision_id, severity: "info", metadata: { impact_score, roi_estimate: updatePayload.roi_estimate } });
+    }
+    if (auditEvents.length === 0) {
+      auditEvents.push({ action: "decision_updated", resource_type: "decision_outcome_log", resource_id: decision_id, severity: "info", metadata: {} });
+    }
+    await supabase.from("audit_log").insert(auditEvents);
 
     // Write billing usage for outcomes
     if (outcome_success !== undefined) {
-      await supabase.from("billing_usage_queue").insert({
-        metric_key: "outcomes_recorded",
-        quantity: 1,
-      });
+      await supabase.from("billing_usage_queue").insert({ metric_key: "outcomes_recorded", quantity: 1 });
     }
 
     return new Response(JSON.stringify({
