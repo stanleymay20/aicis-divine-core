@@ -17,9 +17,18 @@ interface BacklogItem {
 }
 
 type GapFilter = "all" | "not_executed" | "no_outcome" | "no_postmortem" | "no_roi";
+type SortMode = "oldest" | "severity";
+
+const gapSeverity: Record<string, number> = {
+  no_postmortem: 3,
+  no_outcome: 2,
+  not_executed: 1,
+  no_roi: 0,
+};
 
 export default function EvidenceBacklogQueue() {
   const [filter, setFilter] = useState<GapFilter>("all");
+  const [sort, setSort] = useState<SortMode>("oldest");
 
   const { data } = useQuery({
     queryKey: ["evidence-backlog"],
