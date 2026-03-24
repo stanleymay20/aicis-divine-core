@@ -108,6 +108,27 @@ serve(async (req) => {
       });
     }
 
+    // 5. Missing execution owner >12h
+    const twelveHoursAgo = new Date(now.getTime() - 12 * 3600000).toISOString();
+    const { count: noOwnerCount } = await supabase
+      .from("decision_outcome_log")
+      .select("id", { count: "exact", head: true })
+      .eq("recommendation_accepted", true)
+      .is("execution_owner", null)
+      .lt("created_at", twelveHoursAgo);
+
+    if ((noOwnerCount ?? 0) > 0) {
+      alerts.push({
+        title: `${noOwnerCount} accepted decision(s) without execution owner for >12h`,
+        message: "Execution ownership not assigned. Escalation required.",
+        severity: "high", division: "governance",
+      });
+      await upsertFailureState(supabase, "missing_execution_owner",
+        `${noOwnerCount} accepted decisions lack execution owner.`, "high", true);
+    } else {
+      await upsertFailureState(supabase, "missing_execution_owner", "", "high", false);
+    }
+
     // 5a. Accepted but not started beyond SLA
     const { data: staleExec } = await supabase
       .from("decision_outcome_log")
