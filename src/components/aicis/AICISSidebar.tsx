@@ -14,6 +14,7 @@ import {
   Cpu,
   Settings,
   CreditCard,
+  Target,
   X,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ interface SidebarProps {
 const navItems = [
   { id: "overview", label: "Decisions", icon: MessageSquare, path: "/" },
   { id: "decision-ops", label: "Operations", icon: Activity, path: "/decision-ops" },
+  { id: "measured", label: "Evidence", icon: Target, path: "/measured-acceleration" },
   { id: "operational-truth", label: "Truth", icon: Cpu, path: "/operational-truth" },
   { id: "governance", label: "Governance", icon: Shield, path: "/governance" },
   { id: "billing", label: "Billing", icon: CreditCard, path: "/enterprise-governance" },
