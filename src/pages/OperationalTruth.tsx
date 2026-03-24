@@ -14,6 +14,8 @@ import LearningCycleHealth from "@/components/decision-engine/LearningCycleHealt
 import InferenceActivityPanel from "@/components/decision-engine/InferenceActivityPanel";
 import PromotionReadinessGate from "@/components/decision-engine/PromotionReadinessGate";
 import EvidenceBacklogQueue from "@/components/decision-engine/EvidenceBacklogQueue";
+import BillingHealthPanel from "@/components/decision-engine/BillingHealthPanel";
+import AuditActivityPanel from "@/components/decision-engine/AuditActivityPanel";
 
 export default function OperationalTruth() {
   return (
@@ -63,7 +65,13 @@ export default function OperationalTruth() {
           <ActionLeaderboard />
         </div>
 
-        {/* Row 8: Model History + Learning */}
+        {/* Row 8: Billing + Audit */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <BillingHealthPanel />
+          <AuditActivityPanel />
+        </div>
+
+        {/* Row 9: Model History + Learning */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ModelPromotionLog />
           <LearningCycleHealth />
