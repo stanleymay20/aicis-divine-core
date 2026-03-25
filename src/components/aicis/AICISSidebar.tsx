@@ -31,6 +31,7 @@ const navItems = [
   { id: "decision-ops", label: "Operations", icon: Activity, path: "/decision-ops" },
   { id: "measured", label: "Evidence", icon: Target, path: "/measured-acceleration" },
   { id: "closure", label: "Closure", icon: ClipboardCheck, path: "/evidence-closure" },
+  { id: "evidence-cmd", label: "Command", icon: Shield, path: "/evidence-command" },
   { id: "operational-truth", label: "Truth", icon: Cpu, path: "/operational-truth" },
   { id: "governance", label: "Governance", icon: Shield, path: "/governance" },
   { id: "billing", label: "Billing", icon: CreditCard, path: "/enterprise-governance" },
