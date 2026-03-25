@@ -7778,6 +7778,22 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_evidence_summary: {
+        Row: {
+          accepted_count: number | null
+          active_failure_count: number | null
+          audit_event_count: number | null
+          avg_roi: number | null
+          completed_count: number | null
+          domain: string | null
+          executed_count: number | null
+          measured_7d: number | null
+          measured_count: number | null
+          postmortem_rate: number | null
+          total_decisions: number | null
+        }
+        Relationships: []
+      }
       organizations_member_view: {
         Row: {
           api_enabled: boolean | null
