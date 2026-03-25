@@ -11,13 +11,14 @@ export default function DailyTargetTracker() {
       const today = new Date().toISOString().split("T")[0];
       const todayStart = `${today}T00:00:00Z`;
 
-      // Get target config (fallback to defaults)
-      const { data: config } = await supabase
-        .from("daily_target_config")
+      // Get target config via raw query since table may not be in generated types
+      const { data: configRows } = await supabase
+        .from("daily_target_config" as any)
         .select("*")
         .eq("target_date", today)
         .maybeSingle();
 
+      const config = configRows as any;
       const targets = {
         measured: config?.measured_outcomes_target ?? 2,
         backlog: config?.backlog_closure_target ?? 5,
@@ -25,7 +26,6 @@ export default function DailyTargetTracker() {
         audit: config?.audit_events_target ?? 10,
       };
 
-      // Get actuals
       const [measuredRes, backlogRes, pmRes, auditRes] = await Promise.all([
         supabase.from("decision_outcome_log").select("id", { count: "exact", head: true })
           .eq("evidence_type", "measured").gte("outcome_timestamp", todayStart),
