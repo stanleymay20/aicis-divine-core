@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart3 } from "lucide-react";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const DOMAINS = ["economy", "health", "security", "energy", "food", "governance", "education"];
 
@@ -21,7 +23,7 @@ interface DomainRow {
 }
 
 export default function DomainEvidenceScorecard() {
-  const { data: domains = [] } = useQuery({
+  const { data: domains = [], isLoading } = useQuery({
     queryKey: ["domain-evidence-scorecard"],
     queryFn: async () => {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -67,7 +69,6 @@ export default function DomainEvidenceScorecard() {
         s.avgRoi = roi && roi.count > 0 ? Math.round((roi.sum / roi.count) * 100) / 100 : 0;
         const pm = pmData.get(s.domain);
         s.postmortemRate = pm && pm.failed > 0 ? Math.round((pm.withPm / pm.failed) * 100) : 100;
-        // Evidence score: weighted composite
         s.score = Math.min(100, Math.round(
           (s.measured * 10) + (s.completed * 3) + (s.postmortemRate * 0.2) + (s.measured7d * 15)
         ));
@@ -79,42 +80,46 @@ export default function DomainEvidenceScorecard() {
 
   const scoreColor = (s: number) => s >= 60 ? "text-green-500" : s >= 30 ? "text-yellow-500" : "text-red-500";
 
+  if (isLoading) return <PanelSkeleton variant="table" rows={7} />;
+
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-primary" /> Domain Evidence Scorecard
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[340px]">
-          <div className="space-y-1.5">
-            <div className="grid grid-cols-9 text-[10px] text-muted-foreground font-medium px-2 pb-1 border-b border-border/30">
-              <span className="col-span-2">Domain</span>
-              <span className="text-center">Total</span>
-              <span className="text-center">Accepted</span>
-              <span className="text-center">Done</span>
-              <span className="text-center">Measured</span>
-              <span className="text-center">7d</span>
-              <span className="text-center">PM%</span>
-              <span className="text-center">Score</span>
-            </div>
-            {domains.map((d) => (
-              <div key={d.domain} className="grid grid-cols-9 items-center px-2 py-1.5 text-xs border-b border-border/10 last:border-0">
-                <span className="col-span-2 font-medium capitalize">{d.domain}</span>
-                <span className="text-center font-mono">{d.total}</span>
-                <span className="text-center font-mono">{d.accepted}</span>
-                <span className="text-center font-mono">{d.completed}</span>
-                <span className="text-center font-mono">{d.measured}</span>
-                <span className="text-center font-mono">{d.measured7d}</span>
-                <span className="text-center font-mono">{d.postmortemRate}%</span>
-                <span className={`text-center font-mono font-semibold ${scoreColor(d.score)}`}>{d.score}</span>
+    <ErrorBoundary compact>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" /> Domain Evidence Scorecard
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[340px]">
+            <div className="min-w-[600px]">
+              <div className="grid grid-cols-9 text-[10px] text-muted-foreground font-medium px-2 pb-1 border-b border-border/30">
+                <span className="col-span-2">Domain</span>
+                <span className="text-center">Total</span>
+                <span className="text-center">Accepted</span>
+                <span className="text-center">Done</span>
+                <span className="text-center">Measured</span>
+                <span className="text-center">7d</span>
+                <span className="text-center">PM%</span>
+                <span className="text-center">Score</span>
               </div>
-            ))}
-            {domains.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No domain data</p>}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+              {domains.map((d) => (
+                <div key={d.domain} className="grid grid-cols-9 items-center px-2 py-1.5 text-xs border-b border-border/10 last:border-0">
+                  <span className="col-span-2 font-medium capitalize">{d.domain}</span>
+                  <span className="text-center font-mono">{d.total}</span>
+                  <span className="text-center font-mono">{d.accepted}</span>
+                  <span className="text-center font-mono">{d.completed}</span>
+                  <span className="text-center font-mono">{d.measured}</span>
+                  <span className="text-center font-mono">{d.measured7d}</span>
+                  <span className="text-center font-mono">{d.postmortemRate}%</span>
+                  <span className={`text-center font-mono font-semibold ${scoreColor(d.score)}`}>{d.score}</span>
+                </div>
+              ))}
+              {domains.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No domain data</p>}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </ErrorBoundary>
   );
 }

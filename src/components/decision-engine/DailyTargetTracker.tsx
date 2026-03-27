@@ -3,15 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Target } from "lucide-react";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function DailyTargetTracker() {
-  const { data } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["daily-targets"],
     queryFn: async () => {
       const today = new Date().toISOString().split("T")[0];
       const todayStart = `${today}T00:00:00Z`;
 
-      // Get target config via raw query since table may not be in generated types
       const { data: configRows } = await supabase
         .from("daily_target_config" as any)
         .select("*")
@@ -51,6 +52,8 @@ export default function DailyTargetTracker() {
     refetchInterval: 30000,
   });
 
+  if (isLoading) return <PanelSkeleton variant="list" rows={4} />;
+
   const items = data ? [
     { label: "Measured Outcomes", actual: data.actuals.measured, target: data.targets.measured },
     { label: "Backlog Closed", actual: data.actuals.backlog, target: data.targets.backlog },
@@ -59,31 +62,33 @@ export default function DailyTargetTracker() {
   ] : [];
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <Target className="h-4 w-4 text-primary" /> Daily Targets
-        </CardTitle>
-        <p className="text-[10px] text-muted-foreground">Today's closure goals</p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {items.map((item) => {
-          const pct = Math.min(100, item.target > 0 ? Math.round((item.actual / item.target) * 100) : 0);
-          const met = item.actual >= item.target;
-          return (
-            <div key={item.label} className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{item.label}</span>
-                <span className={`text-xs font-mono font-semibold ${met ? "text-green-500" : "text-foreground"}`}>
-                  {item.actual}/{item.target}
-                </span>
+    <ErrorBoundary compact>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Target className="h-4 w-4 text-primary" /> Daily Targets
+          </CardTitle>
+          <p className="text-[10px] text-muted-foreground">Today's closure goals</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {items.map((item) => {
+            const pct = Math.min(100, item.target > 0 ? Math.round((item.actual / item.target) * 100) : 0);
+            const met = item.actual >= item.target;
+            return (
+              <div key={item.label} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className={`text-xs font-mono font-semibold ${met ? "text-green-500" : "text-foreground"}`}>
+                    {item.actual}/{item.target}
+                  </span>
+                </div>
+                <Progress value={pct} className="h-1.5" />
               </div>
-              <Progress value={pct} className="h-1.5" />
-            </div>
-          );
-        })}
-        {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Loading…</p>}
-      </CardContent>
-    </Card>
+            );
+          })}
+          {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No target data</p>}
+        </CardContent>
+      </Card>
+    </ErrorBoundary>
   );
 }

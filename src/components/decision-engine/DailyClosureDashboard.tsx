@@ -4,16 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, CheckCircle2, Clock, FileWarning, Shield, User } from "lucide-react";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 interface GapCategory {
   label: string;
   count: number;
   icon: React.ReactNode;
-  severity: "critical" | "high" | "medium" | "low";
+  severity: "critical" | "high" | "medium";
 }
 
 export default function DailyClosureDashboard() {
-  const { data: gaps } = useQuery({
+  const { data: gaps, isLoading } = useQuery({
     queryKey: ["daily-closure-gaps"],
     queryFn: async () => {
       const [completedNoOutcome, noOwner, stalledSLA, noPostmortem, missingAudit] = await Promise.all([
@@ -53,6 +55,8 @@ export default function DailyClosureDashboard() {
     refetchInterval: 30000,
   });
 
+  if (isLoading) return <PanelSkeleton variant="list" rows={5} />;
+
   const categories: GapCategory[] = [
     { label: "Completed / No Outcome", count: gaps?.completedNoOutcome ?? 0, icon: <FileWarning className="h-4 w-4" />, severity: "critical" },
     { label: "No Execution Owner", count: gaps?.noOwner ?? 0, icon: <User className="h-4 w-4" />, severity: "high" },
@@ -70,35 +74,37 @@ export default function DailyClosureDashboard() {
   };
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Daily Closure Targets</CardTitle>
-          <Badge variant={totalGaps === 0 ? "default" : "destructive"} className="text-xs">
-            {totalGaps === 0 ? <><CheckCircle2 className="h-3 w-3 mr-1" /> All Clear</> : `${totalGaps} gaps open`}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {categories.map((cat) => (
-          <div key={cat.label} className={`flex items-center justify-between p-2.5 rounded-lg border ${cat.count > 0 ? severityColor(cat.severity) : "border-border/30 text-muted-foreground"}`}>
-            <div className="flex items-center gap-2 text-sm">
-              {cat.icon}
-              <span>{cat.label}</span>
-            </div>
-            <span className="text-sm font-mono font-semibold">{cat.count}</span>
+    <ErrorBoundary compact>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Daily Closure Targets</CardTitle>
+            <Badge variant={totalGaps === 0 ? "default" : "destructive"} className="text-xs">
+              {totalGaps === 0 ? <><CheckCircle2 className="h-3 w-3 mr-1" /> All Clear</> : `${totalGaps} gaps open`}
+            </Badge>
           </div>
-        ))}
-        {totalGaps > 0 && (
-          <div className="pt-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-              <span>Closure progress</span>
-              <span>Target: 0 gaps</span>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {categories.map((cat) => (
+            <div key={cat.label} className={`flex items-center justify-between p-2.5 rounded-lg border ${cat.count > 0 ? severityColor(cat.severity) : "border-border/30 text-muted-foreground"}`}>
+              <div className="flex items-center gap-2 text-sm">
+                {cat.icon}
+                <span>{cat.label}</span>
+              </div>
+              <span className="text-sm font-mono font-semibold">{cat.count}</span>
             </div>
-            <Progress value={totalGaps === 0 ? 100 : Math.max(5, 100 - totalGaps * 10)} className="h-2" />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ))}
+          {totalGaps > 0 && (
+            <div className="pt-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <span>Closure progress</span>
+                <span>Target: 0 gaps</span>
+              </div>
+              <Progress value={totalGaps === 0 ? 100 : Math.max(5, 100 - totalGaps * 10)} className="h-2" />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </ErrorBoundary>
   );
 }

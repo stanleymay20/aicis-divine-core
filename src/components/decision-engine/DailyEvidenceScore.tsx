@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function DailyEvidenceScore() {
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["daily-evidence-score"],
     queryFn: async () => {
       const now = new Date();
@@ -39,50 +40,49 @@ export default function DailyEvidenceScore() {
       const a7 = audit7d.count ?? 0;
       const pT = postmortemToday.count ?? 0;
 
-      // Score: weighted composite (max 100)
       const score = Math.min(100, (mT * 20) + (aT * 2) + (pT * 15));
       const weeklyAvg = Math.min(100, Math.round(((m7 / 7) * 20) + ((a7 / 7) * 2)));
 
       return { 
-        todayScore: score, 
-        weeklyAvg, 
-        measuredToday: mT, 
-        measured7d: m7, 
-        auditToday: aT,
-        audit7d: a7,
-        postmortemToday: pT,
-        trend: score > weeklyAvg ? "up" : score < weeklyAvg ? "down" : "flat",
+        todayScore: score, weeklyAvg, 
+        measuredToday: mT, measured7d: m7, 
+        auditToday: aT, audit7d: a7, postmortemToday: pT,
+        trend: score > weeklyAvg ? "up" as const : score < weeklyAvg ? "down" as const : "flat" as const,
       };
     },
     refetchInterval: 30000,
   });
+
+  if (isLoading) return <PanelSkeleton variant="metrics" />;
 
   const trendIcon = data?.trend === "up" ? <TrendingUp className="h-3.5 w-3.5 text-green-500" /> 
     : data?.trend === "down" ? <TrendingDown className="h-3.5 w-3.5 text-red-500" /> 
     : <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Evidence Score</CardTitle>
-          <div className="flex items-center gap-1.5">
-            {trendIcon}
-            <span className="text-2xl font-bold font-mono">{data?.todayScore ?? 0}</span>
+    <ErrorBoundary compact>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Evidence Score</CardTitle>
+            <div className="flex items-center gap-1.5">
+              {trendIcon}
+              <span className="text-2xl font-bold font-mono">{data?.todayScore ?? 0}</span>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-3">
-          <ScoreRow label="Measured Today" value={data?.measuredToday ?? 0} />
-          <ScoreRow label="Measured (7d)" value={data?.measured7d ?? 0} />
-          <ScoreRow label="Audit Events Today" value={data?.auditToday ?? 0} />
-          <ScoreRow label="Audit Events (7d)" value={data?.audit7d ?? 0} />
-          <ScoreRow label="Postmortems Today" value={data?.postmortemToday ?? 0} />
-          <ScoreRow label="Weekly Avg Score" value={data?.weeklyAvg ?? 0} />
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3">
+            <ScoreRow label="Measured Today" value={data?.measuredToday ?? 0} />
+            <ScoreRow label="Measured (7d)" value={data?.measured7d ?? 0} />
+            <ScoreRow label="Audit Events Today" value={data?.auditToday ?? 0} />
+            <ScoreRow label="Audit Events (7d)" value={data?.audit7d ?? 0} />
+            <ScoreRow label="Postmortems Today" value={data?.postmortemToday ?? 0} />
+            <ScoreRow label="Weekly Avg Score" value={data?.weeklyAvg ?? 0} />
+          </div>
+        </CardContent>
+      </Card>
+    </ErrorBoundary>
   );
 }
 

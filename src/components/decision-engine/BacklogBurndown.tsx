@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 interface BurndownRow {
   label: string;
@@ -11,7 +12,7 @@ interface BurndownRow {
 }
 
 export default function BacklogBurndown() {
-  const { data: rows = [] } = useQuery({
+  const { data: rows = [], isLoading } = useQuery({
     queryKey: ["backlog-burndown"],
     queryFn: async () => {
       const [cno, ans, np, mo] = await Promise.all([
@@ -35,37 +36,41 @@ export default function BacklogBurndown() {
     refetchInterval: 30000,
   });
 
+  if (isLoading) return <PanelSkeleton variant="list" rows={4} />;
+
   const totalOpen = rows.reduce((s, r) => s + r.current, 0);
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Backlog Burndown</CardTitle>
-          <Badge variant={totalOpen === 0 ? "default" : "outline"} className="text-xs font-mono">
-            {totalOpen} open
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {rows.map(row => (
-            <div key={row.key} className="flex items-center justify-between p-2.5 rounded-lg border border-border/30">
-              <span className="text-sm">{row.label}</span>
-              <div className="flex items-center gap-2">
-                <span className={`text-lg font-mono font-bold ${row.current === 0 ? "text-green-500" : "text-foreground"}`}>
-                  {row.current}
-                </span>
-                {row.current === 0 ? (
-                  <Badge variant="default" className="text-[10px] h-5">Clear</Badge>
-                ) : (
-                  <Badge variant="destructive" className="text-[10px] h-5">Open</Badge>
-                )}
+    <ErrorBoundary compact>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Backlog Burndown</CardTitle>
+            <Badge variant={totalOpen === 0 ? "default" : "outline"} className="text-xs font-mono">
+              {totalOpen} open
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {rows.map(row => (
+              <div key={row.key} className="flex items-center justify-between p-2.5 rounded-lg border border-border/30">
+                <span className="text-sm">{row.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-lg font-mono font-bold ${row.current === 0 ? "text-green-500" : "text-foreground"}`}>
+                    {row.current}
+                  </span>
+                  {row.current === 0 ? (
+                    <Badge variant="default" className="text-[10px] h-5">Clear</Badge>
+                  ) : (
+                    <Badge variant="destructive" className="text-[10px] h-5">Open</Badge>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </ErrorBoundary>
   );
 }
