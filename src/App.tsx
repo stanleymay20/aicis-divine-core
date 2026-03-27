@@ -84,67 +84,68 @@ const Lazy = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <IntelligenceMemoryProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<Lazy><Onboarding /></Lazy>} />
-            <Route path="/citizen-portal" element={<Lazy><CitizenPortal /></Lazy>} />
-            <Route path="/deepdive/:iso3" element={<Lazy><CountryDeepDivePage /></Lazy>} />
-            <Route path="/command" element={<Lazy><AICISCommandCenter /></Lazy>} />
-            <Route path="/debug" element={<Lazy><Debug /></Lazy>} />
-            <Route path="/system-health" element={<Lazy><SystemHealth /></Lazy>} />
-            <Route path="/health" element={<Lazy><HealthDashboard /></Lazy>} />
-            <Route path="/security" element={<Lazy><SecurityDashboard /></Lazy>} />
-            <Route path="/intelligence" element={<Lazy><IntelligenceThread /></Lazy>} />
-            <Route path="/terms" element={<Lazy><Terms /></Lazy>} />
-            <Route path="/privacy" element={<Lazy><Privacy /></Lazy>} />
-            <Route path="/admin" element={<Lazy><AdminDashboard /></Lazy>} />
-            <Route path="/governance" element={<Lazy><GovernanceHub /></Lazy>} />
-            <Route path="/predictions" element={<Lazy><PredictionsCenter /></Lazy>} />
-            <Route path="/compliance" element={<Lazy><CompliancePortal /></Lazy>} />
-            <Route path="/federation" element={<Lazy><FederationHub /></Lazy>} />
-            <Route path="/compare" element={<Lazy><ComparePage /></Lazy>} />
-            <Route path="/methodology" element={<Lazy><MethodologyPage /></Lazy>} />
-            <Route path="/enterprise-governance" element={<Lazy><EnterpriseGovernance /></Lazy>} />
-            <Route path="/calibration" element={<Lazy><CalibrationDashboard /></Lazy>} />
-            <Route path="/governance-legal" element={<Lazy><GovernanceLegal /></Lazy>} />
-            <Route path="/readiness-report" element={<Lazy><ReadinessReport /></Lazy>} />
-            <Route path="/compare-models" element={<Lazy><CompareModels /></Lazy>} />
-            <Route path="/operations" element={<Lazy><OperationalDashboard /></Lazy>} />
-            <Route path="/ethics" element={<Lazy><Ethics /></Lazy>} />
-            <Route path="/reset-password" element={<Lazy><ResetPassword /></Lazy>} />
-            <Route path="/weekly-briefs" element={<Lazy><WeeklyBriefs /></Lazy>} />
-            <Route path="/prediction-accuracy" element={<Lazy><PredictionAccuracy /></Lazy>} />
-            <Route path="/adi" element={<Lazy><ADIDashboard /></Lazy>} />
-            <Route path="/trust" element={<Lazy><TrustLayer /></Lazy>} />
-            <Route path="/competitive-landscape" element={<Lazy><CompetitiveLandscape /></Lazy>} />
-            <Route path="/enterprise-readiness" element={<Lazy><EnterpriseReadiness /></Lazy>} />
-            <Route path="/validated-predictions" element={<Lazy><ValidatedPredictions /></Lazy>} />
-            <Route path="/microdata" element={<Lazy><MicrodataRegistry /></Lazy>} />
-            <Route path="/first-signal" element={<Lazy><FirstSignal /></Lazy>} />
-            <Route path="/decision-log" element={<Lazy><DecisionOutcomeLog /></Lazy>} />
-            <Route path="/infra-ops" element={<Lazy><InfraOps /></Lazy>} />
-            <Route path="/gov-readiness" element={<Lazy><GovReadiness /></Lazy>} />
-            <Route path="/decision-engine" element={<Lazy><DecisionEngine /></Lazy>} />
-            <Route path="/operational-truth" element={<Lazy><OperationalTruth /></Lazy>} />
-            <Route path="/decision-ops" element={<Lazy><DecisionOperations /></Lazy>} />
-            <Route path="/measured-acceleration" element={<Lazy><MeasuredAcceleration /></Lazy>} />
-            <Route path="/evidence-closure" element={<Lazy><EvidenceClosure /></Lazy>} />
-            <Route path="/evidence-command" element={<Lazy><EvidenceCommand /></Lazy>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </IntelligenceMemoryProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <IntelligenceMemoryProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Lazy><Onboarding /></Lazy>} />
+              <Route path="/citizen-portal" element={<Lazy><CitizenPortal /></Lazy>} />
+              <Route path="/deepdive/:iso3" element={<Lazy><CountryDeepDivePage /></Lazy>} />
+              <Route path="/command" element={<Lazy><AICISCommandCenter /></Lazy>} />
+              <Route path="/debug" element={<Lazy><Debug /></Lazy>} />
+              <Route path="/system-health" element={<Lazy><SystemHealth /></Lazy>} />
+              <Route path="/health" element={<Lazy><HealthDashboard /></Lazy>} />
+              <Route path="/security" element={<Lazy><SecurityDashboard /></Lazy>} />
+              <Route path="/intelligence" element={<Lazy><IntelligenceThread /></Lazy>} />
+              <Route path="/terms" element={<Lazy><Terms /></Lazy>} />
+              <Route path="/privacy" element={<Lazy><Privacy /></Lazy>} />
+              <Route path="/admin" element={<Lazy><AdminDashboard /></Lazy>} />
+              <Route path="/governance" element={<Lazy><GovernanceHub /></Lazy>} />
+              <Route path="/predictions" element={<Lazy><PredictionsCenter /></Lazy>} />
+              <Route path="/compliance" element={<Lazy><CompliancePortal /></Lazy>} />
+              <Route path="/federation" element={<Lazy><FederationHub /></Lazy>} />
+              <Route path="/compare" element={<Lazy><ComparePage /></Lazy>} />
+              <Route path="/methodology" element={<Lazy><MethodologyPage /></Lazy>} />
+              <Route path="/enterprise-governance" element={<Lazy><EnterpriseGovernance /></Lazy>} />
+              <Route path="/calibration" element={<Lazy><CalibrationDashboard /></Lazy>} />
+              <Route path="/governance-legal" element={<Lazy><GovernanceLegal /></Lazy>} />
+              <Route path="/readiness-report" element={<Lazy><ReadinessReport /></Lazy>} />
+              <Route path="/compare-models" element={<Lazy><CompareModels /></Lazy>} />
+              <Route path="/operations" element={<Lazy><OperationalDashboard /></Lazy>} />
+              <Route path="/ethics" element={<Lazy><Ethics /></Lazy>} />
+              <Route path="/reset-password" element={<Lazy><ResetPassword /></Lazy>} />
+              <Route path="/weekly-briefs" element={<Lazy><WeeklyBriefs /></Lazy>} />
+              <Route path="/prediction-accuracy" element={<Lazy><PredictionAccuracy /></Lazy>} />
+              <Route path="/adi" element={<Lazy><ADIDashboard /></Lazy>} />
+              <Route path="/trust" element={<Lazy><TrustLayer /></Lazy>} />
+              <Route path="/competitive-landscape" element={<Lazy><CompetitiveLandscape /></Lazy>} />
+              <Route path="/enterprise-readiness" element={<Lazy><EnterpriseReadiness /></Lazy>} />
+              <Route path="/validated-predictions" element={<Lazy><ValidatedPredictions /></Lazy>} />
+              <Route path="/microdata" element={<Lazy><MicrodataRegistry /></Lazy>} />
+              <Route path="/first-signal" element={<Lazy><FirstSignal /></Lazy>} />
+              <Route path="/decision-log" element={<Lazy><DecisionOutcomeLog /></Lazy>} />
+              <Route path="/infra-ops" element={<Lazy><InfraOps /></Lazy>} />
+              <Route path="/gov-readiness" element={<Lazy><GovReadiness /></Lazy>} />
+              <Route path="/decision-engine" element={<Lazy><DecisionEngine /></Lazy>} />
+              <Route path="/operational-truth" element={<Lazy><OperationalTruth /></Lazy>} />
+              <Route path="/decision-ops" element={<Lazy><DecisionOperations /></Lazy>} />
+              <Route path="/measured-acceleration" element={<Lazy><MeasuredAcceleration /></Lazy>} />
+              <Route path="/evidence-closure" element={<Lazy><EvidenceClosure /></Lazy>} />
+              <Route path="/evidence-command" element={<Lazy><EvidenceCommand /></Lazy>} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </IntelligenceMemoryProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
