@@ -41,7 +41,7 @@ export const AICISLayout = ({ children }: AICISLayoutProps) => {
           role="main"
           className={cn(
             "flex-1 overflow-hidden flex flex-col transition-all duration-200",
-            "ml-0 md:ml-[52px]"
+            isMobile ? "ml-0" : sidebarCollapsed ? "ml-[52px]" : "ml-[200px]"
           )}
         >
           {children}
