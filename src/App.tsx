@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { IntelligenceMemoryProvider } from "@/contexts/IntelligenceMemoryContext";
 import { Loader2 } from "lucide-react";
 
