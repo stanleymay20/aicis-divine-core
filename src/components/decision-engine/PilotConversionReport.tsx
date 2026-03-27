@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileBarChart } from "lucide-react";
+import { PanelSkeleton } from "@/components/ui/panel-skeleton";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export default function PilotConversionReport() {
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["pilot-conversion-report"],
     queryFn: async () => {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -28,7 +30,6 @@ export default function PilotConversionReport() {
         supabase.from("decision_outcome_log").select("domain").eq("evidence_type", "measured"),
       ]);
 
-      // Domain breakdown
       const domainCounts: Record<string, number> = {};
       (domains.data ?? []).forEach(d => {
         const dm = (d as any).domain || "unknown";
@@ -36,17 +37,15 @@ export default function PilotConversionReport() {
       });
 
       const totalC = total.count ?? 0;
-      const acceptedC = accepted.count ?? 0;
-      const measuredC = measured.count ?? 0;
       const failedC = failed.count ?? 0;
       const postmortemC = postmortems.count ?? 0;
 
       return {
         total: totalC,
-        accepted: acceptedC,
+        accepted: accepted.count ?? 0,
         executed: executed.count ?? 0,
         completed: completed.count ?? 0,
-        measured: measuredC,
+        measured: measured.count ?? 0,
         measuredThisWeek: measuredWeek.count ?? 0,
         failed: failedC,
         postmortems: postmortemC,
@@ -63,6 +62,8 @@ export default function PilotConversionReport() {
     },
     refetchInterval: 30000,
   });
+
+  if (isLoading) return <PanelSkeleton variant="list" rows={8} />;
 
   const rows: { label: string; value: string | number; verdict?: "good" | "warn" | "bad" }[] = data ? [
     { label: "Total Decisions", value: data.total },
@@ -88,41 +89,43 @@ export default function PilotConversionReport() {
   };
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <FileBarChart className="h-4 w-4 text-primary" /> Pilot Conversion Report
-          </CardTitle>
-          <Badge variant={data?.improving ? "default" : "destructive"} className="text-xs">
-            {data?.improving ? "Improving" : "Stagnant"}
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Is AICIS improving every day from live usage?
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-1">
-          {rows.map(r => (
-            <div key={r.label} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
-              <span className="text-xs text-muted-foreground">{r.label}</span>
-              <span className={`text-sm font-mono font-semibold ${verdictColor(r.verdict)}`}>{r.value}</span>
-            </div>
-          ))}
-        </div>
-
-        {data?.topDomains && data.topDomains.length > 0 && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-1.5">Top Domains by Measured Evidence</p>
-            <div className="flex flex-wrap gap-1.5">
-              {data.topDomains.map(([domain, count]) => (
-                <Badge key={domain} variant="secondary" className="text-[10px]">{domain}: {count}</Badge>
-              ))}
-            </div>
+    <ErrorBoundary compact>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <FileBarChart className="h-4 w-4 text-primary" /> Pilot Conversion Report
+            </CardTitle>
+            <Badge variant={data?.improving ? "default" : "destructive"} className="text-xs">
+              {data?.improving ? "Improving" : "Stagnant"}
+            </Badge>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Is AICIS improving every day from live usage?
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            {rows.map(r => (
+              <div key={r.label} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
+                <span className="text-xs text-muted-foreground">{r.label}</span>
+                <span className={`text-sm font-mono font-semibold ${verdictColor(r.verdict)}`}>{r.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {data?.topDomains && data.topDomains.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Top Domains by Measured Evidence</p>
+              <div className="flex flex-wrap gap-1.5">
+                {data.topDomains.map(([domain, count]) => (
+                  <Badge key={domain} variant="secondary" className="text-[10px]">{domain}: {count}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </ErrorBoundary>
   );
 }
