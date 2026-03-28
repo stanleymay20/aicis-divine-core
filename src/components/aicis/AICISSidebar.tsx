@@ -17,6 +17,7 @@ import {
   Target,
   ClipboardCheck,
   X,
+  Sunrise,
 } from "lucide-react";
 
 interface SidebarProps {
