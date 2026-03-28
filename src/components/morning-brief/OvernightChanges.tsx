@@ -67,7 +67,7 @@ export const OvernightChanges = () => {
         ))}
         {changes?.alerts.slice(0, 3).map(a => (
           <div key={a.id} className="flex items-start gap-2 text-sm p-1.5 rounded hover:bg-muted/50">
-            <Minus className="h-3.5 w-3.5 text-yellow-500 mt-0.5 shrink-0" />
+            <Minus className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="truncate">{a.title}</p>
               <p className="text-xs text-muted-foreground">
