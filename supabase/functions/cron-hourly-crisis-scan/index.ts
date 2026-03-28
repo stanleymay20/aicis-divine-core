@@ -11,10 +11,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+  const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
     await supabase.from("automation_logs").insert({
@@ -23,26 +23,30 @@ serve(async (req) => {
       message: "Starting crisis detection scan",
     });
 
-    const { data, error } = await supabase.functions.invoke("crisis-scan");
+    // Direct HTTP call instead of supabase.functions.invoke to avoid nested invocation issues
+    const response = await fetch(`${supabaseUrl}/functions/v1/crisis-scan`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ source: "cron" }),
+    });
 
-    if (error) {
-      // Extract the real error message from the response
-      const errorMsg = typeof error === 'object' && error.message 
-        ? error.message 
-        : String(error);
-      
+    if (!response.ok) {
+      const errorText = await response.text();
       await supabase.from("automation_logs").insert({
         job_name: "cron-hourly-crisis-scan",
         status: "error",
-        message: errorMsg.slice(0, 500),
+        message: `HTTP ${response.status}: ${errorText.slice(0, 400)}`,
       });
-
       return new Response(
-        JSON.stringify({ error: errorMsg }),
+        JSON.stringify({ error: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const data = await response.json();
     const aiSkipped = data?.ai_skipped ? " (AI credits exhausted)" : "";
 
     await supabase.from("automation_logs").insert({
@@ -57,7 +61,7 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Error in cron-hourly-crisis-scan:", e);
-    
+
     await supabase.from("automation_logs").insert({
       job_name: "cron-hourly-crisis-scan",
       status: "error",

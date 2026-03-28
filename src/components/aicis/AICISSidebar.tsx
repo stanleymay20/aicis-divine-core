@@ -17,6 +17,7 @@ import {
   Target,
   ClipboardCheck,
   X,
+  Sunrise,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+  { id: "brief", label: "Brief", icon: Sunrise, path: "/morning-brief" },
   { id: "overview", label: "Decisions", icon: MessageSquare, path: "/" },
   { id: "decision-ops", label: "Operations", icon: Activity, path: "/decision-ops" },
   { id: "measured", label: "Evidence", icon: Target, path: "/measured-acceleration" },

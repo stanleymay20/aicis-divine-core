@@ -58,6 +58,7 @@ const MeasuredAcceleration = lazy(() => import("./pages/MeasuredAcceleration"));
 const EvidenceClosure = lazy(() => import("./pages/EvidenceClosure"));
 const EvidenceCommand = lazy(() => import("./pages/EvidenceCommand"));
 const SystemStatus = lazy(() => import("./pages/SystemStatus"));
+const MorningBrief = lazy(() => import("./pages/MorningBrief"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -140,6 +141,7 @@ const App = () => (
               <Route path="/evidence-closure" element={<Lazy><EvidenceClosure /></Lazy>} />
               <Route path="/evidence-command" element={<Lazy><EvidenceCommand /></Lazy>} />
               <Route path="/system-status" element={<Lazy><SystemStatus /></Lazy>} />
+              <Route path="/morning-brief" element={<Lazy><MorningBrief /></Lazy>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
