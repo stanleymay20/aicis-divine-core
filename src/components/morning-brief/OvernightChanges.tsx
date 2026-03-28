@@ -78,7 +78,7 @@ export const OvernightChanges = () => {
         ))}
         {changes?.anomalies.map(a => (
           <div key={a.id} className="flex items-start gap-2 text-sm p-1.5 rounded hover:bg-muted/50">
-            <TrendingUp className="h-3.5 w-3.5 text-orange-500 mt-0.5 shrink-0" />
+            <TrendingUp className="h-3.5 w-3.5 text-accent mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="truncate">Anomaly: {a.anomaly_type}</p>
               <p className="text-xs text-muted-foreground">

@@ -56,7 +56,7 @@ export const SystemPulse = () => {
             {job.errors > 0 ? (
               <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
             ) : (
-              <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+              <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" />
             )}
             <span className="truncate flex-1 font-mono text-xs">{job.name}</span>
             {job.errors > 0 && (
