@@ -17,23 +17,38 @@ serve(async (req) => {
   );
 
   try {
-    // Log start
     await supabase.from("automation_logs").insert({
       job_name: "cron-hourly-crisis-scan",
       status: "running",
       message: "Starting crisis detection scan",
     });
 
-    // Invoke the crisis-scan function
     const { data, error } = await supabase.functions.invoke("crisis-scan");
 
-    if (error) throw error;
+    if (error) {
+      // Extract the real error message from the response
+      const errorMsg = typeof error === 'object' && error.message 
+        ? error.message 
+        : String(error);
+      
+      await supabase.from("automation_logs").insert({
+        job_name: "cron-hourly-crisis-scan",
+        status: "error",
+        message: errorMsg.slice(0, 500),
+      });
 
-    // Log success
+      return new Response(
+        JSON.stringify({ error: errorMsg }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const aiSkipped = data?.ai_skipped ? " (AI credits exhausted)" : "";
+
     await supabase.from("automation_logs").insert({
       job_name: "cron-hourly-crisis-scan",
       status: "success",
-      message: `Crisis scan completed: ${data?.crises_detected || 0} crises detected`,
+      message: `Crisis scan completed: ${data?.events?.length || 0} events${aiSkipped}`,
     });
 
     return new Response(
@@ -46,7 +61,7 @@ serve(async (req) => {
     await supabase.from("automation_logs").insert({
       job_name: "cron-hourly-crisis-scan",
       status: "error",
-      message: (e as Error).message,
+      message: ((e as Error).message || "Unknown error").slice(0, 500),
     });
 
     return new Response(
