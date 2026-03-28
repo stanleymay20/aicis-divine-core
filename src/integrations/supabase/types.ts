@@ -7807,7 +7807,6 @@ export type Database = {
           owner_id: string | null
           status: string | null
           tier: string | null
-          trial_ends_at: string | null
           updated_at: string | null
           white_label_enabled: boolean | null
         }
@@ -7823,7 +7822,6 @@ export type Database = {
           owner_id?: string | null
           status?: string | null
           tier?: string | null
-          trial_ends_at?: string | null
           updated_at?: string | null
           white_label_enabled?: boolean | null
         }
@@ -7839,7 +7837,6 @@ export type Database = {
           owner_id?: string | null
           status?: string | null
           tier?: string | null
-          trial_ends_at?: string | null
           updated_at?: string | null
           white_label_enabled?: boolean | null
         }
