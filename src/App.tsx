@@ -57,6 +57,7 @@ const DecisionOperations = lazy(() => import("./pages/DecisionOperations"));
 const MeasuredAcceleration = lazy(() => import("./pages/MeasuredAcceleration"));
 const EvidenceClosure = lazy(() => import("./pages/EvidenceClosure"));
 const EvidenceCommand = lazy(() => import("./pages/EvidenceCommand"));
+const SystemStatus = lazy(() => import("./pages/SystemStatus"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
