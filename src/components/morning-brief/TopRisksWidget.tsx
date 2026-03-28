@@ -6,7 +6,7 @@ import { AlertTriangle, TrendingDown, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface RiskCountry {
-  iso3: string;
+  iso_code: string;
   country: string;
   overall_score: number;
   health_risk: number;
