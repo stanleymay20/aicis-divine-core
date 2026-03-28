@@ -1396,6 +1396,33 @@ export type Database = {
           },
         ]
       }
+      criticality_rules: {
+        Row: {
+          created_at: string
+          criticality_tier: string
+          domain: string
+          id: string
+          requires_dual_approval: boolean
+          severity_threshold: number
+        }
+        Insert: {
+          created_at?: string
+          criticality_tier?: string
+          domain: string
+          id?: string
+          requires_dual_approval?: boolean
+          severity_threshold?: number
+        }
+        Update: {
+          created_at?: string
+          criticality_tier?: string
+          domain?: string
+          id?: string
+          requires_dual_approval?: boolean
+          severity_threshold?: number
+        }
+        Relationships: []
+      }
       custom_domains: {
         Row: {
           created_at: string | null
@@ -1496,6 +1523,36 @@ export type Database = {
           inferences_generated?: number | null
           measured_outcomes?: number | null
           outcomes_recorded?: number | null
+        }
+        Relationships: []
+      }
+      daily_target_config: {
+        Row: {
+          created_at: string
+          decisions_target: number
+          executions_target: number
+          id: string
+          measured_target: number
+          outcomes_target: number
+          target_date: string
+        }
+        Insert: {
+          created_at?: string
+          decisions_target?: number
+          executions_target?: number
+          id?: string
+          measured_target?: number
+          outcomes_target?: number
+          target_date?: string
+        }
+        Update: {
+          created_at?: string
+          decisions_target?: number
+          executions_target?: number
+          id?: string
+          measured_target?: number
+          outcomes_target?: number
+          target_date?: string
         }
         Relationships: []
       }
@@ -3038,6 +3095,39 @@ export type Database = {
         }
         Relationships: []
       }
+      education_metrics: {
+        Row: {
+          country_iso3: string
+          created_at: string
+          id: string
+          metric_name: string
+          metric_value: number | null
+          source: string | null
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          country_iso3: string
+          created_at?: string
+          id?: string
+          metric_name: string
+          metric_value?: number | null
+          source?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          country_iso3?: string
+          created_at?: string
+          id?: string
+          metric_name?: string
+          metric_value?: number | null
+          source?: string | null
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
       election_calendar: {
         Row: {
           confidence: number | null
@@ -3196,6 +3286,36 @@ export type Database = {
           id?: string
           jurisdiction?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      evidence_enforcement_log: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          issue_count: number
+          issue_type: string
+          scan_type: string
+          severity: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          issue_count?: number
+          issue_type: string
+          scan_type?: string
+          severity?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          issue_count?: number
+          issue_type?: string
+          scan_type?: string
+          severity?: string
         }
         Relationships: []
       }
