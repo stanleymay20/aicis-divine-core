@@ -28,7 +28,7 @@ export const TopRisksWidget = () => {
         .select("iso_code, country, overall_score, health_risk, food_risk, energy_risk, climate_risk, economic_risk, governance_risk")
         .order("overall_score", { ascending: false })
         .limit(5);
-      return (data as RiskCountry[]) || [];
+      return (data || []) as unknown as RiskCountry[];
     },
     staleTime: 120_000,
   });
