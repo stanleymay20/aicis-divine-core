@@ -76,7 +76,7 @@ export const TopRisksWidget = () => {
               const topDomain = getTopDomain(risk);
               return (
                 <div
-                  key={risk.iso3 || i}
+                  key={risk.iso_code || i}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                   onClick={() => navigate(`/deepdive/${risk.iso_code}`)}
                 >
