@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resilientCall, structuredLog, handleCors, corsHeaders, errorResponse, jsonResponse } from "../_shared/resilience.ts";
 
@@ -11,7 +11,6 @@ serve(async (req) => {
   const start = Date.now();
 
   try {
-    // Support both user-initiated (JWT) and cron-initiated (service_role) invocations
     const authHeader = req.headers.get('Authorization');
     let supabaseClient;
     let userId = 'system-cron';
@@ -21,7 +20,6 @@ serve(async (req) => {
     const isSystemCall = !authHeader || authHeader.includes(anonKey) || authHeader.includes(serviceRoleKey);
 
     if (!isSystemCall) {
-      // User-initiated: authenticate with their JWT
       supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -31,7 +29,6 @@ serve(async (req) => {
       if (authError || !user) throw new Error('Unauthorized');
       userId = user.id;
     } else {
-      // Cron-initiated: use service_role for system operations
       supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -47,32 +44,59 @@ serve(async (req) => {
     const regions = ['North America', 'Europe', 'Asia', 'Africa', 'South America'];
     const results = [];
     const escalations = [];
+    let aiSkipped = false;
 
     for (const kind of crisisTypes) {
       const region = regions[Math.floor(Math.random() * regions.length)];
 
-      const details = await resilientCall(`${FN}:ai:${kind}`, async () => {
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [{
-              role: 'system',
-              content: 'You are a crisis response coordinator. Provide factual assessments and response recommendations.'
-            }, {
-              role: 'user',
-              content: `Assess current ${kind} crisis risks in ${region}. Rate severity 0-10. Provide response recommendations. Format as markdown.`
-            }]
-          }),
-        });
-        if (!aiResponse.ok) throw new Error(`AI API error: ${aiResponse.status}`);
-        const aiData = await aiResponse.json();
-        return aiData.choices[0].message.content;
-      }, { maxRetries: 1, timeoutMs: 20000 });
+      let details: string | null = null;
+      try {
+        details = await resilientCall(`${FN}:ai:${kind}`, async () => {
+          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash-lite',
+              messages: [{
+                role: 'system',
+                content: 'You are a crisis response coordinator. Provide factual assessments and response recommendations. Keep responses under 200 words.'
+              }, {
+                role: 'user',
+                content: `Assess current ${kind} crisis risks in ${region}. Rate severity 0-10. Provide response recommendations. Format as markdown.`
+              }]
+            }),
+          });
+
+          if (aiResponse.status === 402) {
+            const body = await aiResponse.text();
+            throw new Error(`AI credits exhausted (402): ${body}`);
+          }
+          if (aiResponse.status === 429) {
+            const body = await aiResponse.text();
+            throw new Error(`AI rate limited (429): ${body}`);
+          }
+          if (!aiResponse.ok) {
+            const body = await aiResponse.text();
+            throw new Error(`AI API error: ${aiResponse.status} - ${body}`);
+          }
+
+          const aiData = await aiResponse.json();
+          return aiData.choices[0].message.content;
+        }, { maxRetries: 1, timeoutMs: 20000 });
+      } catch (aiErr) {
+        const msg = (aiErr as Error).message;
+        structuredLog('warn', FN, `AI call failed for ${kind}, proceeding without AI detail`, { error: msg });
+        // If credits exhausted, skip remaining AI calls
+        if (msg.includes('402') || msg.includes('credits')) {
+          aiSkipped = true;
+          details = `[AI assessment unavailable — credits exhausted] Crisis type: ${kind}, Region: ${region}`;
+        } else {
+          details = `[AI assessment unavailable] Crisis type: ${kind}, Region: ${region}`;
+        }
+      }
 
       const severity = Math.floor(Math.random() * 10);
       const status = severity >= 7 ? 'escalated' : 'monitoring';
@@ -100,20 +124,22 @@ serve(async (req) => {
           if (approval) escalations.push(approval);
         }
       }
+
+      // If AI credits exhausted, skip remaining AI calls but still insert events
+      if (aiSkipped) continue;
     }
 
-    // Log to automation_logs (system_logs requires uuid user_id, which cron cannot provide)
     await supabaseClient.from('automation_logs').insert({
       job_name: 'crisis-scan',
       status: escalations.length > 0 ? 'warning' : 'success',
-      message: `Detected ${results.length} crisis events, ${escalations.length} escalations (${Date.now() - start}ms)`,
+      message: `Detected ${results.length} crisis events, ${escalations.length} escalations${aiSkipped ? ' (AI skipped: credits exhausted)' : ''} (${Date.now() - start}ms)`,
     });
 
     structuredLog('info', FN, `Scan complete: ${results.length} events`, undefined, start);
     return jsonResponse({
       success: true,
       message: `Scanned: ${results.length} events, ${escalations.length} escalated`,
-      events: results, escalations, execution_time_ms: Date.now() - start
+      events: results, escalations, ai_skipped: aiSkipped, execution_time_ms: Date.now() - start
     });
   } catch (error) {
     structuredLog('error', FN, (error as Error).message, undefined, start);
