@@ -6,6 +6,8 @@ import MeasuredThresholdPanel from "@/components/decision-engine/MeasuredThresho
 import AuditDensityPanel from "@/components/decision-engine/AuditDensityPanel";
 import GovernanceCompletenessPanel from "@/components/decision-engine/GovernanceCompletenessPanel";
 import PilotTruthReport from "@/components/decision-engine/PilotTruthReport";
+import FirstEvidenceActivationPanel from "@/components/evidence-activation/FirstEvidenceActivationPanel";
+import MeasuredEvidenceProgressMini from "@/components/evidence-activation/MeasuredEvidenceProgressMini";
 
 export default function MeasuredAcceleration() {
   return (
@@ -19,6 +21,11 @@ export default function MeasuredAcceleration() {
           <p className="text-sm text-muted-foreground mt-0.5">
             Accelerate real outcomes, eliminate proxy dominance, prove system value
           </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FirstEvidenceActivationPanel />
+          <MeasuredEvidenceProgressMini />
         </div>
 
         <MeasuredThresholdPanel />
