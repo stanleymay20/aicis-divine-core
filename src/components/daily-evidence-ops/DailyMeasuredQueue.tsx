@@ -99,13 +99,13 @@ export default function DailyMeasuredQueue() {
       const { error } = await supabase.from("decision_outcome_log").update(updateData).eq("id", id);
       if (error) throw error;
 
-      await supabase.from("audit_log").insert({
-        action: `enforcement.${action}`,
+      await supabase.from("audit_log").insert([{
+        action: `enforcement.${action}` as string,
         resource_type: "decision_outcome_log",
         resource_id: id,
-        metadata: updateData,
+        metadata: updateData as Record<string, unknown>,
         severity: "info",
-      });
+      }] as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["daily-measured-queue"] });
