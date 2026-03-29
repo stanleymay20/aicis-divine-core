@@ -41,25 +41,34 @@ export default function DailyMeasuredQueue() {
       const items: (QueueItem & { gap_type: string })[] = [];
       const now = new Date();
       const h24 = new Date(now.getTime() - 24 * 3600000).toISOString();
+      const fields = "id, signal_summary, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at";
 
       const [completedNoOutcome, noOwner, notStarted, failedNoPost, measuredNoRoi] = await Promise.all([
-        supabase.from("decision_outcome_log").select("id, signal_summary, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at")
+        supabase.from("decision_outcome_log").select(fields)
           .eq("execution_status", "completed").is("outcome_success", null).limit(20),
-        supabase.from("decision_outcome_log").select("id, signal_summary, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at")
+        supabase.from("decision_outcome_log").select(fields)
           .eq("recommendation_accepted", true).is("execution_owner", null).limit(20),
-        supabase.from("decision_outcome_log").select("id, signal_summary, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at")
+        supabase.from("decision_outcome_log").select(fields)
           .eq("recommendation_accepted", true).or("execution_status.is.null,execution_status.eq.not_started").lt("created_at", h24).limit(20),
-        supabase.from("decision_outcome_log").select("id, signal_summary, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at")
+        supabase.from("decision_outcome_log").select(fields)
           .eq("outcome_success", false).is("postmortem_note", null).limit(20),
-        supabase.from("decision_outcome_log").select("id, signal_summary, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at")
+        supabase.from("decision_outcome_log").select(fields)
           .eq("evidence_type", "measured").is("roi_estimate", null).limit(20),
       ]);
 
-      completedNoOutcome.data?.forEach(r => items.push({ ...r, gap_type: "completed_no_outcome" } as QueueItem & { gap_type: string }));
-      noOwner.data?.forEach(r => items.push({ ...r, gap_type: "no_owner" } as QueueItem & { gap_type: string }));
-      notStarted.data?.forEach(r => items.push({ ...r, gap_type: "not_started_sla" } as QueueItem & { gap_type: string }));
-      failedNoPost.data?.forEach(r => items.push({ ...r, gap_type: "failed_no_postmortem" } as QueueItem & { gap_type: string }));
-      measuredNoRoi.data?.forEach(r => items.push({ ...r, gap_type: "measured_no_roi" } as QueueItem & { gap_type: string }));
+      const addItems = (data: typeof completedNoOutcome.data, gapType: string) => {
+        data?.forEach(r => items.push({
+          id: r.id, signal_summary: r.signal_summary, domain: r.domain,
+          execution_status: r.execution_status, execution_owner: r.execution_owner,
+          outcome_success: r.outcome_success, postmortem_note: r.postmortem_note,
+          roi_estimate: r.roi_estimate, created_at: r.created_at, gap_type: gapType,
+        }));
+      };
+      addItems(completedNoOutcome.data, "completed_no_outcome");
+      addItems(noOwner.data, "no_owner");
+      addItems(notStarted.data, "not_started_sla");
+      addItems(failedNoPost.data, "failed_no_postmortem");
+      addItems(measuredNoRoi.data, "measured_no_roi");
 
       const seen = new Set<string>();
       return items.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
