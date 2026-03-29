@@ -56,9 +56,9 @@ export default function DailyMeasuredQueue() {
           .eq("evidence_type", "measured").is("roi_estimate", null).limit(20),
       ]);
 
-      const addItems = (data: typeof completedNoOutcome.data, gapType: string) => {
-        data?.forEach(r => items.push({
-          id: r.id, signal_summary: r.signal_summary, domain: r.domain,
+      const addItems = (data: any[] | null, gapType: string) => {
+        data?.forEach((r: any) => items.push({
+          id: r.id, signal_title: r.signal_title, domain: r.domain,
           execution_status: r.execution_status, execution_owner: r.execution_owner,
           outcome_success: r.outcome_success, postmortem_note: r.postmortem_note,
           roi_estimate: r.roi_estimate, created_at: r.created_at, gap_type: gapType,
