@@ -46,7 +46,7 @@ export default function GuidedOutcomeWizard({ onClose }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("decision_outcome_log")
-        .select("id, signal_summary, domain, iso3, recommendation_action, created_at, evidence_type, action_taken, outcome_success")
+        .select("id, signal_title, domain, iso3, recommended_action, created_at, evidence_type, action_taken, outcome_success")
         .is("outcome_success", null)
         .order("created_at", { ascending: false })
         .limit(20);
