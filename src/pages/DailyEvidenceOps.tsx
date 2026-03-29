@@ -1,6 +1,8 @@
 import { AICISLayout } from "@/components/aicis/AICISLayout";
 import InferenceControl from "@/components/daily-evidence-ops/InferenceControl";
 import DailyThroughputPanel from "@/components/daily-evidence-ops/DailyThroughputPanel";
+import CompletionVelocityPanel from "@/components/daily-evidence-ops/CompletionVelocityPanel";
+import ExecutionStageBoard from "@/components/daily-evidence-ops/ExecutionStageBoard";
 import NewDecisionsInbox from "@/components/daily-evidence-ops/NewDecisionsInbox";
 import RapidOutcomeMode from "@/components/daily-evidence-ops/RapidOutcomeMode";
 import DailyMeasuredQueue from "@/components/daily-evidence-ops/DailyMeasuredQueue";
@@ -18,19 +20,23 @@ export default function DailyEvidenceOps() {
           <p className="text-sm text-muted-foreground">Operator console for daily measured evidence production</p>
         </div>
 
-        {/* Supply + Throughput */}
+        {/* Supply + KPIs */}
         <InferenceControl />
-        <DailyThroughputPanel />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <DailyThroughputPanel />
+          <CompletionVelocityPanel />
+        </div>
         <MeasuredEvidenceTodayPanel />
 
-        {/* Main operating area */}
+        {/* Execution pipeline */}
+        <ExecutionStageBoard />
+
+        {/* Operating area */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Left: Inbox + Gap Queue */}
           <div className="space-y-4">
             <NewDecisionsInbox />
             <DailyMeasuredQueue />
           </div>
-          {/* Right: Rapid Outcome + Scoreboards + Momentum */}
           <div className="space-y-4">
             <RapidOutcomeMode />
             <EvidenceMomentumPanel />
