@@ -143,6 +143,7 @@ const App = () => (
               <Route path="/evidence-command" element={<Lazy><EvidenceCommand /></Lazy>} />
               <Route path="/system-status" element={<Lazy><SystemStatus /></Lazy>} />
               <Route path="/morning-brief" element={<Lazy><MorningBrief /></Lazy>} />
+              <Route path="/daily-evidence-ops" element={<Lazy><DailyEvidenceOps /></Lazy>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

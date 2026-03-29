@@ -32,6 +32,7 @@ const navItems = [
   { id: "brief", label: "Brief", icon: Sunrise, path: "/morning-brief" },
   { id: "overview", label: "Decisions", icon: MessageSquare, path: "/" },
   { id: "decision-ops", label: "Operations", icon: Activity, path: "/decision-ops" },
+  { id: "daily-ops", label: "Daily Ops", icon: Gauge, path: "/daily-evidence-ops" },
   { id: "measured", label: "Evidence", icon: Target, path: "/measured-acceleration" },
   { id: "closure", label: "Closure", icon: ClipboardCheck, path: "/evidence-closure" },
   { id: "evidence-cmd", label: "Command", icon: Shield, path: "/evidence-command" },
