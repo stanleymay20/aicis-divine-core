@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
   X,
   Sunrise,
+  Gauge,
 } from "lucide-react";
 
 interface SidebarProps {
