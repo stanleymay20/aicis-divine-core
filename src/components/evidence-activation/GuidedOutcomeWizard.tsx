@@ -237,7 +237,7 @@ export default function GuidedOutcomeWizard({ onClose }: Props) {
           {step === 1 && selected && (
             <div className="space-y-3">
               <div className="bg-muted/50 rounded-lg p-3 text-xs">
-                <div className="font-medium">{selected.signal_summary}</div>
+                <div className="font-medium">{selected.signal_title}</div>
                 <div className="text-muted-foreground mt-1">{selected.domain} · {selected.iso3}</div>
               </div>
               <div className="space-y-2">
