@@ -213,7 +213,7 @@ export default function GuidedOutcomeWizard({ onClose }: Props) {
                           : "border-border hover:border-primary/30"
                       }`}
                     >
-                      <div className="font-medium truncate">{c.signal_summary}</div>
+                      <div className="font-medium truncate">{c.signal_title}</div>
                       <div className="flex gap-2 mt-1 text-muted-foreground">
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">{c.domain}</Badge>
                         <span>{c.iso3}</span>
