@@ -55,11 +55,11 @@ export default function DailyMeasuredQueue() {
           .eq("evidence_type", "measured").is("roi_estimate", null).limit(20),
       ]);
 
-      completedNoOutcome.data?.forEach(r => items.push({ ...r, gap_type: "completed_no_outcome" }));
-      noOwner.data?.forEach(r => items.push({ ...r, gap_type: "no_owner" }));
-      notStarted.data?.forEach(r => items.push({ ...r, gap_type: "not_started_sla" }));
-      failedNoPost.data?.forEach(r => items.push({ ...r, gap_type: "failed_no_postmortem" }));
-      measuredNoRoi.data?.forEach(r => items.push({ ...r, gap_type: "measured_no_roi" }));
+      completedNoOutcome.data?.forEach(r => items.push({ ...r, gap_type: "completed_no_outcome" } as QueueItem & { gap_type: string }));
+      noOwner.data?.forEach(r => items.push({ ...r, gap_type: "no_owner" } as QueueItem & { gap_type: string }));
+      notStarted.data?.forEach(r => items.push({ ...r, gap_type: "not_started_sla" } as QueueItem & { gap_type: string }));
+      failedNoPost.data?.forEach(r => items.push({ ...r, gap_type: "failed_no_postmortem" } as QueueItem & { gap_type: string }));
+      measuredNoRoi.data?.forEach(r => items.push({ ...r, gap_type: "measured_no_roi" } as QueueItem & { gap_type: string }));
 
       const seen = new Set<string>();
       return items.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
