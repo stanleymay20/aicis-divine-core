@@ -57,13 +57,13 @@ export default function GuidedOutcomeWizard({ onClose }: Props) {
   const selected = candidates?.find((c) => c.id === selectedId);
 
   const writeAudit = async (action: string, metadata: Record<string, unknown> = {}) => {
-    await supabase.from("audit_log").insert({
+    await supabase.from("audit_log").insert([{
       action,
       resource_type: "decision_outcome_log",
       resource_id: selectedId,
       severity: "info",
-      metadata,
-    });
+      metadata: metadata as any,
+    }]);
     setAuditCount((c) => c + 1);
   };
 
