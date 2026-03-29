@@ -41,7 +41,7 @@ export default function DailyMeasuredQueue() {
       const items: (QueueItem & { gap_type: string })[] = [];
       const now = new Date();
       const h24 = new Date(now.getTime() - 24 * 3600000).toISOString();
-      const fields = "id, signal_summary, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at";
+      const fields = "id, signal_title, domain, execution_status, execution_owner, outcome_success, postmortem_note, roi_estimate, created_at";
 
       const [completedNoOutcome, noOwner, notStarted, failedNoPost, measuredNoRoi] = await Promise.all([
         supabase.from("decision_outcome_log").select(fields)
