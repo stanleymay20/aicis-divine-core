@@ -11,8 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface QueueItem {
   id: string;
-  signal_summary: string;
-  domain: string;
+  signal_title: string | null;
+  domain: string | null;
   gap_type: string;
   execution_status: string | null;
   execution_owner: string | null;
