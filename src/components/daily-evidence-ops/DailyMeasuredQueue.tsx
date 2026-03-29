@@ -143,7 +143,7 @@ export default function DailyMeasuredQueue() {
                 <div className="flex items-start gap-2 min-w-0">
                   <Icon className="h-4 w-4 mt-0.5 shrink-0 text-destructive" />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{item.signal_summary?.slice(0, 60) || "Decision"}</p>
+                    <p className="text-sm font-medium truncate">{item.signal_title?.slice(0, 60) || "Decision"}</p>
                     <p className="text-xs text-muted-foreground">{item.domain} · {config?.label}</p>
                   </div>
                 </div>
