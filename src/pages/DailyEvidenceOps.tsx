@@ -1,4 +1,4 @@
-import { AICISPageLayout } from "@/components/aicis/AICISPageLayout";
+import { AICISLayout } from "@/components/aicis/AICISLayout";
 import DailyMeasuredQueue from "@/components/daily-evidence-ops/DailyMeasuredQueue";
 import MeasuredEvidenceTodayPanel from "@/components/daily-evidence-ops/MeasuredEvidenceTodayPanel";
 import OperatorClosureScoreboard from "@/components/daily-evidence-ops/OperatorClosureScoreboard";
