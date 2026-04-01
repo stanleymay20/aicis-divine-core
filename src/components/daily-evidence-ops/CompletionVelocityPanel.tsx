@@ -57,33 +57,33 @@ export default function CompletionVelocityPanel() {
   const metrics = [
     { label: "Not Started", value: data?.notStarted ?? 0, warn: (data?.notStarted ?? 0) > 0 },
     { label: "In Progress", value: data?.inProgress ?? 0 },
-    { label: "Completed Today", value: data?.completedToday ?? 0, highlight: true },
-    { label: "Awaiting Outcome", value: data?.completedNoOutcome ?? 0, warn: (data?.completedNoOutcome ?? 0) > 0 },
-    { label: "Completion Rate", value: data?.completionRate ?? "0%" },
-    { label: "Median Wait (h)", value: `${data?.medianNotStartedH ?? 0}h`, warn: (data?.medianNotStartedH ?? 0) > 24 },
-    { label: "Median WIP (h)", value: `${data?.medianInProgressH ?? 0}h`, warn: (data?.medianInProgressH ?? 0) > 48 },
+    { label: "Completed", value: data?.completedToday ?? 0, highlight: true },
+    { label: "Awaiting", value: data?.completedNoOutcome ?? 0, warn: (data?.completedNoOutcome ?? 0) > 0 },
+    { label: "Rate", value: data?.completionRate ?? "0%" },
+    { label: "Wait (h)", value: `${data?.medianNotStartedH ?? 0}h`, warn: (data?.medianNotStartedH ?? 0) > 24 },
+    { label: "WIP (h)", value: `${data?.medianInProgressH ?? 0}h`, warn: (data?.medianInProgressH ?? 0) > 48 },
   ];
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 sm:pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-1.5">
+          <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-1.5">
             <Gauge className="h-4 w-4 text-primary" /> Completion Velocity
           </CardTitle>
           <Badge variant={data?.completedToday ? "default" : "secondary"} className="text-xs font-mono">
-            {data?.completedToday ?? 0} completed today
+            {data?.completedToday ?? 0} today
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-2">
           {metrics.map(m => (
             <div key={m.label} className={`rounded-lg border p-2 text-center ${
               m.highlight ? "border-primary/30 bg-primary/5" : m.warn ? "border-destructive/30 bg-destructive/5" : "border-border/30"
             }`}>
-              <p className={`text-lg font-mono font-bold ${m.highlight ? "text-primary" : m.warn ? "text-destructive" : "text-foreground"}`}>{m.value}</p>
-              <p className="text-[9px] text-muted-foreground leading-tight">{m.label}</p>
+              <p className={`text-base sm:text-lg font-mono font-bold ${m.highlight ? "text-primary" : m.warn ? "text-destructive" : "text-foreground"}`}>{m.value}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">{m.label}</p>
             </div>
           ))}
         </div>

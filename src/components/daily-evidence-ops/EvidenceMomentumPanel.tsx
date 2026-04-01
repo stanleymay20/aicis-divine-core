@@ -45,43 +45,43 @@ export default function EvidenceMomentumPanel() {
 
   const trend = data?.trend ?? "flat";
   const TrendIcon = trend === "improving" ? TrendingUp : trend === "declining" ? TrendingDown : Minus;
-  const trendColor = trend === "improving" ? "text-green-500" : trend === "declining" ? "text-red-500" : "text-muted-foreground";
+  const trendColor = trend === "improving" ? "text-[hsl(var(--success))]" : trend === "declining" ? "text-destructive" : "text-muted-foreground";
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 sm:pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Evidence Momentum</CardTitle>
+          <CardTitle className="text-sm sm:text-base font-semibold">Evidence Momentum</CardTitle>
           <Badge variant="outline" className={`text-xs ${trendColor}`}>
             <TrendIcon className="h-3 w-3 mr-1" />{trend}
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <div className="grid grid-cols-7 gap-1 text-center">
             {data?.days.map(d => (
-              <div key={d.date} className="text-[10px] text-muted-foreground">{d.date}</div>
+              <div key={d.date} className="text-[10px] sm:text-xs text-muted-foreground">{d.date}</div>
             ))}
           </div>
           {/* Measured row */}
           <div className="grid grid-cols-7 gap-1">
             {data?.days.map(d => (
-              <div key={`m-${d.date}`} className={`h-8 rounded flex items-center justify-center text-xs font-mono ${
-                d.measured > 0 ? "bg-primary/20 text-primary font-bold" : "bg-muted/50 text-muted-foreground"
+              <div key={`m-${d.date}`} className={`h-9 sm:h-10 rounded-md flex items-center justify-center text-xs font-mono font-semibold ${
+                d.measured > 0 ? "bg-primary/20 text-primary" : "bg-muted/40 text-muted-foreground"
               }`}>{d.measured}</div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground">Measured outcomes per day</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Measured outcomes per day</p>
           {/* Audits row */}
           <div className="grid grid-cols-7 gap-1">
             {data?.days.map(d => (
-              <div key={`a-${d.date}`} className={`h-6 rounded flex items-center justify-center text-[10px] font-mono ${
-                d.audits > 0 ? "bg-accent/30 text-accent-foreground" : "bg-muted/30 text-muted-foreground"
+              <div key={`a-${d.date}`} className={`h-7 sm:h-8 rounded-md flex items-center justify-center text-[10px] sm:text-xs font-mono ${
+                d.audits > 0 ? "bg-accent text-accent-foreground" : "bg-muted/20 text-muted-foreground"
               }`}>{d.audits}</div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground">Audit events per day</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Audit events per day</p>
         </div>
       </CardContent>
     </Card>
