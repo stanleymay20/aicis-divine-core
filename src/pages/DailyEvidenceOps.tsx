@@ -14,34 +14,36 @@ import EvidenceMomentumPanel from "@/components/daily-evidence-ops/EvidenceMomen
 export default function DailyEvidenceOps() {
   return (
     <AICISLayout>
-      <div className="p-4 md:p-6 lg:p-8 space-y-4 max-w-[1400px] mx-auto animate-fade-in">
-        <div>
-          <h1 className="text-xl font-semibold">Daily Evidence Ops</h1>
-          <p className="text-sm text-muted-foreground">Operator console for daily measured evidence production</p>
-        </div>
-
-        {/* Supply + KPIs */}
-        <InferenceControl />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <DailyThroughputPanel />
-          <CompletionVelocityPanel />
-        </div>
-        <MeasuredEvidenceTodayPanel />
-
-        {/* Execution pipeline */}
-        <ExecutionStageBoard />
-
-        {/* Operating area */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <NewDecisionsInbox />
-            <DailyMeasuredQueue />
+      <div className="h-full overflow-y-auto scrollbar-thin">
+        <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 max-w-[1400px] mx-auto animate-fade-in">
+          <div>
+            <h1 className="text-lg sm:text-xl font-semibold">Daily Evidence Ops</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Operator console for daily measured evidence production</p>
           </div>
-          <div className="space-y-4">
-            <RapidOutcomeMode />
-            <EvidenceMomentumPanel />
-            <OperatorClosureScoreboard />
-            <ReviewerClosureScoreboard />
+
+          {/* Supply + KPIs */}
+          <InferenceControl />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+            <DailyThroughputPanel />
+            <CompletionVelocityPanel />
+          </div>
+          <MeasuredEvidenceTodayPanel />
+
+          {/* Execution pipeline */}
+          <ExecutionStageBoard />
+
+          {/* Operating area */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-3 sm:space-y-4">
+              <NewDecisionsInbox />
+              <DailyMeasuredQueue />
+            </div>
+            <div className="space-y-3 sm:space-y-4">
+              <RapidOutcomeMode />
+              <EvidenceMomentumPanel />
+              <OperatorClosureScoreboard />
+              <ReviewerClosureScoreboard />
+            </div>
           </div>
         </div>
       </div>
