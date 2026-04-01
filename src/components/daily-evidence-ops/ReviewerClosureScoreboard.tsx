@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ReviewerRow {
   name: string;
@@ -53,37 +53,34 @@ export default function ReviewerClosureScoreboard() {
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">Reviewer Closure</CardTitle>
+      <CardHeader className="pb-2 sm:pb-3">
+        <CardTitle className="text-sm sm:text-base font-semibold">Reviewer Closure</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Reviewer</TableHead>
-              <TableHead className="text-xs text-center">Assigned</TableHead>
-              <TableHead className="text-xs text-center">Reviewed</TableHead>
-              <TableHead className="text-xs text-center">Pending</TableHead>
-              <TableHead className="text-xs text-center">Overdue</TableHead>
-              <TableHead className="text-xs text-center">Rate</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reviewers.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-4">No reviewers with assignments</TableCell></TableRow>
-            )}
-            {reviewers.map(rev => (
-              <TableRow key={rev.name}>
-                <TableCell className="text-xs font-medium truncate max-w-[120px]">{rev.name}</TableCell>
-                <TableCell className="text-xs text-center font-mono">{rev.assigned}</TableCell>
-                <TableCell className="text-xs text-center font-mono">{rev.reviewed}</TableCell>
-                <TableCell className="text-xs text-center font-mono">{rev.pending}</TableCell>
-                <TableCell className="text-xs text-center">{rev.overdue > 0 ? <Badge variant="destructive" className="text-xs">{rev.overdue}</Badge> : "—"}</TableCell>
-                <TableCell className="text-xs text-center font-mono">{rev.completionRate}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ScrollArea className="max-h-[280px]">
+          {reviewers.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No reviewers with assignments</p>
+          ) : (
+            <div className="divide-y divide-border/30">
+              {reviewers.map(rev => (
+                <div key={rev.name} className="px-4 py-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium truncate">{rev.name}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                      {rev.assigned} assigned · {rev.reviewed} reviewed · {rev.pending} pending
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant="outline" className="text-xs font-mono">{rev.completionRate}</Badge>
+                    {rev.overdue > 0 && (
+                      <Badge variant="destructive" className="text-xs font-mono">{rev.overdue}</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );

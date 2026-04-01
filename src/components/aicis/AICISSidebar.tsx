@@ -28,30 +28,52 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
-const navItems = [
-  { id: "brief", label: "Brief", icon: Sunrise, path: "/morning-brief" },
-  { id: "overview", label: "Decisions", icon: MessageSquare, path: "/" },
-  { id: "decision-ops", label: "Operations", icon: Activity, path: "/decision-ops" },
-  { id: "daily-ops", label: "Daily Ops", icon: Gauge, path: "/daily-evidence-ops" },
-  { id: "measured", label: "Evidence", icon: Target, path: "/measured-acceleration" },
-  { id: "closure", label: "Closure", icon: ClipboardCheck, path: "/evidence-closure" },
-  { id: "evidence-cmd", label: "Command", icon: Shield, path: "/evidence-command" },
-  { id: "operational-truth", label: "Truth", icon: Cpu, path: "/operational-truth" },
-  { id: "governance", label: "Governance", icon: Shield, path: "/governance" },
-  { id: "billing", label: "Billing", icon: CreditCard, path: "/enterprise-governance" },
-  { id: "admin", label: "Settings", icon: Settings, path: "/admin" },
+const navGroups = [
+  {
+    label: "Core",
+    items: [
+      { id: "brief", label: "Brief", icon: Sunrise, path: "/morning-brief" },
+      { id: "overview", label: "Decisions", icon: MessageSquare, path: "/" },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { id: "decision-ops", label: "Decision Ops", icon: Activity, path: "/decision-ops" },
+      { id: "daily-ops", label: "Daily Ops", icon: Gauge, path: "/daily-evidence-ops" },
+      { id: "measured", label: "Evidence", icon: Target, path: "/measured-acceleration" },
+      { id: "closure", label: "Closure", icon: ClipboardCheck, path: "/evidence-closure" },
+    ],
+  },
+  {
+    label: "Assurance",
+    items: [
+      { id: "evidence-cmd", label: "Command", icon: Shield, path: "/evidence-command" },
+      { id: "operational-truth", label: "Truth", icon: Cpu, path: "/operational-truth" },
+      { id: "governance", label: "Governance", icon: Shield, path: "/governance" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { id: "billing", label: "Billing", icon: CreditCard, path: "/enterprise-governance" },
+      { id: "admin", label: "Settings", icon: Settings, path: "/admin" },
+    ],
+  },
 ];
+
+const allNavItems = navGroups.flatMap(g => g.items);
 
 export const AICISSidebar = ({ collapsed, onToggle, activeSection, onSectionChange }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleNavClick = (item: typeof navItems[0]) => {
+  const handleNavClick = (item: typeof allNavItems[0]) => {
     onSectionChange(item.id);
     navigate(item.path);
   };
 
-  const isActive = (item: typeof navItems[0]) => {
+  const isActive = (item: typeof allNavItems[0]) => {
     if (item.path === "/" && location.pathname === "/") return true;
     if (item.path !== "/" && location.pathname.startsWith(item.path)) return true;
     return false;
@@ -59,36 +81,43 @@ export const AICISSidebar = ({ collapsed, onToggle, activeSection, onSectionChan
 
   return (
     <TooltipProvider>
-      {/* Desktop — always icon-only rail */}
+      {/* Desktop — icon-only rail with group dividers */}
       <aside
         role="navigation"
         aria-label="Main navigation"
-        className="fixed left-0 top-12 bottom-0 z-40 w-[52px] bg-card border-r border-border hidden md:flex flex-col items-center py-4"
+        className="fixed left-0 top-12 bottom-0 z-40 w-[52px] bg-card border-r border-border hidden md:flex flex-col items-center py-3 overflow-y-auto scrollbar-hide"
       >
-        <nav className="flex flex-col gap-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item);
-            return (
-              <Tooltip key={item.id} delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "w-9 h-9 rounded-lg",
-                      active && "bg-primary/10 text-primary",
-                      !active && "text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() => handleNavClick(item)}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="text-xs">{item.label}</TooltipContent>
-              </Tooltip>
-            );
-          })}
+        <nav className="flex flex-col gap-0.5 w-full px-1.5">
+          {navGroups.map((group, gi) => (
+            <div key={group.label}>
+              {gi > 0 && <div className="h-px bg-border/50 my-2 mx-1" />}
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item);
+                return (
+                  <Tooltip key={item.id} delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "w-9 h-9 rounded-lg mx-auto",
+                          active && "bg-primary/10 text-primary",
+                          !active && "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                        onClick={() => handleNavClick(item)}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="text-xs font-medium">
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </aside>
 
@@ -97,35 +126,47 @@ export const AICISSidebar = ({ collapsed, onToggle, activeSection, onSectionChan
         <div className="fixed inset-0 z-50 md:hidden" onClick={onToggle}>
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
           <aside
-            className="absolute left-0 top-0 bottom-0 w-[220px] bg-card border-r border-border p-4"
+            className="absolute left-0 top-0 bottom-0 w-[240px] bg-card border-r border-border flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-sm font-semibold">AICIS</span>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <span className="text-primary font-bold text-[10px]">AI</span>
+                </div>
+                <span className="text-sm font-semibold">AICIS</span>
+              </div>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggle}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <nav className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item);
-                return (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    className={cn(
-                      "w-full h-10 justify-start gap-3 text-sm rounded-lg",
-                      active && "bg-primary/10 text-primary",
-                      !active && "text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() => { handleNavClick(item); onToggle(); }}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>
-                );
-              })}
+            <nav className="flex-1 overflow-y-auto scrollbar-thin py-2">
+              {navGroups.map((group, gi) => (
+                <div key={group.label} className={cn(gi > 0 && "mt-1")}>
+                  <p className="px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    {group.label}
+                  </p>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item);
+                    return (
+                      <Button
+                        key={item.id}
+                        variant="ghost"
+                        className={cn(
+                          "w-full h-10 justify-start gap-3 text-sm rounded-none px-4",
+                          active && "bg-primary/10 text-primary border-r-2 border-primary",
+                          !active && "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                        onClick={() => { handleNavClick(item); onToggle(); }}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {item.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
           </aside>
         </div>

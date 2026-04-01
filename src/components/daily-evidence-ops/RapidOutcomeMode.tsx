@@ -58,7 +58,6 @@ export default function RapidOutcomeMode() {
       }).eq("id", id);
       if (error) throw error;
 
-      // Audit trail
       await supabase.from("audit_log").insert([
         { action: "outcome.recorded", resource_type: "decision_outcome_log", resource_id: id, severity: "info", metadata: { success, impact: impactScore, cost: costVal } },
         { action: "outcome.measured", resource_type: "decision_outcome_log", resource_id: id, severity: "info", metadata: { evidence_type: "measured", roi: roiEst } },
@@ -72,7 +71,7 @@ export default function RapidOutcomeMode() {
       queryClient.invalidateQueries({ queryKey: ["measured-evidence-today"] });
       queryClient.invalidateQueries({ queryKey: ["evidence-momentum"] });
       queryClient.invalidateQueries({ queryKey: ["operator-closure-scoreboard"] });
-      setCurrentIdx(i => i); // stay on same index since queue shifts
+      setCurrentIdx(i => i);
       setImpact("3");
       setCost("1000");
       toast.success("Measured outcome recorded — advancing");
@@ -85,20 +84,20 @@ export default function RapidOutcomeMode() {
   if (queue.length === 0) {
     return (
       <Card className="border-border/50">
-        <CardContent className="p-4 text-center">
-          <Target className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">No completed decisions awaiting outcomes</p>
-          <p className="text-xs text-muted-foreground">Complete executions first, then record outcomes here</p>
+        <CardContent className="py-8 text-center">
+          <Target className="h-8 w-8 mx-auto text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">No decisions awaiting outcomes</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Complete executions first, then record outcomes here</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="border-primary/30">
-      <CardHeader className="pb-3">
+    <Card className="border-primary/20 bg-card">
+      <CardHeader className="pb-2 sm:pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-1.5">
+          <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-1.5">
             <Target className="h-4 w-4 text-primary" /> Rapid Outcome Mode
           </CardTitle>
           <Badge className="text-xs font-mono">{currentIdx + 1} / {queue.length}</Badge>
@@ -107,30 +106,30 @@ export default function RapidOutcomeMode() {
       {current && (
         <CardContent className="space-y-3">
           <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-            <p className="text-sm font-medium">{current.signal_title?.slice(0, 80) || "Decision"}</p>
-            <p className="text-xs text-muted-foreground">{current.domain} · Owner: {current.execution_owner || "—"}</p>
+            <p className="text-sm font-medium leading-snug">{current.signal_title?.slice(0, 80) || "Decision"}</p>
+            <p className="text-xs text-muted-foreground mt-1">{current.domain} · Owner: {current.execution_owner || "—"}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div>
-              <label className="text-[10px] text-muted-foreground">Impact (1–5)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Impact (1–5)</label>
               <Select value={impact} onValueChange={setImpact}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {[1,2,3,4,5].map(v => <SelectItem key={v} value={String(v)}>{v} — {["Negligible","Low","Moderate","High","Transformative"][v-1]}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-[10px] text-muted-foreground">Cost ($)</label>
-              <Input type="number" className="h-8 text-xs" value={cost} onChange={e => setCost(e.target.value)} />
+              <label className="text-xs text-muted-foreground mb-1 block">Cost ($)</label>
+              <Input type="number" className="h-9 text-xs" value={cost} onChange={e => setCost(e.target.value)} />
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] text-muted-foreground">Evidence Source</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Evidence Source</label>
             <Select value={source} onValueChange={setSource}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="internal_report">Internal Report</SelectItem>
                 <SelectItem value="partner_memo">Partner Memo</SelectItem>
@@ -141,17 +140,17 @@ export default function RapidOutcomeMode() {
           </div>
 
           <div className="flex gap-2 pt-1">
-            <Button className="flex-1 h-9 text-xs" disabled={record.isPending}
+            <Button className="flex-1 h-10 text-xs" disabled={record.isPending}
               onClick={() => record.mutate({ id: current.id, success: true })}>
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Success + Save
+              <CheckCircle2 className="h-4 w-4 mr-1.5" /> Success
             </Button>
-            <Button variant="destructive" className="flex-1 h-9 text-xs" disabled={record.isPending}
+            <Button variant="destructive" className="flex-1 h-10 text-xs" disabled={record.isPending}
               onClick={() => record.mutate({ id: current.id, success: false })}>
-              <XCircle className="h-3.5 w-3.5 mr-1" /> Failed + Save
+              <XCircle className="h-4 w-4 mr-1.5" /> Failed
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9" disabled={currentIdx >= queue.length - 1}
+            <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" disabled={currentIdx >= queue.length - 1}
               onClick={() => setCurrentIdx(i => Math.min(i + 1, queue.length - 1))}>
-              <SkipForward className="h-3.5 w-3.5" />
+              <SkipForward className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>

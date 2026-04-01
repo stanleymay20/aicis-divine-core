@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface OperatorRow {
   name: string;
@@ -51,37 +51,36 @@ export default function OperatorClosureScoreboard() {
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">Operator Closure</CardTitle>
+      <CardHeader className="pb-2 sm:pb-3">
+        <CardTitle className="text-sm sm:text-base font-semibold">Operator Closure</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Owner</TableHead>
-              <TableHead className="text-xs text-center">Assigned</TableHead>
-              <TableHead className="text-xs text-center">Completed</TableHead>
-              <TableHead className="text-xs text-center">Outcomes</TableHead>
-              <TableHead className="text-xs text-center">Measured</TableHead>
-              <TableHead className="text-xs text-center">Overdue</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {operators.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-4">No operators with assignments</TableCell></TableRow>
-            )}
-            {operators.map(op => (
-              <TableRow key={op.name}>
-                <TableCell className="text-xs font-medium truncate max-w-[120px]">{op.name}</TableCell>
-                <TableCell className="text-xs text-center font-mono">{op.assigned}</TableCell>
-                <TableCell className="text-xs text-center font-mono">{op.completed}</TableCell>
-                <TableCell className="text-xs text-center font-mono">{op.outcomes}</TableCell>
-                <TableCell className="text-xs text-center"><Badge variant={op.measured > 0 ? "default" : "secondary"} className="text-xs">{op.measured}</Badge></TableCell>
-                <TableCell className="text-xs text-center">{op.overdue > 0 ? <Badge variant="destructive" className="text-xs">{op.overdue}</Badge> : "—"}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ScrollArea className="max-h-[280px]">
+          {operators.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No operators with assignments</p>
+          ) : (
+            <div className="divide-y divide-border/30">
+              {operators.map(op => (
+                <div key={op.name} className="px-4 py-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium truncate">{op.name}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                      {op.assigned} assigned · {op.completed} completed · {op.outcomes} outcomes
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant={op.measured > 0 ? "default" : "secondary"} className="text-xs font-mono">
+                      {op.measured}
+                    </Badge>
+                    {op.overdue > 0 && (
+                      <Badge variant="destructive" className="text-xs font-mono">{op.overdue}</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );

@@ -46,29 +46,29 @@ export default function MeasuredEvidenceTodayPanel() {
   });
 
   const metrics = [
-    { label: "Measured Today", value: data?.measuredToday ?? 0 },
-    { label: "Measured 7d", value: data?.measured7d ?? 0 },
-    { label: "Total Measured", value: data?.totalMeasured ?? 0 },
-    { label: "Accepted→Measured", value: `${data?.acceptedToMeasured ?? 0}%` },
-    { label: "Completed→Measured", value: `${data?.completedToMeasured ?? 0}%` },
-    { label: "Training Rows Today", value: data?.trainingToday ?? 0 },
-    { label: "Proxy Overrides", value: data?.proxyOverrides ?? 0 },
+    { label: "Today", value: data?.measuredToday ?? 0, highlight: true },
+    { label: "Last 7d", value: data?.measured7d ?? 0, highlight: true },
+    { label: "All Time", value: data?.totalMeasured ?? 0 },
+    { label: "Accept→Meas", value: `${data?.acceptedToMeasured ?? 0}%` },
+    { label: "Comp→Meas", value: `${data?.completedToMeasured ?? 0}%` },
+    { label: "Training +", value: data?.trainingToday ?? 0 },
+    { label: "Overrides", value: data?.proxyOverrides ?? 0 },
   ];
 
   return (
     <Card className="border-border/50">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 sm:pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">Measured Evidence Today</CardTitle>
+          <CardTitle className="text-sm sm:text-base font-semibold">Measured Evidence</CardTitle>
           <Badge variant="outline" className="text-xs font-mono">{data?.totalMeasured ?? 0} total</Badge>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-2">
           {metrics.map(m => (
-            <div key={m.label} className="rounded-lg border border-border/30 p-2.5 text-center">
-              <p className="text-lg font-mono font-bold text-foreground">{m.value}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">{m.label}</p>
+            <div key={m.label} className={`rounded-lg border p-2 text-center ${m.highlight ? "border-primary/30 bg-primary/5" : "border-border/30"}`}>
+              <p className={`text-base sm:text-lg font-mono font-bold ${m.highlight ? "text-primary" : "text-foreground"}`}>{m.value}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">{m.label}</p>
             </div>
           ))}
         </div>
