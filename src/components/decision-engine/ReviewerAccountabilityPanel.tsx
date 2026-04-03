@@ -137,7 +137,7 @@ export default function ReviewerAccountabilityPanel() {
                 </span>
                 <span className="text-center">
                   {r.overdue > 0 ? (
-                    <Badge variant="destructive" className="text-[9px] h-4"><AlertTriangle className="h-2.5 w-2.5 mr-0.5" />{r.overdue}</Badge>
+                    <Badge variant="destructive" className="text-[10px] h-5"><AlertTriangle className="h-2.5 w-2.5 mr-0.5" />{r.overdue}</Badge>
                   ) : "—"}
                 </span>
                 <span className="text-center flex items-center justify-center gap-0.5 text-[10px]">
