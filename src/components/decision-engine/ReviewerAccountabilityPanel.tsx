@@ -109,7 +109,7 @@ export default function ReviewerAccountabilityPanel() {
           </div>
           <div className={`p-2 rounded ${totalOverdue > 0 ? "bg-destructive/10 border border-destructive/20" : "bg-muted/30"}`}>
             <p className={`text-sm font-bold ${totalOverdue > 0 ? "text-destructive" : ""}`}>{totalOverdue}</p>
-            <p className="text-[9px] text-muted-foreground">Total Overdue</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total Overdue</p>
           </div>
           <div className="p-2 rounded bg-muted/30">
             <p className="text-sm font-bold">{totalOverrides}</p>
