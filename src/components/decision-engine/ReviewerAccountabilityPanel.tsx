@@ -95,9 +95,9 @@ export default function ReviewerAccountabilityPanel() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-1.5">
+        <CardTitle className="text-sm flex items-center gap-1.5 flex-wrap">
           <UserCheck className="h-3.5 w-3.5 text-primary" /> Reviewer Accountability
-          {totalOverdue > 0 && <Badge variant="destructive" className="text-[9px] h-4">{totalOverdue} overdue</Badge>}
+          {totalOverdue > 0 && <Badge variant="destructive" className="text-[10px] h-5">{totalOverdue} overdue</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
