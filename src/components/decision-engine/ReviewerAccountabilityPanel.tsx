@@ -133,7 +133,7 @@ export default function ReviewerAccountabilityPanel() {
                 <span className="truncate font-medium">{r.reviewer}</span>
                 <span className="text-center">{r.assigned}</span>
                 <span className="text-center">
-                  {r.pending > 0 ? <Badge variant="outline" className="text-[9px] h-4">{r.pending}</Badge> : <CheckCircle className="h-3 w-3 text-primary mx-auto" />}
+                  {r.pending > 0 ? <Badge variant="outline" className="text-[10px] h-5">{r.pending}</Badge> : <CheckCircle className="h-3 w-3 text-primary mx-auto" />}
                 </span>
                 <span className="text-center">
                   {r.overdue > 0 ? (
