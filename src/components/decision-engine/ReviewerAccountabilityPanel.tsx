@@ -120,7 +120,7 @@ export default function ReviewerAccountabilityPanel() {
         {/* Reviewer table */}
         {reviewers.length > 0 && (
           <div className="space-y-1">
-            <div className="grid grid-cols-6 gap-1 text-[9px] text-muted-foreground font-medium px-2">
+            <div className="grid grid-cols-6 gap-1 text-[10px] sm:text-xs text-muted-foreground font-medium px-2">
               <span className="col-span-1">Reviewer</span>
               <span className="text-center">Assigned</span>
               <span className="text-center">Pending</span>
