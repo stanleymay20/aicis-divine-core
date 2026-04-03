@@ -95,9 +95,9 @@ export default function ReviewerAccountabilityPanel() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-1.5">
+        <CardTitle className="text-sm flex items-center gap-1.5 flex-wrap">
           <UserCheck className="h-3.5 w-3.5 text-primary" /> Reviewer Accountability
-          {totalOverdue > 0 && <Badge variant="destructive" className="text-[9px] h-4">{totalOverdue} overdue</Badge>}
+          {totalOverdue > 0 && <Badge variant="destructive" className="text-[10px] h-5">{totalOverdue} overdue</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -105,22 +105,22 @@ export default function ReviewerAccountabilityPanel() {
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="p-2 rounded bg-muted/30">
             <p className="text-sm font-bold">{reviewers.length}</p>
-            <p className="text-[9px] text-muted-foreground">Reviewers</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Reviewers</p>
           </div>
           <div className={`p-2 rounded ${totalOverdue > 0 ? "bg-destructive/10 border border-destructive/20" : "bg-muted/30"}`}>
             <p className={`text-sm font-bold ${totalOverdue > 0 ? "text-destructive" : ""}`}>{totalOverdue}</p>
-            <p className="text-[9px] text-muted-foreground">Total Overdue</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total Overdue</p>
           </div>
           <div className="p-2 rounded bg-muted/30">
             <p className="text-sm font-bold">{totalOverrides}</p>
-            <p className="text-[9px] text-muted-foreground">Total Overrides</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total Overrides</p>
           </div>
         </div>
 
         {/* Reviewer table */}
         {reviewers.length > 0 && (
           <div className="space-y-1">
-            <div className="grid grid-cols-6 gap-1 text-[9px] text-muted-foreground font-medium px-2">
+            <div className="grid grid-cols-6 gap-1 text-[10px] sm:text-xs text-muted-foreground font-medium px-2">
               <span className="col-span-1">Reviewer</span>
               <span className="text-center">Assigned</span>
               <span className="text-center">Pending</span>
@@ -133,11 +133,11 @@ export default function ReviewerAccountabilityPanel() {
                 <span className="truncate font-medium">{r.reviewer}</span>
                 <span className="text-center">{r.assigned}</span>
                 <span className="text-center">
-                  {r.pending > 0 ? <Badge variant="outline" className="text-[9px] h-4">{r.pending}</Badge> : <CheckCircle className="h-3 w-3 text-primary mx-auto" />}
+                  {r.pending > 0 ? <Badge variant="outline" className="text-[10px] h-5">{r.pending}</Badge> : <CheckCircle className="h-3 w-3 text-primary mx-auto" />}
                 </span>
                 <span className="text-center">
                   {r.overdue > 0 ? (
-                    <Badge variant="destructive" className="text-[9px] h-4"><AlertTriangle className="h-2.5 w-2.5 mr-0.5" />{r.overdue}</Badge>
+                    <Badge variant="destructive" className="text-[10px] h-5"><AlertTriangle className="h-2.5 w-2.5 mr-0.5" />{r.overdue}</Badge>
                   ) : "—"}
                 </span>
                 <span className="text-center flex items-center justify-center gap-0.5 text-[10px]">
@@ -145,7 +145,7 @@ export default function ReviewerAccountabilityPanel() {
                 </span>
                 <span className="text-center">
                   {r.overrideCount > 0 ? (
-                    <Badge variant="outline" className="text-[9px] h-4 border-destructive/50">{r.overrideCount}</Badge>
+                    <Badge variant="outline" className="text-[10px] h-5 border-destructive/50">{r.overrideCount}</Badge>
                   ) : "—"}
                 </span>
               </div>
@@ -156,12 +156,12 @@ export default function ReviewerAccountabilityPanel() {
         {/* Discrepancies */}
         {discrepancies.length > 0 && (
           <div>
-            <p className="text-[10px] font-medium text-destructive mb-1 flex items-center gap-1">
+            <p className="text-xs font-medium text-destructive mb-1 flex items-center gap-1">
               <ShieldAlert className="h-3 w-3" /> Governance Discrepancies ({discrepancies.length})
             </p>
             {discrepancies.map((d: any) => (
-              <div key={d.id} className="text-[10px] p-1.5 rounded bg-destructive/5 border border-destructive/20 mb-1">
-                <Badge variant="outline" className="text-[8px] h-3.5 mr-1">{d.discrepancy_type}</Badge>
+              <div key={d.id} className="text-xs p-1.5 rounded bg-destructive/5 border border-destructive/20 mb-1">
+                <Badge variant="outline" className="text-[10px] h-4 mr-1">{d.discrepancy_type}</Badge>
                 <span className="text-muted-foreground">{d.description}</span>
               </div>
             ))}

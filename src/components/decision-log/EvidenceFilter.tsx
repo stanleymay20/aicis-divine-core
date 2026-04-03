@@ -28,7 +28,7 @@ const EvidenceFilter = ({ activeFilter, onFilterChange, counts }: EvidenceFilter
       >
         {Icon && <Icon className="h-3 w-3" />}
         {label}
-        <Badge variant="secondary" className="text-[9px] px-1.5 py-0 ml-1 h-4">
+        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1 h-5">
           {counts[key as keyof typeof counts]}
         </Badge>
       </button>

@@ -55,9 +55,11 @@ export default function InferenceActivityPanel() {
   return (
     <Card className={noActivity ? "border-destructive/30" : ""}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-1.5">
-          <Activity className="h-3.5 w-3.5 text-primary" /> Inference Activity & Evidence Funnel
-          {noActivity && <Badge variant="destructive" className="text-[9px] h-4">No recent activity</Badge>}
+        <CardTitle className="text-sm flex items-center gap-1.5 flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5 text-primary" /> Inference Activity & Evidence Funnel
+          </span>
+          {noActivity && <Badge variant="destructive" className="text-[10px] h-5 shrink-0">No recent activity</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
