@@ -160,8 +160,8 @@ export default function ReviewerAccountabilityPanel() {
               <ShieldAlert className="h-3 w-3" /> Governance Discrepancies ({discrepancies.length})
             </p>
             {discrepancies.map((d: any) => (
-              <div key={d.id} className="text-[10px] p-1.5 rounded bg-destructive/5 border border-destructive/20 mb-1">
-                <Badge variant="outline" className="text-[8px] h-3.5 mr-1">{d.discrepancy_type}</Badge>
+              <div key={d.id} className="text-xs p-1.5 rounded bg-destructive/5 border border-destructive/20 mb-1">
+                <Badge variant="outline" className="text-[10px] h-4 mr-1">{d.discrepancy_type}</Badge>
                 <span className="text-muted-foreground">{d.description}</span>
               </div>
             ))}
