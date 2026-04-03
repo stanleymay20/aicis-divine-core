@@ -113,7 +113,7 @@ export default function ReviewerAccountabilityPanel() {
           </div>
           <div className="p-2 rounded bg-muted/30">
             <p className="text-sm font-bold">{totalOverrides}</p>
-            <p className="text-[9px] text-muted-foreground">Total Overrides</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total Overrides</p>
           </div>
         </div>
 
