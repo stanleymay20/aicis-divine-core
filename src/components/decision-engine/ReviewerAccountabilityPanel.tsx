@@ -156,7 +156,7 @@ export default function ReviewerAccountabilityPanel() {
         {/* Discrepancies */}
         {discrepancies.length > 0 && (
           <div>
-            <p className="text-[10px] font-medium text-destructive mb-1 flex items-center gap-1">
+            <p className="text-xs font-medium text-destructive mb-1 flex items-center gap-1">
               <ShieldAlert className="h-3 w-3" /> Governance Discrepancies ({discrepancies.length})
             </p>
             {discrepancies.map((d: any) => (
