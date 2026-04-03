@@ -145,7 +145,7 @@ export default function ReviewerAccountabilityPanel() {
                 </span>
                 <span className="text-center">
                   {r.overrideCount > 0 ? (
-                    <Badge variant="outline" className="text-[9px] h-4 border-destructive/50">{r.overrideCount}</Badge>
+                    <Badge variant="outline" className="text-[10px] h-5 border-destructive/50">{r.overrideCount}</Badge>
                   ) : "—"}
                 </span>
               </div>
