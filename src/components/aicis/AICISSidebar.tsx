@@ -33,7 +33,7 @@ const navGroups = [
     label: "Core",
     items: [
       { id: "brief", label: "Brief", icon: Sunrise, path: "/morning-brief" },
-      { id: "overview", label: "Decisions", icon: MessageSquare, path: "/" },
+      { id: "decisions", label: "Decisions", icon: MessageSquare, path: "/decisions" },
     ],
   },
   {

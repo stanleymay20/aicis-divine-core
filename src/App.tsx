@@ -60,6 +60,7 @@ const EvidenceCommand = lazy(() => import("./pages/EvidenceCommand"));
 const SystemStatus = lazy(() => import("./pages/SystemStatus"));
 const MorningBrief = lazy(() => import("./pages/MorningBrief"));
 const DailyEvidenceOps = lazy(() => import("./pages/DailyEvidenceOps"));
+const Decisions = lazy(() => import("./pages/Decisions"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
@@ -96,6 +97,7 @@ const App = () => (
           <IntelligenceMemoryProvider>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/decisions" element={<Lazy><Decisions /></Lazy>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<Lazy><Onboarding /></Lazy>} />
               <Route path="/citizen-portal" element={<Lazy><CitizenPortal /></Lazy>} />
