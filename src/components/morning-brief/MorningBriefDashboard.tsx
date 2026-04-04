@@ -95,6 +95,9 @@ export const MorningBriefDashboard = () => {
         />
       </div>
 
+      {/* Global Signals */}
+      <GlobalSignalsBrief />
+
       {/* Top 5 Risks */}
       <TopRisksWidget />
 
