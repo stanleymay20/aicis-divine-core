@@ -50,7 +50,7 @@ export function useGlobalSignals(options?: {
         .limit(options?.limit || 50);
 
       if (options?.category) {
-        query = query.eq("category", options.category);
+        query = query.eq("category", options.category as any);
       }
       if (options?.minImpact) {
         query = query.gte("impact_score", options.minImpact);
