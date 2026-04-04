@@ -34,6 +34,7 @@ const navGroups = [
     label: "Core",
     items: [
       { id: "brief", label: "Brief", icon: Sunrise, path: "/morning-brief" },
+      { id: "live", label: "Live", icon: Radio, path: "/live" },
       { id: "decisions", label: "Decisions", icon: MessageSquare, path: "/decisions" },
     ],
   },
