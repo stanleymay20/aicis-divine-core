@@ -251,7 +251,9 @@ Only return the JSON array, no markdown.`
       });
 
       await supabase.from("decision_outcome_log").insert({
-        decision_title: `[SIGNAL] ${signal.title}`,
+        signal_title: `[SIGNAL] ${signal.title}`,
+        signal_id: signal.id,
+        signal_date: new Date().toISOString().split("T")[0],
         domain: signal.category === "public_health" ? "health" :
                 signal.category === "defense_conflict" ? "security" :
                 signal.category === "economic" || signal.category === "financial_markets" ? "economy" :
@@ -259,10 +261,7 @@ Only return the JSON array, no markdown.`
                 signal.category === "climate_disaster" ? "food" :
                 "governance",
         action_taken: false,
-        signal_source: "global_signal_engine",
-        signal_id: signal.id,
         evidence_type: "hypothetical",
-        acceptance_status: "pending",
       });
       decisionsCreated++;
     }
