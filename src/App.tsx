@@ -61,6 +61,7 @@ const SystemStatus = lazy(() => import("./pages/SystemStatus"));
 const MorningBrief = lazy(() => import("./pages/MorningBrief"));
 const DailyEvidenceOps = lazy(() => import("./pages/DailyEvidenceOps"));
 const Decisions = lazy(() => import("./pages/Decisions"));
+const LiveCommandFeed = lazy(() => import("./pages/LiveCommandFeed"));
 
 const LazyFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
