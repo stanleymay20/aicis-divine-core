@@ -19,6 +19,7 @@ import {
   X,
   Sunrise,
   Gauge,
+  Radio,
 } from "lucide-react";
 
 interface SidebarProps {
