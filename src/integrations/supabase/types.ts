@@ -4014,6 +4014,123 @@ export type Database = {
         }
         Relationships: []
       }
+      global_signals: {
+        Row: {
+          affected_countries: string[] | null
+          affected_regions: string[] | null
+          affected_sectors: string[] | null
+          affected_stakeholders: string[] | null
+          audience_framing: Json | null
+          category: Database["public"]["Enums"]["signal_category"]
+          classification_time_ms: number | null
+          confidence_score: number
+          created_at: string
+          decision_candidates: Json | null
+          dedup_key: string | null
+          evidence_hash: string | null
+          first_detected_at: string
+          id: string
+          impact_reasoning: string | null
+          impact_score: number
+          ingestion_source: string | null
+          latest_update_at: string
+          likely_consequences: string | null
+          misinformation_risk: number | null
+          model_version: string | null
+          normalized_summary: string | null
+          occurred_at: string | null
+          primary_source: string | null
+          recommended_actions: Json | null
+          routing_targets: string[] | null
+          source_count: number
+          source_references: Json | null
+          status: Database["public"]["Enums"]["signal_status"]
+          strategic_implications: string | null
+          subcategory: string | null
+          summary: string
+          title: string
+          uncertainty_notes: string | null
+          updated_at: string
+          urgency_score: number
+        }
+        Insert: {
+          affected_countries?: string[] | null
+          affected_regions?: string[] | null
+          affected_sectors?: string[] | null
+          affected_stakeholders?: string[] | null
+          audience_framing?: Json | null
+          category: Database["public"]["Enums"]["signal_category"]
+          classification_time_ms?: number | null
+          confidence_score?: number
+          created_at?: string
+          decision_candidates?: Json | null
+          dedup_key?: string | null
+          evidence_hash?: string | null
+          first_detected_at?: string
+          id?: string
+          impact_reasoning?: string | null
+          impact_score?: number
+          ingestion_source?: string | null
+          latest_update_at?: string
+          likely_consequences?: string | null
+          misinformation_risk?: number | null
+          model_version?: string | null
+          normalized_summary?: string | null
+          occurred_at?: string | null
+          primary_source?: string | null
+          recommended_actions?: Json | null
+          routing_targets?: string[] | null
+          source_count?: number
+          source_references?: Json | null
+          status?: Database["public"]["Enums"]["signal_status"]
+          strategic_implications?: string | null
+          subcategory?: string | null
+          summary: string
+          title: string
+          uncertainty_notes?: string | null
+          updated_at?: string
+          urgency_score?: number
+        }
+        Update: {
+          affected_countries?: string[] | null
+          affected_regions?: string[] | null
+          affected_sectors?: string[] | null
+          affected_stakeholders?: string[] | null
+          audience_framing?: Json | null
+          category?: Database["public"]["Enums"]["signal_category"]
+          classification_time_ms?: number | null
+          confidence_score?: number
+          created_at?: string
+          decision_candidates?: Json | null
+          dedup_key?: string | null
+          evidence_hash?: string | null
+          first_detected_at?: string
+          id?: string
+          impact_reasoning?: string | null
+          impact_score?: number
+          ingestion_source?: string | null
+          latest_update_at?: string
+          likely_consequences?: string | null
+          misinformation_risk?: number | null
+          model_version?: string | null
+          normalized_summary?: string | null
+          occurred_at?: string | null
+          primary_source?: string | null
+          recommended_actions?: Json | null
+          routing_targets?: string[] | null
+          source_count?: number
+          source_references?: Json | null
+          status?: Database["public"]["Enums"]["signal_status"]
+          strategic_implications?: string | null
+          subcategory?: string | null
+          summary?: string
+          title?: string
+          uncertainty_notes?: string | null
+          updated_at?: string
+          urgency_score?: number
+        }
+        Relationships: []
+      }
       gov_policies: {
         Row: {
           compliance_level: string | null
@@ -8226,6 +8343,28 @@ export type Database = {
         | "compliance"
       log_level: "info" | "warning" | "error" | "critical" | "success"
       org_type: "government" | "ngo" | "agency" | "academic" | "private"
+      signal_category:
+        | "geopolitical"
+        | "economic"
+        | "financial_markets"
+        | "central_banking"
+        | "public_health"
+        | "climate_disaster"
+        | "energy"
+        | "technology"
+        | "cybersecurity"
+        | "defense_conflict"
+        | "legal_regulatory"
+        | "supply_chain"
+        | "elections"
+        | "social_unrest"
+        | "infrastructure"
+      signal_status:
+        | "new"
+        | "developing"
+        | "confirmed"
+        | "resolved"
+        | "watchlist"
       stability_status:
         | "stable"
         | "fluctuating"
@@ -8398,6 +8537,30 @@ export const Constants = {
       ],
       log_level: ["info", "warning", "error", "critical", "success"],
       org_type: ["government", "ngo", "agency", "academic", "private"],
+      signal_category: [
+        "geopolitical",
+        "economic",
+        "financial_markets",
+        "central_banking",
+        "public_health",
+        "climate_disaster",
+        "energy",
+        "technology",
+        "cybersecurity",
+        "defense_conflict",
+        "legal_regulatory",
+        "supply_chain",
+        "elections",
+        "social_unrest",
+        "infrastructure",
+      ],
+      signal_status: [
+        "new",
+        "developing",
+        "confirmed",
+        "resolved",
+        "watchlist",
+      ],
       stability_status: [
         "stable",
         "fluctuating",

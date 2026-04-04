@@ -19,6 +19,7 @@ import {
   X,
   Sunrise,
   Gauge,
+  Radio,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -33,6 +34,7 @@ const navGroups = [
     label: "Core",
     items: [
       { id: "brief", label: "Brief", icon: Sunrise, path: "/morning-brief" },
+      { id: "live", label: "Live", icon: Radio, path: "/live" },
       { id: "decisions", label: "Decisions", icon: MessageSquare, path: "/decisions" },
     ],
   },

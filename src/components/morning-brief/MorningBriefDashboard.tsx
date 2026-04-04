@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { TopRisksWidget } from "./TopRisksWidget";
 import { OvernightChanges } from "./OvernightChanges";
 import { SystemPulse } from "./SystemPulse";
+import { GlobalSignalsBrief } from "./GlobalSignalsBrief";
 
 export const MorningBriefDashboard = () => {
   const today = format(new Date(), "yyyy-MM-dd");
@@ -93,6 +94,9 @@ export const MorningBriefDashboard = () => {
           sub={`${todayHealth?.measured_outcomes ?? 0} measured`}
         />
       </div>
+
+      {/* Global Signals */}
+      <GlobalSignalsBrief />
 
       {/* Top 5 Risks */}
       <TopRisksWidget />
